@@ -20,6 +20,19 @@ tunnel:
 down:
 	docker compose --profile '*' down
 
+# 開発ツール
+
+# フォーマットを自動修正する（lint はファイルを書き換えないため、修正はこちらで行う）
+.PHONY: fmt
+fmt:
+	docker compose exec game pnpm format
+
+# biome check（lint + フォーマット違反の検出。ファイルは書き換えない）と型チェック
+.PHONY: lint
+lint:
+	docker compose exec game pnpm lint
+	docker compose exec game pnpm exec tsc --noEmit
+
 # テスト
 
 .PHONY: test

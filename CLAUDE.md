@@ -1,8 +1,10 @@
 # コマンド
 
-- `make up` / `make down` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel）
+- `make up` / `make down` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel）
 - pnpm・node はコンテナ内で実行する（例: `docker compose exec game pnpm lint`）。node_modules はコンテナの pnpm が作り、ホストと共有する
-- lint / format は biome（`pnpm lint` / `pnpm format`）
+- lint は `make lint`（biome check と tsc）でファイルを書き換えない。フォーマットの修正は `make fmt`（biome format --write）
+- pnpm のバージョンを上げるときは package.json の `packageManager` と local/game/Dockerfile の `PNPM_VERSION` を揃える（corepack は使わない）
+- React Compiler を有効にしている（next.config.ts の `reactCompiler`）。useMemo / useCallback による手動メモ化は原則書かない
 
 # ディレクトリ構成
 

@@ -7,7 +7,7 @@ services:
     volumes:
       # node_modules もホストと共有し、ホストの VSCode（型補完・biome）から使えるようにする
       - ./:/home/node/app
-      # pnpm 本体のキャッシュ。down しても残す
+      # pnpm のキャッシュ（メタデータ・パッケージ）。down しても残す
       - node-cache:/home/node/.cache
     # ホストには公開せず、game-envoy 経由でアクセスする
     command: ["sh", "-c", "pnpm install --frozen-lockfile && exec pnpm dev --hostname 0.0.0.0"]

@@ -13,6 +13,8 @@ Node.js・pnpm はコンテナ内で動くため、ホストへのインスト�
 
 ```bash
 make up      # 開発サーバー（Next.js）・envoy・Playwright のブラウザを起動
+make fmt     # biome でフォーマットを修正
+make lint    # biome check と型チェック
 make test    # Playwright でトップページが表示されることを確認
 make tunnel  # （任意）Cloudflare Quick Tunnel を起動し、外部公開用 URL を表示
 make down    # tunnel を含めて停止
