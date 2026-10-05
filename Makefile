@@ -31,7 +31,7 @@ fmt:
 .PHONY: lint
 lint:
 	docker compose exec game pnpm lint
-	docker compose exec game pnpm exec tsc --noEmit
+	docker compose exec game pnpm typecheck
 
 # テスト
 
