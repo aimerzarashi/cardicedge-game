@@ -21,7 +21,7 @@ make lint    # biome check と型チェック
 make test    # 専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
 make tunnel  # （任意）Cloudflare Quick Tunnel を起動し、外部公開用 URL を表示
 make url     # （任意）起動中の Tunnel の URL を再表示
-make down    # game を停止（tunnel を含む。core は cms も使うため止めない）
+make down    # game を停止（tunnel を含む。core は studio も使うため止めない）
 ```
 
 http://localhost:3000 で開く（envoy 経由。Next.js の開発サーバーはホストに公開していない）。
@@ -36,7 +36,7 @@ Playwright のブラウザ ┘                      └─▶ core:3333（/game/
 ```
 
 game と game-envoy は共有ネットワーク `diecardomain` に参加し、core（../core で `make up`）に接続する。
-core は game / cms で1つを共有する。core が兄弟ディレクトリ（../core）に clone されている前提。
+core は game / studio で1つを共有する。core が兄弟ディレクトリ（../core）に clone されている前提。
 
 ### テスト用環境（compose.test.yaml）
 

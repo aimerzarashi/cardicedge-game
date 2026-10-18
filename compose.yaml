@@ -78,7 +78,7 @@ services:
 volumes:
   node-cache:
 
-# core / cms と共有するネットワーク（core の make up で作成される）
+# core / studio と共有するネットワーク（core の make up で作成される）
 networks:
   diecardomain:
     external: true
