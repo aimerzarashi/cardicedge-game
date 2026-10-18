@@ -25,7 +25,7 @@ url:
 	done; \
 	echo "tunnel URL not found within 30s. see: docker compose logs game-tunnel" >&2; exit 1
 
-# tunnel を含む game の全サービスを停止する（core は cms も使うため止めない）。pnpm のキャッシュ用ボリュームは残す（消すときは down -v）
+# tunnel を含む game の全サービスを停止する（core は studio も使うため止めない）。pnpm のキャッシュ用ボリュームは残す（消すときは down -v）
 .PHONY: down
 down:
 	docker compose --profile '*' down
