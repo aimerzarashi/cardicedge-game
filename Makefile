@@ -1,6 +1,7 @@
-# game が前提にする core の版。make test（テスト用の core）で使う。
+# game が前提にする core の版。make gen-api（スキーマの取り出し）と make test（テスト用の core）で使う。
+# 上げるときは make gen-api をやり直し、graphql/ の差分と一緒にコミットする（game#7）。
 # マイルストーンの途中で、まだリリースしていない core を使うときは、make core-local で手元の ../core から作った
-# diecardomain/core:local・core-migrate:local を make test CORE_VERSION=local のように引数で渡す（ここを local にしない。コミットした Makefile が、
+# diecardomain/core:local・core-migrate:local を make gen-api CORE_VERSION=local・make test CORE_VERSION=local のように引数で渡す（ここを local にしない。コミットした Makefile が、
 # 手元にしか無いイメージを指さないようにするため。studio#23）
 CORE_VERSION := v0.13.0
 
@@ -82,6 +83,14 @@ lint:
 core-local:
 	docker build --pull --build-arg BUILD_VERSION=local -t diecardomain/core:local -f ../core/.build/Dockerfile ../core
 	docker build --pull -t diecardomain/core-migrate:local -f ../core/local/migrate/Dockerfile ../core
+
+# 前提にする版の core のイメージから game 用 GraphQL のスキーマを取り出し（core#22）、それを読んで型を生成する。
+# 生成物（graphql/）はコミットする（CI に core が無くても、ビルドと型の検査が通るように）
+.PHONY: gen-api
+gen-api:
+	mkdir -p graphql
+	docker run --rm diecardomain/core:$(CORE_VERSION) schema game > graphql/schema.graphql.tmp && mv graphql/schema.graphql.tmp graphql/schema.graphql
+	docker compose exec game pnpm codegen
 
 # テスト
 
