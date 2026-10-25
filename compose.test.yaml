@@ -34,10 +34,10 @@ services:
     depends_on:
       core-migrate-studio:
         condition: service_completed_successfully
-      core-migrate-game:
+      core-publish-master:
         condition: service_completed_successfully
 
-  # studio 用・game 用の DB に、同じマイグレーションを流す（core#33。前提の版の core では core_game は使われない）
+  # studio 用・game 用の DB に、同じマイグレーションを流す（core#33。game が使うのは core_game）
   core-migrate-studio:
     image: diecardomain/core-migrate:${CORE_VERSION:?make test から CORE_VERSION を渡す}
     environment:
@@ -53,6 +53,22 @@ services:
     depends_on:
       core-db:
         condition: service_healthy
+
+  # core_game にマスタを入れる使い捨てのサービス。本番では core の make publish-master が studio の read model から写す
+  # が、game のテストには studio が無いため、同じ形の行を SQL で入れる（local/core-master/master.sql）。
+  # core の起動の前に入れるのは、スターターの配布が、マスタがそろってから始まる前提で確かめるため（登録の後にマスタが
+  # 入る順は core 側のテストで確かめている）。ここでは migrations が作る表に行を入れるだけで、DB・ロールは作らない
+  core-publish-master:
+    image: postgres:18.6
+    environment:
+      PGPASSWORD: core_password
+    volumes:
+      - ./local/core-master:/sql:ro
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-h", "core-db", "-U", "core_user", "-d", "core_game", "-f", "/sql/master.sql"]
+    restart: "no"
+    depends_on:
+      core-migrate-game:
+        condition: service_completed_successfully
 
   core-db:
     image: postgres:18.6

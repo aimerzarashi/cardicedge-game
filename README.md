@@ -1,6 +1,6 @@
 # game
 
-カルドセプト風ブラウザゲームのゲーム UI（Next.js）。プレイヤーがアカウントを作ってログインする。
+カルドセプト風ブラウザゲームのゲーム UI（Next.js）。プレイヤーがアカウントを作ってログインし、core に登録されてスターターを受け取る。
 
 ## 必要なもの
 
@@ -21,6 +21,8 @@ make lint    # biome check・型チェック・migrations の検査・better-aut
 make test    # 専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
 make tunnel  # （任意）Cloudflare Quick Tunnel を起動し、外部公開用 URL を表示
 make url     # （任意）起動中の Tunnel の URL を再表示
+make core-local # 手元の ../core から core・core-migrate のイメージを local の版で作る
+make gen-api # 前提にする版の core のイメージから game 用のスキーマを取り出し、型を生成（graphql/）
 make migrate # 未適用の migrations だけを Atlas で適用（DB を作り直さない）
 make migrate-generate NAME=<name> # better-auth の設定と DB の差分 SQL を次の番号で生成
 make migrate-hash # migrations を手で足したら atlas.sum を作り直す
@@ -46,13 +48,14 @@ core・studio から game に envoy を通らずに直接届くと、`x-client-i
 - core から game（JWKS 等）を呼ぶときも、game-envoy（`http://game-envoy:10000/api/auth/jwks`）を通す
 
 core は game / studio で1つを共有する。core が兄弟ディレクトリ（../core）に clone されている前提。
-game が前提にする core の版は Makefile の `CORE_VERSION` に書く。マイルストーンの途中で、まだリリースしていない core を使うときは、手元の ../core から `diecardomain/core:local`・`core-migrate:local` を作り、`make test CORE_VERSION=local` で使う（Makefile の `CORE_VERSION` は local にしない。作り方は CLAUDE.md）。
+game が前提にする core の版は Makefile の `CORE_VERSION` に書く。マイルストーンの途中で、まだリリースしていない core を使うときは、手元の ../core から `diecardomain/core:local`・`core-migrate:local` を作り、`make gen-api CORE_VERSION=local`・`make test CORE_VERSION=local` で使う（Makefile の `CORE_VERSION` は local にしない。作り方は CLAUDE.md）。
 
 ### テスト用環境（compose.test.yaml）
 
 `make test` はプロジェクト名 `game-test` で、専用の core・DB（`CORE_VERSION` のイメージ）と本番用イメージ（`.build/Dockerfile`）の game を起動し、終了後に破棄する。テストは開発用イメージの game-test-runner から実行する。
 開発用の環境とはコンテナ・ネットワーク・DB が別で、ホストにポートも公開しないため、開発用を起動したままでも実行できる。
 core の DB は、core#33 の後の core と同じく studio 用・game 用の 2 つ（core_studio・core_game。core_game は local/core-db の初期化の SQL で作る）にし、前提の版（DB が 1 つの core）でも動くよう `DB_DSN` も渡している。
+スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules を入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
 
 ### Tunnel（任意）
 
@@ -97,7 +100,7 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 - 登録済みのアドレスでサインアップしても同じ表示になり、メールは送られない（登録の有無を探られないため）
 - メールアドレスの変更（`changeEmail`）は無効のまま（既定）。変えられると、確認済みのメールアドレスという前提が崩れるため
 - パスワードを設定し直すと、その人のセッションはすべて無効になる。登録されていないアドレスでも同じ表示になり、メールは送られない
-- core へのプレイヤーの登録は別の Issue で入れる。登録前のプレイヤーが core の `me` を呼ぶと `PlayerNotRegisteredError` が返る
+- core へのプレイヤーの登録は、トップを開いたときに `lib/player.ts` が行う（`me` が `PlayerNotRegisteredError` なら `registerPlayer` を呼んで読み直す）。登録前のプレイヤーが core の `me` を呼ぶと `PlayerNotRegisteredError` が返る
 
 ### メール
 

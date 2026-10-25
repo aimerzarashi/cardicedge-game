@@ -1,0 +1,173 @@
+"""
+プレイヤーのアバター。ほかのプレイヤーにも見える名前を持つ
+"""
+type Avatar {
+	"""
+	アバターの公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前（前後の空白を除いた値。同じプレイヤーの中では一意（全角・半角、大文字・小文字の違いを同じとみなして比べる）。ほかのプレイヤーとは同じ名前でよい）
+	"""
+	name: String!
+}
+"""
+プレイヤーが持てるアバターの数の上限に達している（操作は行われていない）
+"""
+type AvatarLimitReachedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+	"""
+	上限の数（画面が「N 体まで」と出せるよう、game は上限の値を書き写さずここから受け取る。値は game_rules の player.max_avatars）
+	"""
+	max: Int!
+}
+"""
+同じプレイヤーの別のアバターが同じ名前を使っている（操作は行われていない）。ほかのプレイヤーとは同じ名前でよい
+"""
+type AvatarNameAlreadyInUseError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+入力の項目ごとの誤り。理由は __typename で見分ける
+"""
+interface FieldError {
+	"""
+	誤りのある入力の項目（GraphQL の引数・入力の項目名と同じ。入れ子の入力は filter.nameContains、一覧の中は cards.0.cardId のように . でつなぐ）
+	"""
+	field: String!
+}
+"""
+入力が空（前後の空白だけの場合を含む）
+"""
+type FieldRequired implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+}
+"""
+入力が長すぎる
+"""
+type FieldTooLong implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	上限の文字数
+	"""
+	max: Int!
+}
+"""
+me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError
+"""
+union MeResult = Player | PlayerNotRegisteredError
+type Mutation {
+	"""
+	ログイン中のプレイヤーのアバターを作る。上限の数は AvatarLimitReachedError の max で返す
+	"""
+	registerAvatar(input: RegisterAvatarInput!): RegisterAvatarResult!
+	"""
+	JWT の (iss, sub) のプレイヤーを登録する。何度呼んでも、プレイヤーは 1 人だけで、登録済みでも同じ形（同じ id）で返す。game は me が PlayerNotRegisteredError のときに呼ぶ
+	"""
+	registerPlayer: RegisterPlayerResult!
+}
+"""
+プレイヤー。JWT の (iss, sub) に 1 人だけ紐づく
+"""
+type Player {
+	"""
+	プレイヤーの公開用の ID
+	"""
+	id: UUID!
+	"""
+	スターターの配布の状態。行がまだ無い・配布が始まっていないときも IN_PROGRESS で、画面にとっては「まだ届いていない」と同じ
+	"""
+	starterGrant: StarterGrantStatus!
+	"""
+	このプレイヤーのアバター（作った順。上限があるので、ページ分けしないリスト）
+	"""
+	avatars: [Avatar!]!
+}
+"""
+JWT の (iss, sub) のプレイヤーが、まだ登録されていない。game は registerPlayer を呼んでから、me を呼び直す
+"""
+type PlayerNotRegisteredError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+type Query {
+	"""
+	ログイン中のプレイヤー（JWT の (iss, sub) に登録済みのプレイヤー）を返す。未登録なら PlayerNotRegisteredError
+	"""
+	me: MeResult!
+}
+"""
+アバターを作る入力
+"""
+input RegisterAvatarInput {
+	"""
+	名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す）
+	"""
+	name: String!
+}
+"""
+registerAvatar の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union RegisterAvatarResult = RegisterAvatarSuccess | ValidationErrors | AvatarNameAlreadyInUseError | AvatarLimitReachedError | PlayerNotRegisteredError
+"""
+アバターを作った
+"""
+type RegisterAvatarSuccess {
+	"""
+	作ったアバター
+	"""
+	avatar: Avatar!
+}
+"""
+registerPlayer の結果
+"""
+union RegisterPlayerResult = RegisterPlayerSuccess
+"""
+プレイヤーを登録した（登録済みだったときも同じ形で、そのプレイヤーを返す）
+"""
+type RegisterPlayerSuccess {
+	"""
+	登録したプレイヤー。すでに登録済みなら、そのプレイヤー（新しく作らない）
+	"""
+	player: Player!
+}
+"""
+スターターの配布の状態
+"""
+enum StarterGrantStatus {
+	"""
+	まだ届いていない（登録の直後で配布が始まっていない・配っている途中を含む）
+	"""
+	IN_PROGRESS
+	"""
+	所持カードとデッキがそろった
+	"""
+	COMPLETED
+}
+"""
+公開用の ID（UUID の文字列）。core の内部の ID は返さない
+"""
+scalar UUID
+"""
+入力の誤り（操作は行われていない）
+"""
+type ValidationErrors {
+	"""
+	項目ごとの誤り（1 件以上）
+	"""
+	errors: [FieldError!]!
+}

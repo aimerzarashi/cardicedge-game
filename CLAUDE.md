@@ -1,6 +1,6 @@
 # コマンド
 
-- `make up` / `make down` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
+- `make up` / `make down` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make gen-api` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
 - `make up` は先に `../core` の `make up` を実行する。`make down` は game だけを止める（core は止めない）
 - pnpm・node はコンテナ内で実行する（例: `docker compose exec game pnpm lint`）。node_modules はコンテナの pnpm が作り、ホストと共有する
 - lint は `make lint`（biome check、`pnpm typecheck`、scripts/check-migrations.sh、scripts/check-auth-schema.sh）でファイルを書き換えない。typecheck は `next typegen` で Next.js の型（LayoutProps 等）を生成してから tsc を実行する。フォーマットの修正は `make fmt`（biome format --write）
@@ -11,9 +11,13 @@
 
 | パス | 責務 |
 |---|---|
-| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示とログアウト）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
+| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示・スターターの受け取りの状態・ログアウト）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
 | lib/auth.ts | better-auth の設定（サーバー側）。公式どおり `export const auth = betterAuth(...)`。CLI もこれを読む |
 | lib/auth-client.ts | better-auth のクライアント |
+| lib/core.ts | core の GraphQL を呼ぶ道具（`callCore`。JWT は `auth.api.getToken`。core に届かないときは `{ ok: false, reason: "unavailable" }` を返し、401 はログイン画面へ。studio の lib/core.ts と同じ形） |
+| lib/player.ts | ログイン中のプレイヤーを確かめる `currentPlayer`（`me` を呼び、未登録なら `registerPlayer` を呼んで読み直す。React の `cache` で 1 リクエストの中は使い回す）。プレイヤーの情報を出すページだけで呼び、ログイン等の core を使わないページでは呼ばない |
+| graphql | `make gen-api` が作る生成物（core から取り出したスキーマ `schema.graphql` と graphql-codegen の型）。手で直さない。コミットする（CI に core が無くても型の検査が通るように） |
+| codegen.ts・.graphqlrc.yaml | graphql-codegen の設定と、VSCode の GraphQL の拡張の設定（studio と同じ） |
 | lib/mail.ts | SMTP でのメール送信（`sendMail`） |
 | lib/use-hydrated.ts | フォームをハイドレーションの後まで送信させないための印（better-auth のクライアントを呼ぶ認証の画面で使う） |
 | proxy.ts | 未ログインのときにログイン画面へ移す（Next.js 16 の proxy。Cookie の有無だけを見る） |
@@ -26,6 +30,7 @@
 | local/game | 開発用 Dockerfile |
 | .build | 本番用 Dockerfile（standalone 出力を node で動かす。テスト用環境・CI でも使う） |
 | local/core-db | テスト用の環境（compose.test.yaml）の core-db の初期化（core_game を作る。core のものを使わないのは、../core のブランチしだいで中身が変わるため） |
+| local/core-master | テスト用の環境（compose.test.yaml）の core_game に入れるマスタの SQL（`master.sql`） |
 | local/envoy | envoy の設定（開発環境・テスト用の環境の入口。relay-listener.yaml はテスト用の環境だけの中継役用の入口） |
 
 # 入口（envoy）
@@ -64,8 +69,8 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 - core と共有する game 用のネットワーク `diecardomain-game` に参加するのは game-envoy だけ（studio 用の `diecardomain-studio` とは分け、studio から game に内部から届く経路を無くす。studio#30・core#45）。game は参加させない（core・studio から直接届くと x-client-ip を偽装できる。studio#11）。game から core へは game-envoy の `/game/graphql`、core から game へは game-envoy を通す
 - envoy は `/game/graphql` を core に転送する（core が止まっていれば 503）
 - core が game の JWT を検証するための JWKS は、game-envoy 経由の `/api/auth/jwks`。core 側の設定（`GAME_JWKS_URL`・`GAME_JWT_ISSUER`・`GAME_JWT_AUDIENCE`）と game の `JWT_ISSUER`・`JWT_AUDIENCE` を一致させる
-- game が前提にする core の版は、Makefile の `CORE_VERSION` に書く（game の .env は git 管理しないため）。game の JWT を core が受け付ける版（core#34）より前の版では、tests/core-jwt.spec.ts が通らない
-- マイルストーンの途中で、まだリリースしていない core の変更を使うときは、`make core-local` で手元の ../core から `diecardomain/core:local`・`core-migrate:local` をリリースと同じ Dockerfile で作り、`make test CORE_VERSION=local` のように引数で渡す。Makefile の `CORE_VERSION` は local にしない（コミットした Makefile が手元にしか無いイメージを指さないようにするため）。マイルストーンの MR の前に、core のリリースした版に `CORE_VERSION` を固定して `make test` をやり直す
+- game が前提にする core の版は、Makefile の `CORE_VERSION` に書く（game の .env は git 管理しないため）。`make gen-api` はその版のイメージから `schema game` で game 用のスキーマを取り出して型を作る（上げるときはやり直し、graphql/ の差分と一緒にコミットする）。登録（core#37）より前の版では、`me`・`registerPlayer` が無く、tests/player.spec.ts・tests/core-jwt.spec.ts が通らない
+- マイルストーンの途中で、まだリリースしていない core の変更を使うときは、`make core-local` で手元の ../core から `diecardomain/core:local`・`core-migrate:local` をリリースと同じ Dockerfile で作り、`make gen-api CORE_VERSION=local`・`make test CORE_VERSION=local` のように引数で渡す。Makefile の `CORE_VERSION` は local にしない（コミットした Makefile が手元にしか無いイメージを指さないようにするため）。マイルストーンの MR の前に、core のリリースした版に `CORE_VERSION` を固定して `make test` をやり直す
 - 開発の環境（`make up`）の core は、ルートの決まり（core は 1 つを共有する）のため ../core のソースから動く。`CORE_VERSION` とずれることはありうる
 - core の宛先は環境変数 `CORE_GRAPHQL_URL`（game-envoy の `/game/graphql`）
 
@@ -79,7 +84,9 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 - テストは tests/fixtures.ts の `test` / `expect` を使う。テストごとに `X-Forwarded-For` で別の IP を名乗り、本番モードのレート制限（ログインは同じ IP から 10 秒に 3 回）でほかのテストと枠を共有しないようにしている。名乗った IP が効くのは、テスト用の環境だけにある中継役用の入口（envoy の 10001。`PLAYWRIGHT_BASE_URL`）を通るとき。公開の入口は `PLAYWRIGHT_PUBLIC_URL`
 - `make test` のテスト用のプレイヤーは seed（player@example.com。パスワード付き・確認済み）。ほかのアカウントはテストの中でサインアップし、Mailpit の確認のメールで確認する（tests/account.ts）
 - メールは Mailpit が受け止め、テストは Mailpit の API で読む（tests/mail.ts）。メールのリンクのホスト名は BETTER_AUTH_URL のため、パスだけを使う（開発用の環境では localhost:3000 で、ブラウザのコンテナから届かない）
-- tests/core-jwt.spec.ts は、ログインしたプレイヤーの JWT で core の `me` を呼び、`PlayerNotRegisteredError` が返ることで、core が game の JWT を受け付けることを確かめる（core を呼ぶ道具（lib/core.ts）は、core への登録を作る Issue で入れる）
+- core_game のマスタ（公開中のカード・スターターデッキ 2 つ・game_rules）は、core-publish-master（compose.test.yaml の使い捨ての psql）が `local/core-master/master.sql` を流して入れる。core の `make publish-master`（studio の read model から写す）と同じ形の行で、形を変えるときは ../core の migrations と tests/testhelper/master.go に合わせる。core はこれが済んでから起動するため、登録すればスターターが配られる
+- tests/core-jwt.spec.ts は、サインアップしたばかりのプレイヤーの JWT で core の `me` を呼び、`PlayerNotRegisteredError` が返ることで、core が game の JWT を受け付けることを確かめる。画面でログインするとトップが登録してしまうため、API でログインする。seed のプレイヤーは tests/player.spec.ts が登録するので使わない
+- tests/player.spec.ts は、トップを開くと core に登録されてスターターを受け取ること（受け取り中は再読み込みして待つ）、もう一度開いても登録が重ならないことを確かめる。core に届かないときの表示は自動のテストにしない（studio と同じ）
 
 # 認証（better-auth）
 
