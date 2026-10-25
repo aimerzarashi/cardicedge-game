@@ -4,6 +4,12 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/** アバターを作る入力 */
+export type RegisterAvatarInput = {
+  /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
+  name: string;
+};
+
 /** スターターの配布の状態 */
 export type StarterGrantStatus =
   /** 所持カードとデッキがそろった */
@@ -11,11 +17,35 @@ export type StarterGrantStatus =
   /** まだ届いていない（登録の直後で配布が始まっていない・配っている途中を含む） */
   | 'IN_PROGRESS';
 
+export type RegisterAvatarMutationVariables = Exact<{
+  input: RegisterAvatarInput;
+}>;
+
+
+export type RegisterAvatarMutation = { registerAvatar:
+    | { __typename: 'AvatarLimitReachedError', max: number }
+    | { __typename: 'AvatarNameAlreadyInUseError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RegisterAvatarSuccess', avatar: { id: string } }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldRequired' }
+        | { __typename: 'FieldTooLong', max: number }
+      > }
+   };
+
+export type AvatarIdsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AvatarIdsQuery = { me:
+    | { __typename: 'Player', avatars: Array<{ id: string }> }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type MeQuery = { me:
-    | { __typename: 'Player', id: string, starterGrant: StarterGrantStatus }
+    | { __typename: 'Player', id: string, starterGrant: StarterGrantStatus, avatars: Array<{ id: string, name: string }> }
     | { __typename: 'PlayerNotRegisteredError' }
    };
 
@@ -43,6 +73,41 @@ export class TypedDocumentString<TResult, TVariables>
   }
 }
 
+export const RegisterAvatarDocument = new TypedDocumentString(`
+    mutation RegisterAvatar($input: RegisterAvatarInput!) {
+  registerAvatar(input: $input) {
+    __typename
+    ... on RegisterAvatarSuccess {
+      avatar {
+        id
+      }
+    }
+    ... on ValidationErrors {
+      errors {
+        __typename
+        ... on FieldTooLong {
+          max
+        }
+      }
+    }
+    ... on AvatarLimitReachedError {
+      max
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RegisterAvatarMutation, RegisterAvatarMutationVariables>;
+export const AvatarIdsDocument = new TypedDocumentString(`
+    query AvatarIds {
+  me {
+    __typename
+    ... on Player {
+      avatars {
+        id
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<AvatarIdsQuery, AvatarIdsQueryVariables>;
 export const MeDocument = new TypedDocumentString(`
     query Me {
   me {
@@ -50,6 +115,10 @@ export const MeDocument = new TypedDocumentString(`
     ... on Player {
       id
       starterGrant
+      avatars {
+        id
+        name
+      }
     }
   }
 }
