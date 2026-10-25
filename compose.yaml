@@ -10,15 +10,36 @@ services:
       # pnpm のキャッシュ（メタデータ・パッケージ）。down しても残す
       - node-cache:/home/node/.cache
     # ホストには公開せず、game-envoy 経由でアクセスする
-    command: ["sh", "-c", "pnpm install --frozen-lockfile && exec pnpm dev --hostname 0.0.0.0"]
+    # 開発用プレイヤーの seed（冪等）を済ませてから開発サーバーを起動する。テーブルは game-migrate が先に作る
+    command: ["sh", "-c", "pnpm install --frozen-lockfile && pnpm db:seed && exec pnpm dev --hostname 0.0.0.0"]
     environment:
+      DATABASE_URL: postgres://game_user:game_password@game-db:5432/game_auth
+      # 開発用の固定値（本番では環境ごとに安全な値を渡す）
+      BETTER_AUTH_SECRET: dev-only-better-auth-secret-change-me-0123456789
+      # ブラウザから見た game の URL（game-envoy 経由）
+      BETTER_AUTH_URL: http://localhost:${GAME_PORT:-3000}
+      # JWT の iss / aud。core の設定と一致させる。iss は core がプレイヤーを識別するキーの一部のため、運用開始後は変えない
+      JWT_ISSUER: diecardomain-game
+      JWT_AUDIENCE: diecardomain-core
+      # core の GraphQL。game は共有ネットワークに参加しないため、game-envoy を通す（studio#11）
+      CORE_GRAPHQL_URL: http://game-envoy:10000/game/graphql
+      # メールは Mailpit が受け止める（http://localhost:8026 で読める）
+      SMTP_URL: smtp://game-mailpit:1025
+      MAIL_FROM: diecardomain game <no-reply@diecardomain.example>
+      # Playwright のブラウザ（別コンテナ）は game-envoy 経由、make tunnel は Quick Tunnel 経由でアクセスする
+      BETTER_AUTH_TRUSTED_ORIGINS: http://game-envoy:10000,https://*.trycloudflare.com
       # Playwright はブラウザを game-playwright コンテナで動かし、game-envoy 経由でアクセスする
       PLAYWRIGHT_WS_ENDPOINT: ws://game-playwright:3000/
       PLAYWRIGHT_BASE_URL: http://game-envoy:10000
-    # サーバー側から core:3333 に接続するため、共有ネットワークにも参加する
-    networks:
-      - default
-      - diecardomain
+      # 開発用の環境には中継役用の入口が無いため、公開の入口と同じ（レート制限も開発モードでは無効）
+      PLAYWRIGHT_PUBLIC_URL: http://game-envoy:10000
+      # Playwright のテストが、届いたメールを Mailpit の API で読む
+      PLAYWRIGHT_MAILPIT_URL: http://game-mailpit:8025
+    # 共有ネットワーク（diecardomain-game）には参加しない。参加すると core・studio から envoy を通らずに直接届き、
+    # x-client-ip を自由に付けてレート制限をすり抜けられる（studio#11）。core を呼ぶときは game-envoy の /game/graphql を通す
+    depends_on:
+      game-migrate:
+        condition: service_completed_successfully
     # make up (--wait) はこれが healthy になるまで待つ
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/favicon.ico').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -28,7 +49,43 @@ services:
       timeout: 5s
       retries: 3
 
-  # 開発環境の入口。他プロジェクトと衝突する場合は GAME_PORT で変更する
+  # 未適用のマイグレーションを Atlas で適用して終了する（game の起動前に1回実行する。make migrate でも実行できる）
+  game-migrate:
+    build:
+      context: .
+      dockerfile: local/migrate/Dockerfile
+    # 開発中はリポジトリの migrations をそのまま使う（make migrate-hash で atlas.sum も書き換えるため読み書き可）
+    volumes:
+      - ./migrations:/migrations
+    environment:
+      DATABASE_URL: "postgres://game_user:game_password@game-db:5432/game_auth?sslmode=disable"
+    depends_on:
+      game-db:
+        condition: service_healthy
+
+  # 送ったメールを受け止める（外には送らない）。ホストから http://localhost:8026 で読む。衝突する場合は GAME_MAILPIT_PORT で変更する（8025 は studio の Mailpit が使う）
+  game-mailpit:
+    image: axllent/mailpit:v1.31.4
+    ports:
+      - ${GAME_MAILPIT_PORT:-8026}:8025
+
+  # better-auth のデータ（プレイヤー・セッション等）。ゲームのデータは core-db に置く
+  game-db:
+    image: postgres:18.6
+    # ホストの SQLTools 等から接続するため公開する（5432 は core-db が使う）。衝突する場合は STUDIO_DB_PORT で変更する
+    ports:
+      - ${GAME_DB_PORT:-5434}:5432
+    environment:
+      POSTGRES_USER: game_user
+      POSTGRES_PASSWORD: game_password
+      POSTGRES_DB: game_auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U game_user -d game_auth"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # 開発環境の入口。他プロジェクトと衝突する場合は STUDIO_PORT で変更する
   game-envoy:
     image: envoyproxy/envoy:v1.39.2
     ports:
@@ -37,10 +94,10 @@ services:
       - ./local/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
     depends_on:
       - game
-    # /game/graphql を core:3333 に転送するため、共有ネットワークにも参加する
+    # /game/graphql を core:3333 に転送し、core から game（JWKS 等）にもここを通って届くよう、共有ネットワークにも参加する
     networks:
       - default
-      - diecardomain
+      - diecardomain-game
     # イメージに curl が無いため bash の /dev/tcp で admin の /ready を確認する（HTTP/1.0 は 426 になる）
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/9901 && printf 'GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q LIVE <&3"]
@@ -65,7 +122,12 @@ services:
     init: true
     user: pwuser
     working_dir: /home/pwuser
-    command: ["npx", "-y", "playwright@1.63.0", "run-server", "--port", "3000", "--host", "0.0.0.0"]
+    # Playwright は game の node_modules（package.json の @playwright/test）のものを使う。npx で起動のたびに npm から
+    # 取ってくると、npm に届かないときにサーバーが立たず、版も package.json と二重に書くことになるため（studio#25）。
+    # node_modules/.bin/playwright は pnpm がホストのパスを書いたスクリプトなので使わず、cli.js を node で起動する
+    volumes:
+      - ./node_modules:/home/pwuser/node_modules:ro
+    command: ["node", "node_modules/@playwright/test/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0"]
     # make up (--wait) で、サーバーが接続を受け付けるまで待つ
     healthcheck:
       test: ["CMD", "node", "-e", "require('net').connect(3000,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
@@ -78,7 +140,8 @@ services:
 volumes:
   node-cache:
 
-# core / studio と共有するネットワーク（core の make up で作成される）
+# core と共有する game 用のネットワーク（core の make up で作成される）。game 側は game-envoy だけが参加する。
+# studio 用のネットワーク（diecardomain-studio）とは分け、studio から game に内部から届く経路を無くす（studio#30・core#45）
 networks:
-  diecardomain:
+  diecardomain-game:
     external: true

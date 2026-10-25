@@ -21,5 +21,17 @@
     "source.organizeImports.biome": "explicit"
   },
   "js/ts.tsdk.path": "node_modules/typescript/lib",
-  "js/ts.tsdk.promptToUseWorkspaceVersion": true
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true,
+  "sqltools.connections": [
+    {
+      "previewLimit": 10000,
+      "server": "localhost",
+      "port": 5434,
+      "driver": "PostgreSQL",
+      "name": "game-db",
+      "database": "game_auth",
+      "username": "game_user",
+      "password": "game_password"
+    }
+  ]
 }

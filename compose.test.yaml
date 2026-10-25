@@ -1,15 +1,92 @@
 # make test 用の使い捨て環境。プロジェクト名 game-test で起動し、終了後に破棄する。
 # 開発用の環境（compose.yaml）とはコンテナ・ネットワーク・DB が別で、ホストにポートも公開しないため同時に動かせる
-include:
-  # 使い捨ての core と DB（core の本番用イメージ）
-  - ../core/compose.test.yaml
-
 services:
+  # 使い捨ての core と DB。game が前提にする版（Makefile の CORE_VERSION）のリリース済みのイメージを使う（studio#14）。
+  # ../core のソースからビルドしないのは、手元の ../core のブランチしだいで、前提と違う core でテストしうるため
+  core:
+    image: diecardomain/core:${CORE_VERSION:?make test から CORE_VERSION を渡す}
+    environment:
+      # 前提の版（DB が 1 つの core。DB_DSN を読む）と、手元の core（core#33 で studio 用・game 用の DB に分けた。STUDIO_DB_DSN・
+      # GAME_DB_DSN を読む）の、どちらでも動くように全部渡す（どちらも知らない変数は読まない）。DB_DSN は、前提の版を core#33 の後の
+      # 版に上げるときに消す。GAME_* は前提の版（game の JWT を知らない）の core は読まない。game の JWT を core が受け付けるテスト
+      # （tests/core-jwt.spec.ts）は、game の JWT に対応した core（マイルストーンの途中は CORE_VERSION=local）でだけ通る
+      DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_studio sslmode=disable"
+      STUDIO_DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_studio sslmode=disable"
+      GAME_DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_game sslmode=disable"
+      # game（better-auth）の JWT の検証（core#34）。JWKS は game-envoy を通して取る（studio#11: game には envoy を通してしか届かない）。
+      # iss・aud は game の JWT_ISSUER・JWT_AUDIENCE と一致させる
+      GAME_JWKS_URL: http://game-envoy:10000/api/auth/jwks
+      GAME_JWT_ISSUER: diecardomain-game
+      GAME_JWT_AUDIENCE: diecardomain-core
+      # studio の JWT（core が必須とする設定）。game のテストでは studio を起動しないため JWKS には届かないが、core は届かなくても
+      # 起動する（最初の JWT が来たときに取りに行く）
+      STUDIO_JWKS_URL: http://studio-envoy:10000/api/auth/jwks
+      STUDIO_JWT_ISSUER: diecardomain-studio
+      STUDIO_JWT_AUDIENCE: diecardomain-core
+      STUDIO_INITIAL_OPERATOR_EMAIL: operator@example.com
+    healthcheck:
+      test: ["CMD", "/app", "healthcheck"]
+      start_period: 30s
+      start_interval: 1s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      core-migrate-studio:
+        condition: service_completed_successfully
+      core-migrate-game:
+        condition: service_completed_successfully
+
+  # studio 用・game 用の DB に、同じマイグレーションを流す（core#33。前提の版の core では core_game は使われない）
+  core-migrate-studio:
+    image: diecardomain/core-migrate:${CORE_VERSION:?make test から CORE_VERSION を渡す}
+    environment:
+      DATABASE_URL: "postgres://core_user:core_password@core-db:5432/core_studio?sslmode=disable"
+    depends_on:
+      core-db:
+        condition: service_healthy
+
+  core-migrate-game:
+    image: diecardomain/core-migrate:${CORE_VERSION:?make test から CORE_VERSION を渡す}
+    environment:
+      DATABASE_URL: "postgres://core_user:core_password@core-db:5432/core_game?sslmode=disable"
+    depends_on:
+      core-db:
+        condition: service_healthy
+
+  core-db:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: core_user
+      POSTGRES_PASSWORD: core_password
+      POSTGRES_DB: core_studio
+    volumes:
+      - ./local/core-db:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U core_user -d core_studio"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
   # 本番用イメージ（.build/Dockerfile）の game
   game:
     build:
       context: .
       dockerfile: .build/Dockerfile
+    environment: &game-auth-env
+      DATABASE_URL: postgres://game_user:game_password@game-db:5432/game_auth
+      BETTER_AUTH_SECRET: test-only-better-auth-secret-0123456789abcdef
+      # Playwright のブラウザから見た game の URL（game-envoy 経由）
+      BETTER_AUTH_URL: http://game-envoy:10000
+      # Playwright は中継役用の入口（10001）から入るため、そのオリジンも受け付ける
+      BETTER_AUTH_TRUSTED_ORIGINS: http://game-envoy:10001
+      JWT_ISSUER: diecardomain-game
+      JWT_AUDIENCE: diecardomain-core
+      CORE_GRAPHQL_URL: http://game-envoy:10000/game/graphql
+      SMTP_URL: smtp://game-mailpit:1025
+      MAIL_FROM: diecardomain game <no-reply@diecardomain.example>
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/favicon.ico').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       start_period: 60s
@@ -20,11 +97,46 @@ services:
     depends_on:
       core:
         condition: service_healthy
+      game-migrate:
+        condition: service_completed_successfully
 
+  # マイグレーション用イメージで migrations を適用する
+  game-migrate:
+    build:
+      context: .
+      dockerfile: local/migrate/Dockerfile
+    environment:
+      DATABASE_URL: "postgres://game_user:game_password@game-db:5432/game_auth?sslmode=disable"
+    depends_on:
+      game-db:
+        condition: service_healthy
+
+  # 送ったメールを受け止める（Playwright のテストが API で読む）
+  game-mailpit:
+    image: axllent/mailpit:v1.31.4
+
+  # better-auth のデータ。データは一時領域に置き、終了とともに破棄する
+  game-db:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: game_user
+      POSTGRES_PASSWORD: game_password
+      POSTGRES_DB: game_auth
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U game_user -d game_auth"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # 開発用と同じ入口（10000）に、テスト用の環境だけの中継役用の入口（10001。relay-listener.yaml）を重ねる
   game-envoy:
     image: envoyproxy/envoy:v1.39.2
+    command: ["sh", "-c", "exec envoy -c /etc/envoy/envoy.yaml --config-yaml \"$$(cat /etc/envoy/relay-listener.yaml)\""]
     volumes:
       - ./local/envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./local/envoy/relay-listener.yaml:/etc/envoy/relay-listener.yaml:ro
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/9901 && printf 'GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q LIVE <&3"]
       start_period: 30s
@@ -38,7 +150,12 @@ services:
     init: true
     user: pwuser
     working_dir: /home/pwuser
-    command: ["npx", "-y", "playwright@1.63.0", "run-server", "--port", "3000", "--host", "0.0.0.0"]
+    # Playwright は game の node_modules（package.json の @playwright/test）のものを使う。npx で起動のたびに npm から
+    # 取ってくると、npm に届かないときにサーバーが立たず、版も package.json と二重に書くことになるため（studio#25）。
+    # node_modules/.bin/playwright は pnpm がホストのパスを書いたスクリプトなので使わず、cli.js を node で起動する
+    volumes:
+      - ./node_modules:/home/pwuser/node_modules:ro
+    command: ["node", "node_modules/@playwright/test/cli.js", "run-server", "--port", "3000", "--host", "0.0.0.0"]
     healthcheck:
       test: ["CMD", "node", "-e", "require('net').connect(3000,'localhost').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
       start_period: 120s
@@ -58,6 +175,14 @@ services:
     volumes:
       - ./:/home/node/app
     environment:
+      <<: *game-auth-env
       PLAYWRIGHT_WS_ENDPOINT: ws://game-playwright:3000/
-      PLAYWRIGHT_BASE_URL: http://game-envoy:10000
-    command: ["sh", "-c", "pnpm install --frozen-lockfile && pnpm test"]
+      # テストごとに X-Forwarded-For で IP を名乗るため、中継役用の入口を通す（tests/fixtures.ts）
+      PLAYWRIGHT_BASE_URL: http://game-envoy:10001
+      # 公開の入口（偽装できないことを確かめるテストが使う）
+      PLAYWRIGHT_PUBLIC_URL: http://game-envoy:10000
+      # 中継役用の入口（名乗った IP が記録されることを確かめるテストが使う）
+      PLAYWRIGHT_RELAY_URL: http://game-envoy:10001
+      PLAYWRIGHT_MAILPIT_URL: http://game-mailpit:8025
+    # テスト用のプレイヤーを seed で作ってからテストする（テーブルは game-migrate が作る）
+    command: ["sh", "-c", "pnpm install --frozen-lockfile && pnpm db:seed && pnpm test"]

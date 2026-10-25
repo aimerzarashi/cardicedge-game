@@ -1,3 +1,9 @@
+# game が前提にする core の版。make test（テスト用の core）で使う。
+# マイルストーンの途中で、まだリリースしていない core を使うときは、make core-local で手元の ../core から作った
+# diecardomain/core:local・core-migrate:local を make test CORE_VERSION=local のように引数で渡す（ここを local にしない。コミットした Makefile が、
+# 手元にしか無いイメージを指さないようにするため。studio#23）
+CORE_VERSION := v0.13.0
+
 # 環境管理
 
 # core（共有ネットワークの作成を含む）を起動してから game を起動する。core が起動済みならそのまま使う
@@ -30,6 +36,30 @@ url:
 down:
 	docker compose --profile '*' down
 
+# マイグレーション
+
+# 未適用のマイグレーションだけを Atlas で適用する（DB を作り直さずに、追加した migrations を反映する）
+.PHONY: migrate
+migrate:
+	docker compose run --rm game-migrate
+
+# migrations/ のファイルを足したら実行し、atlas.sum を作り直す（SQL と一緒にコミットする）
+.PHONY: migrate-hash
+migrate-hash:
+	docker compose run --rm --no-deps --user $$(id -u):$$(id -g) game-migrate migrate hash --dir file:///migrations
+
+# better-auth の設定（lib/auth.ts）と開発用 DB の差分 SQL を次の番号で生成する（例: make migrate-generate NAME=add_two_factor）。
+# 先に migrate で DB を最新にしてから差分をとる。差分が無ければファイルは作られない
+.PHONY: migrate-generate
+migrate-generate:
+	@[ -n "$(NAME)" ] || { echo "NAME=<name> を指定する（例: make migrate-generate NAME=add_two_factor）" >&2; exit 1; }
+	$(MAKE) migrate
+	@last=$$(ls migrations | grep -E '^[0-9]{4}_' | cut -d_ -f1 | sort | tail -n1); \
+	next=$$(printf '%04d' $$(($$(expr "$${last:-0}" + 0) + 1))) && \
+	file=migrations/$${next}_$(NAME).sql && \
+	docker compose exec game pnpm db:generate $$file && \
+	if [ -f $$file ]; then $(MAKE) migrate-hash; else echo "差分が無いためファイルは作っていない"; fi
+
 # 開発ツール
 
 # フォーマットを自動修正する（lint はファイルを書き換えないため、修正はこちらで行う）
@@ -37,16 +67,26 @@ down:
 fmt:
 	docker compose exec game pnpm format
 
-# biome check（lint + フォーマット違反の検出。ファイルは書き換えない）と型チェック
+# biome check（lint + フォーマット違反の検出。ファイルは書き換えない）、型チェック、migrations の検査（origin/main との分岐点からの変更も見る）、
+# better-auth の設定と開発用 DB の差分の検査（新しい migrations は先に make migrate で適用しておく）
 .PHONY: lint
 lint:
 	docker compose exec game pnpm lint
 	docker compose exec game pnpm typecheck
+	scripts/check-migrations.sh $$(git merge-base origin/main HEAD)
+	docker compose exec game scripts/check-auth-schema.sh
+
+# 手元の ../core から、core と core-migrate のイメージを local という版の名前で作る（Docker Hub には push しない）。
+# リリースと同じ Dockerfile で作るのは、本番と同じ作りのイメージで test を通すため（開発用の air で動かす core とは中身が違う）
+.PHONY: core-local
+core-local:
+	docker build --pull --build-arg BUILD_VERSION=local -t diecardomain/core:local -f ../core/.build/Dockerfile ../core
+	docker build --pull -t diecardomain/core-migrate:local -f ../core/local/migrate/Dockerfile ../core
 
 # テスト
 
 # 専用の core・DB と本番用イメージの game を使い捨てで起動してテストし、終了後に破棄する（開発用の環境とは独立）
-TEST_COMPOSE := docker compose -p game-test -f compose.test.yaml
+TEST_COMPOSE := CORE_VERSION=$(CORE_VERSION) docker compose -p game-test -f compose.test.yaml
 
 .PHONY: test
 test:
