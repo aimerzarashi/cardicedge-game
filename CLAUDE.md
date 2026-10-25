@@ -11,11 +11,11 @@
 
 | パス | 責務 |
 |---|---|
-| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示・スターターの受け取りの状態・ログアウト）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
+| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示・スターターの受け取りの状態・ログアウト、`/avatars` へのリンク）、`/avatars`（自分のアバターの一覧と作るフォーム。作ったら一覧に出るまで待って出し直す。待ち方は app/avatars/wait-avatar.ts）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
 | lib/auth.ts | better-auth の設定（サーバー側）。公式どおり `export const auth = betterAuth(...)`。CLI もこれを読む |
 | lib/auth-client.ts | better-auth のクライアント |
 | lib/core.ts | core の GraphQL を呼ぶ道具（`callCore`。JWT は `auth.api.getToken`。core に届かないときは `{ ok: false, reason: "unavailable" }` を返し、401 はログイン画面へ。studio の lib/core.ts と同じ形） |
-| lib/player.ts | ログイン中のプレイヤーを確かめる `currentPlayer`（`me` を呼び、未登録なら `registerPlayer` を呼んで読み直す。React の `cache` で 1 リクエストの中は使い回す）。プレイヤーの情報を出すページだけで呼び、ログイン等の core を使わないページでは呼ばない |
+| lib/player.ts | ログイン中のプレイヤー（アバターの一覧を含む）を確かめる `currentPlayer`（`me` を呼び、未登録なら `registerPlayer` を呼んで読み直す。React の `cache` で 1 リクエストの中は使い回す）。プレイヤーの情報を出すページだけで呼び、ログイン等の core を使わないページでは呼ばない |
 | graphql | `make gen-api` が作る生成物（core から取り出したスキーマ `schema.graphql` と graphql-codegen の型）。手で直さない。コミットする（CI に core が無くても型の検査が通るように） |
 | codegen.ts・.graphqlrc.yaml | graphql-codegen の設定と、VSCode の GraphQL の拡張の設定（studio と同じ） |
 | lib/mail.ts | SMTP でのメール送信（`sendMail`） |
@@ -87,6 +87,7 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 - core_game のマスタ（公開中のカード・スターターデッキ 2 つ・game_rules）は、core-publish-master（compose.test.yaml の使い捨ての psql）が `local/core-master/master.sql` を流して入れる。core の `make publish-master`（studio の read model から写す）と同じ形の行で、形を変えるときは ../core の migrations と tests/testhelper/master.go に合わせる。core はこれが済んでから起動するため、登録すればスターターが配られる
 - tests/core-jwt.spec.ts は、サインアップしたばかりのプレイヤーの JWT で core の `me` を呼び、`PlayerNotRegisteredError` が返ることで、core が game の JWT を受け付けることを確かめる。画面でログインするとトップが登録してしまうため、API でログインする。seed のプレイヤーは tests/player.spec.ts が登録するので使わない
 - tests/player.spec.ts は、トップを開くと core に登録されてスターターを受け取ること（受け取り中は再読み込みして待つ）、もう一度開いても登録が重ならないことを確かめる。core に届かないときの表示は自動のテストにしない（studio と同じ）
+- tests/avatar.spec.ts は、アバターの画面（/avatars）で、作ると一覧に作った順で出ること、名前の誤り（空・長すぎる）、同じ名前は作れず入力した値が残ること、6 体目は作れないことを確かめる。作る数が絡むため、テストごとに新しくサインアップしたプレイヤーを使い、共有の seed のプレイヤーは使わない。core に届かないときの表示は自動のテストにしない
 
 # 認証（better-auth）
 

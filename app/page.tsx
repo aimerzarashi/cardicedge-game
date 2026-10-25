@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { currentPlayer } from "@/lib/player";
@@ -22,6 +23,11 @@ export default async function Home() {
           {player.data.starterGrant === "COMPLETED"
             ? "スターターを受け取りました"
             : "スターターを受け取っています。しばらくしてから再読み込みしてください"}
+        </p>
+      ) : null}
+      {player.ok ? (
+        <p>
+          <Link href="/avatars">アバター</Link>
         </p>
       ) : (
         <p role="alert">

@@ -15,18 +15,30 @@ import * as types from './graphql';
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
-    "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n      }\n    }\n  }\n": typeof types.MeDocument,
+    "\n  mutation RegisterAvatar($input: RegisterAvatarInput!) {\n    registerAvatar(input: $input) {\n      __typename\n      ... on RegisterAvatarSuccess {\n        avatar {\n          id\n        }\n      }\n      ... on ValidationErrors {\n        errors {\n          __typename\n          ... on FieldTooLong {\n            max\n          }\n        }\n      }\n      ... on AvatarLimitReachedError {\n        max\n      }\n    }\n  }\n": typeof types.RegisterAvatarDocument,
+    "\n  query AvatarIds {\n    me {\n      __typename\n      ... on Player {\n        avatars {\n          id\n        }\n      }\n    }\n  }\n": typeof types.AvatarIdsDocument,
+    "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n        avatars {\n          id\n          name\n        }\n      }\n    }\n  }\n": typeof types.MeDocument,
     "\n  mutation RegisterPlayer {\n    registerPlayer {\n      __typename\n    }\n  }\n": typeof types.RegisterPlayerDocument,
 };
 const documents: Documents = {
-    "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n      }\n    }\n  }\n": types.MeDocument,
+    "\n  mutation RegisterAvatar($input: RegisterAvatarInput!) {\n    registerAvatar(input: $input) {\n      __typename\n      ... on RegisterAvatarSuccess {\n        avatar {\n          id\n        }\n      }\n      ... on ValidationErrors {\n        errors {\n          __typename\n          ... on FieldTooLong {\n            max\n          }\n        }\n      }\n      ... on AvatarLimitReachedError {\n        max\n      }\n    }\n  }\n": types.RegisterAvatarDocument,
+    "\n  query AvatarIds {\n    me {\n      __typename\n      ... on Player {\n        avatars {\n          id\n        }\n      }\n    }\n  }\n": types.AvatarIdsDocument,
+    "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n        avatars {\n          id\n          name\n        }\n      }\n    }\n  }\n": types.MeDocument,
     "\n  mutation RegisterPlayer {\n    registerPlayer {\n      __typename\n    }\n  }\n": types.RegisterPlayerDocument,
 };
 
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n      }\n    }\n  }\n"): typeof import('./graphql').MeDocument;
+export function graphql(source: "\n  mutation RegisterAvatar($input: RegisterAvatarInput!) {\n    registerAvatar(input: $input) {\n      __typename\n      ... on RegisterAvatarSuccess {\n        avatar {\n          id\n        }\n      }\n      ... on ValidationErrors {\n        errors {\n          __typename\n          ... on FieldTooLong {\n            max\n          }\n        }\n      }\n      ... on AvatarLimitReachedError {\n        max\n      }\n    }\n  }\n"): typeof import('./graphql').RegisterAvatarDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query AvatarIds {\n    me {\n      __typename\n      ... on Player {\n        avatars {\n          id\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').AvatarIdsDocument;
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n        avatars {\n          id\n          name\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').MeDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

@@ -11,6 +11,10 @@ const meQuery = graphql(`
       ... on Player {
         id
         starterGrant
+        avatars {
+          id
+          name
+        }
       }
     }
   }
@@ -24,7 +28,12 @@ const registerPlayerMutation = graphql(`
   }
 `);
 
-export type CurrentPlayer = { id: string; starterGrant: StarterGrantStatus };
+export type CurrentPlayer = {
+  id: string;
+  starterGrant: StarterGrantStatus;
+  // 作った順（core が並べて返す）
+  avatars: { id: string; name: string }[];
+};
 
 // ログインのたびに core で登録済みかを確かめ、まだなら登録してから読み直す（game#7）。registerPlayer は何度呼んでも
 // 同じプレイヤーを返すため、並行して 2 つのリクエストが登録しても重ならない。
@@ -51,6 +60,13 @@ export const currentPlayer = cache(
       // 登録の直後に未登録のままなのは、core の不具合（想定外）
       throw new Error("player is not registered after registerPlayer");
     }
-    return { ok: true, data: { id: me.id, starterGrant: me.starterGrant } };
+    return {
+      ok: true,
+      data: {
+        id: me.id,
+        starterGrant: me.starterGrant,
+        avatars: me.avatars,
+      },
+    };
   },
 );
