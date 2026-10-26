@@ -3,7 +3,7 @@
 # マイルストーンの途中で、まだリリースしていない core を使うときは、make core-local で手元の ../core から作った
 # diecardomain/core:local・core-migrate:local を make gen-api CORE_VERSION=local・make test CORE_VERSION=local のように引数で渡す（ここを local にしない。コミットした Makefile が、
 # 手元にしか無いイメージを指さないようにするため。studio#23）
-CORE_VERSION := v0.13.0
+CORE_VERSION := v0.14.0
 
 # 環境管理
 

@@ -6,11 +6,7 @@ services:
   core:
     image: diecardomain/core:${CORE_VERSION:?make test から CORE_VERSION を渡す}
     environment:
-      # 前提の版（DB が 1 つの core。DB_DSN を読む）と、手元の core（core#33 で studio 用・game 用の DB に分けた。STUDIO_DB_DSN・
-      # GAME_DB_DSN を読む）の、どちらでも動くように全部渡す（どちらも知らない変数は読まない）。DB_DSN は、前提の版を core#33 の後の
-      # 版に上げるときに消す。GAME_* は前提の版（game の JWT を知らない）の core は読まない。game の JWT を core が受け付けるテスト
-      # （tests/core-jwt.spec.ts）は、game の JWT に対応した core（マイルストーンの途中は CORE_VERSION=local）でだけ通る
-      DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_studio sslmode=disable"
+      # core は studio 用・game 用の DB を分けて使う（core#33）
       STUDIO_DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_studio sslmode=disable"
       GAME_DB_DSN: "host=core-db port=5432 user=core_user password=core_password dbname=core_game sslmode=disable"
       # game（better-auth）の JWT の検証（core#34）。JWKS は game-envoy を通して取る（studio#11: game には envoy を通してしか届かない）。

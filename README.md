@@ -54,7 +54,7 @@ game が前提にする core の版は Makefile の `CORE_VERSION` に書く。�
 
 `make test` はプロジェクト名 `game-test` で、専用の core・DB（`CORE_VERSION` のイメージ）と本番用イメージ（`.build/Dockerfile`）の game を起動し、終了後に破棄する。テストは開発用イメージの game-test-runner から実行する。
 開発用の環境とはコンテナ・ネットワーク・DB が別で、ホストにポートも公開しないため、開発用を起動したままでも実行できる。
-core の DB は、core#33 の後の core と同じく studio 用・game 用の 2 つ（core_studio・core_game。core_game は local/core-db の初期化の SQL で作る）にし、前提の版（DB が 1 つの core）でも動くよう `DB_DSN` も渡している。
+core の DB は、core と同じく studio 用・game 用の 2 つ（core_studio・core_game。core_game は local/core-db の初期化の SQL で作る）。
 スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules を入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
 
 ### Tunnel（任意）
