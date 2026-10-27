@@ -4,6 +4,15 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/** マスの種類 */
+export type BoardTileKind =
+  /** 拠点 */
+  | 'BASE'
+  /** チェックポイント */
+  | 'CHECKPOINT'
+  /** 土地（ふつうのマス） */
+  | 'LAND';
+
 /** アバターを作る入力 */
 export type RegisterAvatarInput = {
   /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
@@ -28,6 +37,8 @@ export type RegisterAvatarMutation = { registerAvatar:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RegisterAvatarSuccess', avatar: { id: string } }
     | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldInvalidFormat' }
+        | { __typename: 'FieldOutOfRange' }
         | { __typename: 'FieldRequired' }
         | { __typename: 'FieldTooLong', max: number }
       > }
@@ -39,6 +50,28 @@ export type AvatarIdsQueryVariables = Exact<{ [key: string]: never; }>;
 export type AvatarIdsQuery = { me:
     | { __typename: 'Player', avatars: Array<{ id: string }> }
     | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type BoardQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type BoardQuery = { board:
+    | { __typename: 'Board', id: string, name: string, width: number, height: number, tiles: Array<{ x: number, y: number, kind: BoardTileKind }>, connections: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }
+    | { __typename: 'BoardNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type BoardsQueryVariables = Exact<{
+  after?: string | null | undefined;
+}>;
+
+
+export type BoardsQuery = { boards:
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'ValidationErrors' }
    };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
@@ -108,6 +141,55 @@ export const AvatarIdsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AvatarIdsQuery, AvatarIdsQueryVariables>;
+export const BoardDocument = new TypedDocumentString(`
+    query Board($id: UUID!) {
+  board(id: $id) {
+    __typename
+    ... on Board {
+      id
+      name
+      width
+      height
+      tiles {
+        x
+        y
+        kind
+      }
+      connections {
+        a {
+          x
+          y
+        }
+        b {
+          x
+          y
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BoardQuery, BoardQueryVariables>;
+export const BoardsDocument = new TypedDocumentString(`
+    query Boards($after: String) {
+  boards(after: $after) {
+    __typename
+    ... on BoardsConnection {
+      edges {
+        node {
+          id
+          name
+          width
+          height
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BoardsQuery, BoardsQueryVariables>;
 export const MeDocument = new TypedDocumentString(`
     query Me {
   me {

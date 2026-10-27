@@ -55,7 +55,7 @@ game が前提にする core の版は Makefile の `CORE_VERSION` に書く。�
 `make test` はプロジェクト名 `game-test` で、専用の core・DB（`CORE_VERSION` のイメージ）と本番用イメージ（`.build/Dockerfile`）の game を起動し、終了後に破棄する。テストは開発用イメージの game-test-runner から実行する。
 開発用の環境とはコンテナ・ネットワーク・DB が別で、ホストにポートも公開しないため、開発用を起動したままでも実行できる。
 core の DB は、core と同じく studio 用・game 用の 2 つ（core_studio・core_game。core_game は local/core-db の初期化の SQL で作る）。
-スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules を入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
+スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules・ボードを入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
 
 ### Tunnel（任意）
 
@@ -101,6 +101,7 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 - メールアドレスの変更（`changeEmail`）は無効のまま（既定）。変えられると、確認済みのメールアドレスという前提が崩れるため
 - パスワードを設定し直すと、その人のセッションはすべて無効になる。登録されていないアドレスでも同じ表示になり、メールは送られない
 - アバターは /avatars で作り、一覧を見る（`registerAvatar` と `me` の `avatars`）。作ったら一覧に出るまで待つ。上限・名前の長さは core が返す値から文言を作る
+- ボードは /boards で公開中のものの一覧を見て、/boards/[id] で斜め見下ろしの格子として見る（`boards`・`board`。見るだけで、押す操作は無い）。公開中でないボードは「見つからない」
 - core へのプレイヤーの登録は、トップを開いたときに `lib/player.ts` が行う（`me` が `PlayerNotRegisteredError` なら `registerPlayer` を呼んで読み直す）。登録前のプレイヤーが core の `me` を呼ぶと `PlayerNotRegisteredError` が返る
 
 ### メール

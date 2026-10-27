@@ -34,6 +34,138 @@ type AvatarNameAlreadyInUseError {
 	message: String!
 }
 """
+ボード（公開中のもの）
+"""
+type Board {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	幅（列の数）
+	"""
+	width: Int!
+	"""
+	高さ（行の数）
+	"""
+	height: Int!
+	"""
+	置いてあるマス（置いていない座標は含まない。行 → 列の順: y の小さい順、同じ y では x の小さい順）
+	"""
+	tiles: [BoardTile!]!
+	"""
+	マスどうしのつながり（向きは無い。a の座標が小さい側になり、a → b の順に並べる）
+	"""
+	connections: [BoardConnection!]!
+}
+"""
+マスどうしのつながり（向きは無い）
+"""
+type BoardConnection {
+	"""
+	片方の端（座標が小さい側。行 → 列の順に比べる）
+	"""
+	a: BoardPosition!
+	"""
+	もう片方の端
+	"""
+	b: BoardPosition!
+}
+"""
+公開中のボードが無い（公開中でないものを含む）
+"""
+type BoardNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+格子の座標。x が列、y が行（どちらも 0 始まり）
+"""
+type BoardPosition {
+	"""
+	列（0 以上、幅 − 1 以下）
+	"""
+	x: Int!
+	"""
+	行（0 以上、高さ − 1 以下）
+	"""
+	y: Int!
+}
+"""
+ボードの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union BoardResult = Board | BoardNotFoundError | PlayerNotRegisteredError
+"""
+置いてあるマス
+"""
+type BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+	"""
+	種類
+	"""
+	kind: BoardTileKind!
+}
+"""
+マスの種類
+"""
+enum BoardTileKind {
+	"""
+	土地（ふつうのマス）
+	"""
+	LAND
+	"""
+	拠点
+	"""
+	BASE
+	"""
+	チェックポイント
+	"""
+	CHECKPOINT
+}
+"""
+ボードの一覧の 1 ページ（名前の順）
+"""
+type BoardsConnection {
+	"""
+	このページのボード
+	"""
+	edges: [BoardsEdge!]!
+	"""
+	ページの情報
+	"""
+	pageInfo: PageInfo!
+}
+"""
+ボードの一覧の 1 件と、その位置
+"""
+type BoardsEdge {
+	"""
+	この 1 件の位置（次のページを取るときに after に渡す）
+	"""
+	cursor: String!
+	"""
+	ボード
+	"""
+	node: Board!
+}
+"""
+ボードの一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union BoardsResult = BoardsConnection | ValidationErrors | PlayerNotRegisteredError
+"""
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
 interface FieldError {
@@ -41,6 +173,32 @@ interface FieldError {
 	誤りのある入力の項目（GraphQL の引数・入力の項目名と同じ。入れ子の入力は filter.nameContains、一覧の中は cards.0.cardId のように . でつなぐ）
 	"""
 	field: String!
+}
+"""
+入力の形が正しくない（ページの位置（カーソル）が読めない等）
+"""
+type FieldInvalidFormat implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+}
+"""
+入力が範囲の外
+"""
+type FieldOutOfRange implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	範囲の下限（この値を含む）
+	"""
+	min: Int!
+	"""
+	範囲の上限（この値を含む）
+	"""
+	max: Int!
 }
 """
 入力が空（前後の空白だけの場合を含む）
@@ -79,6 +237,27 @@ type Mutation {
 	registerPlayer: RegisterPlayerResult!
 }
 """
+ページの情報
+"""
+type PageInfo {
+	"""
+	次のページがあるか
+	"""
+	hasNextPage: Boolean!
+	"""
+	前のページがあるか（after を指定したら true）
+	"""
+	hasPreviousPage: Boolean!
+	"""
+	このページの最初の 1 件の位置
+	"""
+	startCursor: String
+	"""
+	このページの最後の 1 件の位置（次のページは after にこれを渡す）
+	"""
+	endCursor: String
+}
+"""
 プレイヤー。JWT の (iss, sub) に 1 人だけ紐づく
 """
 type Player {
@@ -105,6 +284,29 @@ type PlayerNotRegisteredError {
 	message: String!
 }
 type Query {
+	"""
+	公開中のボードの一覧（登録済みのプレイヤーだけ）
+	"""
+	boards(
+		"""
+		1 ページの件数（1〜100。指定が無ければ 50）
+		"""
+		first: Int
+
+		"""
+		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
+		"""
+		after: String
+	): BoardsResult!
+	"""
+	公開中のボードの詳細（登録済みのプレイヤーだけ）。公開中でなければ BoardNotFoundError
+	"""
+	board(
+		"""
+		ボードの公開用の ID
+		"""
+		id: UUID!
+	): BoardResult!
 	"""
 	ログイン中のプレイヤー（JWT の (iss, sub) に登録済みのプレイヤー）を返す。未登録なら PlayerNotRegisteredError
 	"""
