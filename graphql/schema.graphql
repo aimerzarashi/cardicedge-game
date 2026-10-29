@@ -34,6 +34,19 @@ type AvatarNameAlreadyInUseError {
 	message: String!
 }
 """
+拠点
+"""
+type BaseTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
+"""
 ボード（公開中のもの）
 """
 type Board {
@@ -102,9 +115,9 @@ type BoardPosition {
 """
 union BoardResult = Board | BoardNotFoundError | PlayerNotRegisteredError
 """
-置いてあるマス
+置いてあるマス（LandTile・BaseTile・CheckpointTile）。種類は __typename で見分け、種類ごとの項目は断片（... on LandTile 等）で取る
 """
-type BoardTile {
+interface BoardTile {
 	"""
 	列
 	"""
@@ -113,27 +126,36 @@ type BoardTile {
 	行
 	"""
 	y: Int!
-	"""
-	種類
-	"""
-	kind: BoardTileKind!
 }
 """
-マスの種類
+土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
+効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
 """
-enum BoardTileKind {
+enum BoardTileAttribute {
 	"""
-	土地（ふつうのマス）
+	火（火属性）
 	"""
-	LAND
+	FIRE
 	"""
-	拠点
+	地（地属性）
 	"""
-	BASE
+	EARTH
 	"""
-	チェックポイント
+	水（水属性）
 	"""
-	CHECKPOINT
+	WATER
+	"""
+	風（風属性）
+	"""
+	WIND
+	"""
+	無（無属性）
+	"""
+	NEUTRAL
+	"""
+	複（複属性）。火・地・水・風の 4 色のマークが描かれた特殊な土地。組み合わせは持たない（属性の値の 1 つ）
+	"""
+	MULTI
 }
 """
 ボードの一覧の 1 ページ（名前の順）
@@ -165,6 +187,19 @@ type BoardsEdge {
 ボードの一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union BoardsResult = BoardsConnection | ValidationErrors | PlayerNotRegisteredError
+"""
+チェックポイント
+"""
+type CheckpointTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
 """
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
@@ -221,6 +256,23 @@ type FieldTooLong implements FieldError {
 	上限の文字数
 	"""
 	max: Int!
+}
+"""
+土地（ふつうのマス）
+"""
+type LandTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+	"""
+	属性
+	"""
+	attribute: BoardTileAttribute!
 }
 """
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError

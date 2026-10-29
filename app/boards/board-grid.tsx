@@ -1,22 +1,27 @@
 "use client";
 
-import { type PointerEvent, useEffect, useRef, useState } from "react";
 import {
-  type Connection,
-  connectionBetween,
-  hasConnection,
+  type CSSProperties,
+  type PointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  ATTRIBUTE_LABELS,
   type Position,
-  TILE_KIND_LABELS,
   type Tile,
   tileAt,
+  tileLabel,
 } from "./board-layout";
 
 // ボードを斜め見下ろしで見せる格子。studio の app/boards/board-grid.tsx から写したもの（片方を変えたらもう片方もそろえる）。
-// 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことだけ。
+// 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
+// マスとマスの間（つながりの印）を描かないこと（game では間を空白にして背景を見せる。オーナーの判断）。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
 // （つながり）にする（奇数 × 奇数は空き）。この grid 全体を `scaleY(0.5) rotate(45deg)` で回してつぶし、マスを ◇ に見せる。
-//   マス: 名前「(x, y) のマス」＋置いてあれば種類（例: 「(2, 0) のマス 拠点」）。種類は色で見せ、マスの中に文字は書かない
+//   マス: 名前「(x, y) のマス」＋置いてあれば種類（土地は属性つき。例: 「(2, 0) のマス 拠点」「(1, 0) のマス 火属性の土地」）。種類・属性は色で見せ、マスの中に文字は書かない
 //   横の間: 「(x, y) と (x+1, y) のつながり」、縦の間: 「(x, y) と (x, y+1) のつながり」（つながっているかは aria-pressed）
 // 見方: はみ出した分はスクロールバーではなく、枠の中で表示を動かして見る（ドラッグで動かす・ホイールとボタンで拡大縮小）。
 // ポインターとホイールの処理を持つため、Server Component（ボードの詳細）から使えるよう Client Component にしている
@@ -71,12 +76,10 @@ export function BoardGrid({
   width,
   height,
   tiles,
-  connections,
 }: {
   width: number;
   height: number;
   tiles: Tile[];
-  connections: Connection[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
@@ -199,22 +202,8 @@ export function BoardGrid({
       } else if (column % 2 === row % 2) {
         cells.push(<span key={key} />);
       } else {
-        const connection = connectionBetween(
-          { x, y },
-          column % 2 === 1 ? { x: x + 1, y } : { x, y: y + 1 },
-        );
-        cells.push(
-          <ConnectionButton
-            key={key}
-            connection={connection}
-            vertical={row % 2 === 1}
-            connected={hasConnection(connections, connection)}
-            bothEnds={
-              tileAt(tiles, connection.a) !== undefined &&
-              tileAt(tiles, connection.b) !== undefined
-            }
-          />,
-        );
+        // マスとマスの間は描かない（空白にして背景を見せる。将来は背景画を敷く）。つながりの印は studio の編集のためのもの
+        cells.push(<span key={key} />);
       }
     }
   }
@@ -257,6 +246,8 @@ export function BoardGrid({
           touchAction: "none",
           userSelect: "none",
           border: "1px solid #999",
+          // 画面のモード（ダーク・通常）によらず暗い色に固定する（studio と同じ。将来は背景画を敷く）
+          background: BOARD_BACKGROUND,
           // 枠の大きさが分かるまでは、収め方が決まらないため出さない
           visibility: shown ? "visible" : "hidden",
         }}
@@ -286,27 +277,31 @@ export function BoardGrid({
       </div>
       <ul
         aria-label="凡例"
-        style={{ display: "flex", gap: "1rem", listStyle: "none", padding: 0 }}
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "1rem",
+          listStyle: "none",
+          padding: 0,
+        }}
       >
-        {(Object.keys(KIND_COLORS) as (keyof typeof KIND_COLORS)[]).map(
-          (kind) => (
-            <li key={kind}>
-              <span
-                aria-hidden
-                style={{
-                  display: "inline-block",
-                  width: "1em",
-                  height: "1em",
-                  marginRight: "0.25em",
-                  verticalAlign: "middle",
-                  border: "1px solid #555",
-                  background: KIND_COLORS[kind],
-                }}
-              />
-              {TILE_KIND_LABELS[kind]}
-            </li>
-          ),
-        )}
+        {LEGEND.map((sample) => (
+          <li key={tileLabel(sample)}>
+            <span
+              aria-hidden
+              style={{
+                ...paint(sample),
+                display: "inline-block",
+                boxSizing: "border-box",
+                width: "1em",
+                height: "1em",
+                marginRight: "0.25em",
+                verticalAlign: "middle",
+              }}
+            />
+            {tileLabel(sample)}
+          </li>
+        ))}
       </ul>
     </fieldset>
   );
@@ -319,11 +314,51 @@ function tracks(count: number, tile: number): string {
   ).join(" ");
 }
 
-const KIND_COLORS = {
-  LAND: "#cfe8c4",
-  BASE: "#f4a6a6",
-  CHECKPOINT: "#a9bff4",
+// 属性の色。拠点・チェックポイントは属性に使わない色（紫・明るめの桃色）にして、土地と見分ける。
+// 枠の模様（二重の枠・斜線）で分ける案は、斜め見下ろしでつぶすと見分けにくいため採らなかった。
+// 白は studio のつながりの印に使うので、マスには使わない
+const FIRE = "#d9534f";
+const EARTH = "#c8a24a";
+const WATER = "#4a7fd4";
+const WIND = "#5fae5f";
+const LAND_COLORS = {
+  FIRE,
+  EARTH,
+  WATER,
+  WIND,
+  NEUTRAL: "#9e9e9e",
+  // 4 色を 4 つに分けて塗る
+  MULTI: `conic-gradient(${FIRE} 0 25%, ${EARTH} 0 50%, ${WATER} 0 75%, ${WIND} 0)`,
 };
+const BASE_COLOR = "#8e4ec6";
+const CHECKPOINT_COLOR = "#f7a8c8";
+const BOARD_BACKGROUND = "#1b2440";
+
+// 凡例は、属性ごとの土地・拠点・チェックポイントの見本
+const LEGEND: Tile[] = [
+  ...(Object.keys(ATTRIBUTE_LABELS) as (keyof typeof ATTRIBUTE_LABELS)[]).map(
+    (attribute) => ({ x: 0, y: 0, __typename: "LandTile" as const, attribute }),
+  ),
+  { x: 0, y: 0, __typename: "BaseTile" },
+  { x: 0, y: 0, __typename: "CheckpointTile" },
+];
+
+function paint(tile: Tile | undefined): CSSProperties {
+  if (!tile) {
+    return { border: "1px dashed #5a6480", background: "transparent" };
+  }
+  switch (tile.__typename) {
+    case "BaseTile":
+      return { border: "1px solid #555", background: BASE_COLOR };
+    case "CheckpointTile":
+      return { border: "1px solid #555", background: CHECKPOINT_COLOR };
+    case "LandTile":
+      return {
+        border: "1px solid #555",
+        background: LAND_COLORS[tile.attribute],
+      };
+  }
+}
 
 // 表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している
 function TileButton({
@@ -337,43 +372,9 @@ function TileButton({
   return (
     <button
       type="button"
-      aria-label={tile ? `${name} ${TILE_KIND_LABELS[tile.kind]}` : name}
+      aria-label={tile ? `${name} ${tileLabel(tile)}` : name}
       disabled
-      style={{
-        padding: 0,
-        border: tile ? "1px solid #555" : "1px dashed #999",
-        background: tile ? KIND_COLORS[tile.kind] : "transparent",
-      }}
-    />
-  );
-}
-
-function ConnectionButton({
-  connection,
-  vertical,
-  connected,
-  bothEnds,
-}: {
-  connection: Connection;
-  vertical: boolean;
-  connected: boolean;
-  bothEnds: boolean;
-}) {
-  const { a, b } = connection;
-  return (
-    <button
-      type="button"
-      aria-label={`(${a.x}, ${a.y}) と (${b.x}, ${b.y}) のつながり`}
-      aria-pressed={connected}
-      disabled
-      style={{
-        padding: 0,
-        border: "none",
-        // 細い棒で、つながっているときだけ塗る（両側にマスが無い印は薄くする）
-        background: connected ? "#555" : "#ddd",
-        opacity: bothEnds ? 1 : 0.2,
-        margin: vertical ? `0 ${(TILE - 16) / 2}px` : `${(TILE - 16) / 2}px 0`,
-      }}
+      style={{ ...paint(tile), padding: 0 }}
     />
   );
 }

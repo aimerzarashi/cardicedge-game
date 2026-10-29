@@ -30,7 +30,7 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   await expect(page.getByText("使用不可")).toHaveCount(0);
 });
 
-test("一覧から開いたボードに、置いてあるマスが種類つきで出る", async ({
+test("一覧から開いたボードに、置いてあるマスが種類と属性つきで出る、凡例に 8 つ出る", async ({
   page,
 }) => {
   await openBoards(page);
@@ -40,20 +40,21 @@ test("一覧から開いたボードに、置いてあるマスが種類つき�
   await expect(page.getByRole("heading", { name: "公開中B" })).toBeVisible();
   const grid = page.getByRole("group", { name: "ボードの格子" });
   await expect(grid.getByLabel("(0, 0) のマス 拠点")).toBeAttached();
-  await expect(grid.getByLabel("(1, 0) のマス 土地")).toBeAttached();
+  await expect(grid.getByLabel("(1, 0) のマス 火属性の土地")).toBeAttached();
   await expect(
     grid.getByLabel("(2, 0) のマス チェックポイント"),
   ).toBeAttached();
-  await expect(grid.getByLabel("(1, 1) のマス 土地")).toBeAttached();
+  await expect(grid.getByLabel("(1, 1) のマス 複属性の土地")).toBeAttached();
   await expect(
     grid.getByLabel("(0, 1) のマス", { exact: true }),
   ).toBeAttached();
-  await expect(
-    grid.getByRole("button", { name: "(1, 0) と (2, 0) のつながり" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(
-    grid.getByRole("button", { name: "(0, 0) と (0, 1) のつながり" }),
-  ).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByLabel("凡例")).toHaveText(
+    "火属性の土地地属性の土地水属性の土地風属性の土地無属性の土地複属性の土地拠点チェックポイント",
+  );
+  // マスとマスの間は描かない（つながりの印は studio の編集のためのもの）
+  await expect(grid.getByRole("button", { name: /のつながり$/ })).toHaveCount(
+    0,
+  );
 });
 
 test("拡大・縮小・全体を表示のボタンで、表示の倍率が変わる", async ({
