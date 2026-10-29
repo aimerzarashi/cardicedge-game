@@ -4,14 +4,23 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
-/** マスの種類 */
-export type BoardTileKind =
-  /** 拠点 */
-  | 'BASE'
-  /** チェックポイント */
-  | 'CHECKPOINT'
-  /** 土地（ふつうのマス） */
-  | 'LAND';
+/**
+ * 土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
+ * 効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
+ */
+export type BoardTileAttribute =
+  /** 地（地属性） */
+  | 'EARTH'
+  /** 火（火属性） */
+  | 'FIRE'
+  /** 複（複属性）。火・地・水・風の 4 色のマークが描かれた特殊な土地。組み合わせは持たない（属性の値の 1 つ） */
+  | 'MULTI'
+  /** 無（無属性） */
+  | 'NEUTRAL'
+  /** 水（水属性） */
+  | 'WATER'
+  /** 風（風属性） */
+  | 'WIND';
 
 /** アバターを作る入力 */
 export type RegisterAvatarInput = {
@@ -58,7 +67,11 @@ export type BoardQueryVariables = Exact<{
 
 
 export type BoardQuery = { board:
-    | { __typename: 'Board', id: string, name: string, width: number, height: number, tiles: Array<{ x: number, y: number, kind: BoardTileKind }>, connections: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }
+    | { __typename: 'Board', id: string, name: string, width: number, height: number, tiles: Array<
+        | { __typename: 'BaseTile', x: number, y: number }
+        | { __typename: 'CheckpointTile', x: number, y: number }
+        | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
+      > }
     | { __typename: 'BoardNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -151,18 +164,11 @@ export const BoardDocument = new TypedDocumentString(`
       width
       height
       tiles {
+        __typename
         x
         y
-        kind
-      }
-      connections {
-        a {
-          x
-          y
-        }
-        b {
-          x
-          y
+        ... on LandTile {
+          attribute
         }
       }
     }

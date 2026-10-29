@@ -14,18 +14,11 @@ const boardQuery = graphql(`
         width
         height
         tiles {
+          __typename
           x
           y
-          kind
-        }
-        connections {
-          a {
-            x
-            y
-          }
-          b {
-            x
-            y
+          ... on LandTile {
+            attribute
           }
         }
       }
@@ -93,7 +86,6 @@ export default async function BoardPage({ params }: PageProps<"/boards/[id]">) {
         width={board.width}
         height={board.height}
         tiles={board.tiles}
-        connections={board.connections}
       />
       <p>
         <Link href="/boards">ボードの一覧へ</Link>
