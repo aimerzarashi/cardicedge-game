@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
+import { RULE_LABELS, type RuleField } from "../../messages";
 import { BoardGrid } from "../board-grid";
 
 const boardQuery = graphql(`
@@ -20,6 +22,12 @@ const boardQuery = graphql(`
           ... on LandTile {
             attribute
           }
+        }
+        defaultRules {
+          targetMagic
+          startingMagic
+          lapBonus
+          checkpointBonus
         }
       }
     }
@@ -87,6 +95,18 @@ export default async function BoardPage({ params }: PageProps<"/boards/[id]">) {
         height={board.height}
         tiles={board.tiles}
       />
+      <section aria-labelledby="rules-heading">
+        <h2 id="rules-heading">既定のルール</h2>
+        <p>対戦を始めるときに変えられる、既定の値です。</p>
+        <dl>
+          {(Object.keys(RULE_LABELS) as RuleField[]).map((field) => (
+            <Fragment key={field}>
+              <dt>{RULE_LABELS[field]}</dt>
+              <dd>{board.defaultRules[field]}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      </section>
       <p>
         <Link href="/boards">ボードの一覧へ</Link>
       </p>
