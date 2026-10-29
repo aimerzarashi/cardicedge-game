@@ -71,7 +71,7 @@ export type BoardQuery = { board:
         | { __typename: 'BaseTile', x: number, y: number }
         | { __typename: 'CheckpointTile', x: number, y: number }
         | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
-      > }
+      >, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } }
     | { __typename: 'BoardNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -82,7 +82,7 @@ export type BoardsQueryVariables = Exact<{
 
 
 export type BoardsQuery = { boards:
-    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'ValidationErrors' }
    };
@@ -171,6 +171,12 @@ export const BoardDocument = new TypedDocumentString(`
           attribute
         }
       }
+      defaultRules {
+        targetMagic
+        startingMagic
+        lapBonus
+        checkpointBonus
+      }
     }
   }
 }
@@ -186,6 +192,23 @@ export const BoardsDocument = new TypedDocumentString(`
           name
           width
           height
+          tileCounts {
+            land
+            base
+            checkpoint
+            fire
+            earth
+            water
+            wind
+            neutral
+            multi
+          }
+          defaultRules {
+            targetMagic
+            startingMagic
+            lapBonus
+            checkpointBonus
+          }
         }
       }
       pageInfo {

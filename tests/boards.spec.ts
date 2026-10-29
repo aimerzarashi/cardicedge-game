@@ -25,9 +25,43 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   const rows = page.getByRole("row");
   await expect(rows.nth(1)).toContainText("公開中A");
   await expect(rows.nth(1)).toContainText("2×1");
-  await expect(rows.nth(2)).toContainText("公開中B");
-  await expect(rows.nth(2)).toContainText("3×2");
+  await expect(rows.nth(3)).toContainText("公開中B");
+  await expect(rows.nth(3)).toContainText("3×2");
   await expect(page.getByText("使用不可")).toHaveCount(0);
+});
+
+test("一覧に、ボードごとのマスの数と既定のルールが出る", async ({ page }) => {
+  await openBoards(page);
+
+  const rows = page.getByRole("row");
+  await expect(rows.nth(1)).toContainText(
+    "拠点 1・チェックポイント 1・土地 0（火 0・地 0・水 0・風 0・無 0・複 0）",
+  );
+  await expect(rows.nth(2)).toContainText(
+    "既定のルール: 目標の魔力 8000・開始時の魔力 600・周回のボーナス 300・チェックポイントのボーナス 100",
+  );
+  await expect(rows.nth(3)).toContainText(
+    "拠点 1・チェックポイント 1・土地 2（火 1・地 0・水 0・風 0・無 0・複 1）",
+  );
+  await expect(rows.nth(4)).toContainText(
+    "既定のルール: 目標の魔力 5000・開始時の魔力 0・周回のボーナス 200・チェックポイントのボーナス 50",
+  );
+});
+
+test("詳細に、既定のルールの 4 つの値が出る", async ({ page }) => {
+  await openBoards(page);
+
+  await page.getByRole("link", { name: "公開中B" }).click();
+
+  const rules = page.getByRole("region", { name: "既定のルール" });
+  await expect(rules.getByText("対戦を始めるときに変えられる")).toBeVisible();
+  await expect(rules.locator("dt")).toHaveText([
+    "目標の魔力",
+    "開始時の魔力",
+    "周回のボーナス",
+    "チェックポイントのボーナス",
+  ]);
+  await expect(rules.locator("dd")).toHaveText(["5000", "0", "200", "50"]);
 });
 
 test("一覧から開いたボードに、置いてあるマスが種類と属性つきで出る、凡例に 8 つ出る", async ({

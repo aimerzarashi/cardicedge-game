@@ -4,6 +4,18 @@ import type { BoardsQuery } from "@/graphql/graphql";
 import { type CoreResult, callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import { first } from "@/lib/search-params";
+import { RULE_LABELS, type RuleField } from "../messages";
+import { ATTRIBUTE_LABELS } from "./board-layout";
+
+// 属性ごとの数の項目名（core の tileCounts）。0 の属性も出して、ボードどうしで並びをそろえる
+const ATTRIBUTE_COUNTS = [
+  ["FIRE", "fire"],
+  ["EARTH", "earth"],
+  ["WATER", "water"],
+  ["WIND", "wind"],
+  ["NEUTRAL", "neutral"],
+  ["MULTI", "multi"],
+] as const;
 
 const boardsQuery = graphql(`
   query Boards($after: String) {
@@ -16,6 +28,23 @@ const boardsQuery = graphql(`
             name
             width
             height
+            tileCounts {
+              land
+              base
+              checkpoint
+              fire
+              earth
+              water
+              wind
+              neutral
+              multi
+            }
+            defaultRules {
+              targetMagic
+              startingMagic
+              lapBonus
+              checkpointBonus
+            }
           }
         }
         pageInfo {
@@ -92,20 +121,43 @@ function BoardsResult({
                 <tr>
                   <th>名前</th>
                   <th>大きさ</th>
+                  <th>マスの数</th>
                 </tr>
               </thead>
-              <tbody>
-                {boards.edges.map(({ node }) => (
-                  <tr key={node.id}>
+              {/* 1 つのボードを 2 行（マスの数までの段と、既定のルールの段）にし、ボードごとに tbody でまとめる */}
+              {boards.edges.map(({ node }) => (
+                <tbody key={node.id}>
+                  <tr>
                     <td>
                       <Link href={`/boards/${node.id}`}>{node.name}</Link>
                     </td>
                     <td>
                       {node.width}×{node.height}
                     </td>
+                    <td>
+                      拠点 {node.tileCounts.base}・チェックポイント{" "}
+                      {node.tileCounts.checkpoint}・土地 {node.tileCounts.land}
+                      （
+                      {ATTRIBUTE_COUNTS.map(
+                        ([attribute, key]) =>
+                          `${ATTRIBUTE_LABELS[attribute]} ${node.tileCounts[key]}`,
+                      ).join("・")}
+                      ）
+                    </td>
                   </tr>
-                ))}
-              </tbody>
+                  <tr>
+                    <td colSpan={3}>
+                      既定のルール:{" "}
+                      {(Object.keys(RULE_LABELS) as RuleField[])
+                        .map(
+                          (field) =>
+                            `${RULE_LABELS[field]} ${node.defaultRules[field]}`,
+                        )
+                        .join("・")}
+                    </td>
+                  </tr>
+                </tbody>
+              ))}
             </table>
           )}
           <p>
