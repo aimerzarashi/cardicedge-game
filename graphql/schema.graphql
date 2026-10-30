@@ -82,6 +82,10 @@ type Board {
 	マスどうしのつながり（向きは無い。a の座標が小さい側になり、a → b の順に並べる）
 	"""
 	connections: [BoardConnection!]!
+	"""
+	転送円どうし・橋どうしの対（向きは無い。a の座標が小さい側になり、a → b の順に並べる）。公開中のボードのすべての転送円・橋に対の相手がいる
+	"""
+	pairs: [BoardTilePair!]!
 }
 """
 マスどうしのつながり（向きは無い）
@@ -145,7 +149,7 @@ type BoardPosition {
 """
 union BoardResult = Board | BoardNotFoundError | PlayerNotRegisteredError
 """
-置いてあるマス（LandTile・BaseTile・CheckpointTile）。種類は __typename で見分け、種類ごとの項目は断片（... on LandTile 等）で取る
+置いてあるマス（LandTile・BaseTile・CheckpointTile・WarpTile・BridgeTile・SanctuaryTile・ShrineTile・ProphecyShopTile・CardShopTile）。種類は __typename で見分け、種類ごとの項目は断片（... on LandTile 等）で取る
 """
 interface BoardTile {
 	"""
@@ -227,6 +231,43 @@ type BoardTileCounts {
 	複属性の土地の数
 	"""
 	multi: Int!
+	"""
+	転送円の数
+	"""
+	warp: Int!
+	"""
+	橋の数
+	"""
+	bridge: Int!
+	"""
+	聖堂の数
+	"""
+	sanctuary: Int!
+	"""
+	ほこらの数
+	"""
+	shrine: Int!
+	"""
+	占い館の数
+	"""
+	prophecyShop: Int!
+	"""
+	カード屋の数
+	"""
+	cardShop: Int!
+}
+"""
+転送円どうし・橋どうしの対（向きは無い。離れていてよい）
+"""
+type BoardTilePair {
+	"""
+	片方の端（座標が小さい側。行 → 列の順に比べる）
+	"""
+	a: BoardPosition!
+	"""
+	もう片方の端
+	"""
+	b: BoardPosition!
 }
 """
 ボードの一覧の 1 ページ（名前の順）
@@ -258,6 +299,32 @@ type BoardsEdge {
 ボードの一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union BoardsResult = BoardsConnection | ValidationErrors | PlayerNotRegisteredError
+"""
+橋（通ると、歩数を使わずに対の相手の橋から出る。2 つで 1 マスの両端で、止まるのは入った方と反対側の端）。属性は持たない
+"""
+type BridgeTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
+"""
+カード屋（止まると、用意されたカードから 1 枚買える）。属性は持たない
+"""
+type CardShopTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
 """
 チェックポイント
 """
@@ -406,6 +473,19 @@ type PlayerNotRegisteredError {
 	"""
 	message: String!
 }
+"""
+占い館（止まると、選んだ種類のカードを自分の山札から 1 枚引ける）。属性は持たない
+"""
+type ProphecyShopTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
 type Query {
 	"""
 	公開中のボードの一覧（登録済みのプレイヤーだけ）
@@ -471,6 +551,32 @@ type RegisterPlayerSuccess {
 	player: Player!
 }
 """
+聖堂（通る・止まると、属性ごとの品物を売り買いできる）。属性は持たない
+"""
+type SanctuaryTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
+"""
+ほこら（止まると、ランダムで特別なことが起きる）。属性は持たない
+"""
+type ShrineTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
+}
+"""
 スターターの配布の状態
 """
 enum StarterGrantStatus {
@@ -495,4 +601,17 @@ type ValidationErrors {
 	項目ごとの誤り（1 件以上）
 	"""
 	errors: [FieldError!]!
+}
+"""
+転送円（ぴったり止まると、対の相手の転送円へ移る。通り過ぎるだけなら移らない）。属性は持たない
+"""
+type WarpTile implements BoardTile {
+	"""
+	列
+	"""
+	x: Int!
+	"""
+	行
+	"""
+	y: Int!
 }

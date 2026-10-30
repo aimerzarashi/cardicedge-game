@@ -27,6 +27,8 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   await expect(rows.nth(1)).toContainText("2×1");
   await expect(rows.nth(3)).toContainText("公開中B");
   await expect(rows.nth(3)).toContainText("3×2");
+  await expect(rows.nth(5)).toContainText("公開中C");
+  await expect(rows.nth(5)).toContainText("6×2");
   await expect(page.getByText("使用不可")).toHaveCount(0);
 });
 
@@ -35,16 +37,19 @@ test("一覧に、ボードごとのマスの数と既定のルールが出る",
 
   const rows = page.getByRole("row");
   await expect(rows.nth(1)).toContainText(
-    "拠点 1・チェックポイント 1・土地 0（火 0・地 0・水 0・風 0・無 0・複 0）",
+    "拠点 1・チェックポイント 1・土地 0（火 0・地 0・水 0・風 0・無 0・複 0）・転送円 0・橋 0・聖堂 0・ほこら 0・占い館 0・カード屋 0",
   );
   await expect(rows.nth(2)).toContainText(
     "既定のルール: 目標の魔力 8000・開始時の魔力 600・周回のボーナス 300・チェックポイントのボーナス 100",
   );
   await expect(rows.nth(3)).toContainText(
-    "拠点 1・チェックポイント 1・土地 2（火 1・地 0・水 0・風 0・無 0・複 1）",
+    "拠点 1・チェックポイント 1・土地 2（火 1・地 0・水 0・風 0・無 0・複 1）・転送円 0・橋 0・聖堂 0・ほこら 0・占い館 0・カード屋 0",
   );
   await expect(rows.nth(4)).toContainText(
     "既定のルール: 目標の魔力 5000・開始時の魔力 0・周回のボーナス 200・チェックポイントのボーナス 50",
+  );
+  await expect(rows.nth(5)).toContainText(
+    "拠点 1・チェックポイント 1・土地 0（火 0・地 0・水 0・風 0・無 0・複 0）・転送円 4・橋 2・聖堂 1・ほこら 1・占い館 1・カード屋 1",
   );
 });
 
@@ -64,7 +69,7 @@ test("詳細に、既定のルールの 4 つの値が出る", async ({ page }) 
   await expect(rules.locator("dd")).toHaveText(["5000", "0", "200", "50"]);
 });
 
-test("一覧から開いたボードに、置いてあるマスが種類と属性つきで出る、凡例に 8 つ出る", async ({
+test("一覧から開いたボードに、置いてあるマスが種類と属性つきで出て、マスの無い所は描かれず、凡例に 14 個出る", async ({
   page,
 }) => {
   await openBoards(page);
@@ -79,16 +84,91 @@ test("一覧から開いたボードに、置いてあるマスが種類と属�
     grid.getByLabel("(2, 0) のマス チェックポイント"),
   ).toBeAttached();
   await expect(grid.getByLabel("(1, 1) のマス 複属性の土地")).toBeAttached();
-  await expect(
-    grid.getByLabel("(0, 1) のマス", { exact: true }),
-  ).toBeAttached();
-  await expect(page.getByLabel("凡例")).toHaveText(
-    "火属性の土地地属性の土地水属性の土地風属性の土地無属性の土地複属性の土地拠点チェックポイント",
-  );
+  // マスの無い所は描かない
+  await expect(grid.getByLabel(/^\(0, 1\) のマス/)).toHaveCount(0);
+  await expect(page.getByLabel("凡例").locator("li")).toHaveText([
+    "拠点",
+    "チェックポイント",
+    "火属性の土地",
+    "地属性の土地",
+    "水属性の土地",
+    "風属性の土地",
+    "無属性の土地",
+    "複属性の土地",
+    "転送円",
+    "橋",
+    "聖堂",
+    "ほこら",
+    "占い館",
+    "カード屋",
+  ]);
   // マスとマスの間は描かない（つながりの印は studio の編集のためのもの）
   await expect(grid.getByRole("button", { name: /のつながり$/ })).toHaveCount(
     0,
   );
+});
+
+test("転送円と橋に対の番号が出て、番号は転送円と橋で別に対ごとに振られ、色が付く", async ({
+  page,
+}) => {
+  await openBoards(page);
+  await page.getByRole("link", { name: "公開中C" }).click();
+
+  const grid = page.getByRole("group", { name: "ボードの格子" });
+  const warp = [
+    ["(1, 0)", "1-1"],
+    ["(1, 1)", "1-2"],
+    ["(5, 0)", "2-1"],
+    ["(5, 1)", "2-2"],
+  ] as const;
+  for (const [position, number] of warp) {
+    const tile = grid.getByLabel(`${position} のマス 転送円 ${number}`);
+    await expect(tile).toHaveText(number);
+    await expect(tile).toHaveCSS("background-color", "rgb(32, 178, 170)");
+  }
+  for (const [position, number] of [
+    ["(2, 0)", "1-1"],
+    ["(2, 1)", "1-2"],
+  ] as const) {
+    const tile = grid.getByLabel(`${position} のマス 橋 ${number}`);
+    await expect(tile).toHaveText(number);
+    await expect(tile).toHaveCSS("background-color", "rgb(139, 90, 43)");
+  }
+});
+
+test("施設の 4 つのマスに、名前と 1 文字と色が出る", async ({ page }) => {
+  await openBoards(page);
+  await page.getByRole("link", { name: "公開中C" }).click();
+
+  const grid = page.getByRole("group", { name: "ボードの格子" });
+  for (const [position, label, glyph] of [
+    ["(3, 0)", "聖堂", "聖"],
+    ["(4, 0)", "ほこら", "祠"],
+    ["(3, 1)", "占い館", "占"],
+    ["(4, 1)", "カード屋", "店"],
+  ] as const) {
+    const tile = grid.getByLabel(`${position} のマス ${label}`, {
+      exact: true,
+    });
+    await expect(tile).toHaveText(glyph);
+    await expect(tile).toHaveCSS("background-color", "rgb(58, 63, 85)");
+  }
+  // 土地・拠点・チェックポイントには文字を書かない
+  await expect(grid.getByLabel("(0, 0) のマス 拠点")).toHaveText("");
+});
+
+test("地属性は緑、風属性は黄土色で出る", async ({ page }) => {
+  await openBoards(page);
+  const legend = page.getByLabel("凡例");
+
+  await page.getByRole("link", { name: "公開中B" }).click();
+  // 凡例の見本の色（地・風）。公開中のボードに地・風の土地は無いため、見本で確かめる
+  await expect(
+    legend.locator("li", { hasText: "地属性の土地" }).locator("span"),
+  ).toHaveCSS("background-color", "rgb(95, 174, 95)");
+  await expect(
+    legend.locator("li", { hasText: "風属性の土地" }).locator("span"),
+  ).toHaveCSS("background-color", "rgb(200, 162, 74)");
 });
 
 test("拡大・縮小・全体を表示のボタンで、表示の倍率が変わる", async ({

@@ -69,9 +69,15 @@ export type BoardQueryVariables = Exact<{
 export type BoardQuery = { board:
     | { __typename: 'Board', id: string, name: string, width: number, height: number, tiles: Array<
         | { __typename: 'BaseTile', x: number, y: number }
+        | { __typename: 'BridgeTile', x: number, y: number }
+        | { __typename: 'CardShopTile', x: number, y: number }
         | { __typename: 'CheckpointTile', x: number, y: number }
         | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
-      >, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } }
+        | { __typename: 'ProphecyShopTile', x: number, y: number }
+        | { __typename: 'SanctuaryTile', x: number, y: number }
+        | { __typename: 'ShrineTile', x: number, y: number }
+        | { __typename: 'WarpTile', x: number, y: number }
+      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } }
     | { __typename: 'BoardNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -82,7 +88,7 @@ export type BoardsQueryVariables = Exact<{
 
 
 export type BoardsQuery = { boards:
-    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'ValidationErrors' }
    };
@@ -171,6 +177,16 @@ export const BoardDocument = new TypedDocumentString(`
           attribute
         }
       }
+      pairs {
+        a {
+          x
+          y
+        }
+        b {
+          x
+          y
+        }
+      }
       defaultRules {
         targetMagic
         startingMagic
@@ -202,6 +218,12 @@ export const BoardsDocument = new TypedDocumentString(`
             wind
             neutral
             multi
+            warp
+            bridge
+            sanctuary
+            shrine
+            prophecyShop
+            cardShop
           }
           defaultRules {
             targetMagic
