@@ -26,7 +26,8 @@ make gen-api # 前提にする版の core のイメージから game 用のス�
 make migrate # 未適用の migrations だけを Atlas で適用（DB を作り直さない）
 make migrate-generate NAME=<name> # better-auth の設定と DB の差分 SQL を次の番号で生成
 make migrate-hash # migrations を手で足したら atlas.sum を作り直す
-make down    # game を停止（tunnel を含む。core は studio も使うため止めない）
+make down    # game を停止（tunnel を含む。core は studio も使うため止めない。game-db のデータは残す）
+make clean   # down に加えて game-db のデータも消す（core も作り直すこと。下の注意）
 ```
 
 http://localhost:3000 で開く（envoy 経由。Next.js の開発サーバーはホストに公開していない）。
@@ -92,6 +93,8 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 | JWKS | `/api/auth/jwks`（EdDSA / Ed25519）。core が JWT の検証に使う |
 
 `make up` では、game-migrate がマイグレーションを適用してから、開発サーバーの起動前に `db:seed`（冪等）を実行する。
+
+game-db のデータは名前付きのボリュームに置き、`make down` では消さない。`make clean` で消すと、seed がプレイヤーを作り直してユーザー ID（JWT の `sub`）が変わり、core が新しいプレイヤーとして扱って、前のプレイヤーのデータ（アバター等）が見えなくなる。`make clean` のあとは core も作り直す（ルートの `make down`）（game#21・studio#19）。
 
 ### サインアップ
 
