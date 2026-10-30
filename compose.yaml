@@ -72,13 +72,17 @@ services:
   # better-auth のデータ（プレイヤー・セッション等）。ゲームのデータは core-db に置く
   game-db:
     image: postgres:18.6
-    # ホストの SQLTools 等から接続するため公開する（5432 は core-db が使う）。衝突する場合は STUDIO_DB_PORT で変更する
+    # ホストの SQLTools 等から接続するため公開する（5432 は core-db が使う）。衝突する場合は GAME_DB_PORT で変更する
     ports:
       - ${GAME_DB_PORT:-5434}:5432
     environment:
       POSTGRES_USER: game_user
       POSTGRES_PASSWORD: game_password
       POSTGRES_DB: game_auth
+    # 名前付きのボリュームにし、make down で消さない。名前の無いボリュームだと down のたびに空になり、seed が作り直す
+    # プレイヤーの ID（JWT の sub）が変わって、core が新しいプレイヤーとして扱い、前のデータが見えなくなる（game#21・studio#19）
+    volumes:
+      - game-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U game_user -d game_auth"]
       interval: 2s
@@ -139,6 +143,7 @@ services:
 
 volumes:
   node-cache:
+  game-db-data:
 
 # core と共有する game 用のネットワーク（core の make up で作成される）。game 側は game-envoy だけが参加する。
 # studio 用のネットワーク（diecardomain-studio）とは分け、studio から game に内部から届く経路を無くす（studio#30・core#45）

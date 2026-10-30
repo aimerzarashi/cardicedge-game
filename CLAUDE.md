@@ -1,7 +1,7 @@
 # コマンド
 
-- `make up` / `make down` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make gen-api` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
-- `make up` は先に `../core` の `make up` を実行する。`make down` は game だけを止める（core は止めない）
+- `make up` / `make down` / `make clean` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make gen-api` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
+- `make up` は先に `../core` の `make up` を実行する。`make down` は game だけを止める（core は止めない）。game-db のデータは名前付きのボリュームに置き、`make down` では消さない。消す `make clean` のあとは core も作り直す（seed が作り直したプレイヤーを、core が新しいプレイヤーとして扱い、前のデータが見えなくなるため。game#21・studio#19）
 - pnpm・node はコンテナ内で実行する（例: `docker compose exec game pnpm lint`）。node_modules はコンテナの pnpm が作り、ホストと共有する
 - lint は `make lint`（biome check、`pnpm typecheck`、scripts/check-migrations.sh、scripts/check-auth-schema.sh）でファイルを書き換えない。typecheck は `next typegen` で Next.js の型（LayoutProps 等）を生成してから tsc を実行する。フォーマットの修正は `make fmt`（biome format --write）
 - pnpm のバージョンを上げるときは package.json の `packageManager`、local/game/Dockerfile・.build/Dockerfile・.gitlab-ci.yml の `PNPM_VERSION` を揃える（corepack は使わない）
