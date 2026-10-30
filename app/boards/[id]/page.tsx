@@ -23,6 +23,16 @@ const boardQuery = graphql(`
             attribute
           }
         }
+        pairs {
+          a {
+            x
+            y
+          }
+          b {
+            x
+            y
+          }
+        }
         defaultRules {
           targetMagic
           startingMagic
@@ -94,6 +104,7 @@ export default async function BoardPage({ params }: PageProps<"/boards/[id]">) {
         width={board.width}
         height={board.height}
         tiles={board.tiles}
+        pairs={board.pairs}
       />
       <section aria-labelledby="rules-heading">
         <h2 id="rules-heading">既定のルール</h2>

@@ -8,8 +8,12 @@ import {
   useState,
 } from "react";
 import {
-  ATTRIBUTE_LABELS,
+  isPairableKind,
+  type Pair,
+  type PairLabel,
+  PLACEMENTS,
   type Position,
+  pairLabel,
   type Tile,
   tileAt,
   tileLabel,
@@ -17,12 +21,16 @@ import {
 
 // ボードを斜め見下ろしで見せる格子。studio の app/boards/board-grid.tsx から写したもの（片方を変えたらもう片方もそろえる）。
 // 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
-// マスとマスの間（つながりの印）を描かないこと（game では間を空白にして背景を見せる。オーナーの判断）。
+// マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
+// 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
+// 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
 // （つながり）にする（奇数 × 奇数は空き）。この grid 全体を `scaleY(0.5) rotate(45deg)` で回してつぶし、マスを ◇ に見せる。
-//   マス: 名前「(x, y) のマス」＋置いてあれば種類（土地は属性つき。例: 「(2, 0) のマス 拠点」「(1, 0) のマス 火属性の土地」）。種類・属性は色で見せ、マスの中に文字は書かない
+//   マス: 名前「(x, y) のマス」＋置いてあれば種類（土地は属性つき。例: 「(2, 0) のマス 拠点」「(1, 0) のマス 火属性の土地」）。種類・属性は色で見せる。
+//     マスの中に文字を書くのは特殊なマスだけ（転送円・橋は対の番号「1-1」「1-2」、相手のいないものは「?」。施設は 1 文字）。名前にも番号が付く（「転送円 1-1」「橋 相手なし」）
 //   横の間: 「(x, y) と (x+1, y) のつながり」、縦の間: 「(x, y) と (x, y+1) のつながり」（つながっているかは aria-pressed）
+// 対: pairs で転送円・橋の番号を決める（番号の振り方は board-layout.ts の pairLabel）。
 // 見方: はみ出した分はスクロールバーではなく、枠の中で表示を動かして見る（ドラッグで動かす・ホイールとボタンで拡大縮小）。
 // ポインターとホイールの処理を持つため、Server Component（ボードの詳細）から使えるよう Client Component にしている
 
@@ -76,10 +84,12 @@ export function BoardGrid({
   width,
   height,
   tiles,
+  pairs,
 }: {
   width: number;
   height: number;
   tiles: Tile[];
+  pairs: Pair[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
@@ -192,12 +202,19 @@ export function BoardGrid({
       const x = Math.floor(column / 2);
       const y = Math.floor(row / 2);
       if (column % 2 === 0 && row % 2 === 0) {
+        const tile = tileAt(tiles, { x, y });
         cells.push(
-          <TileButton
-            key={key}
-            position={{ x, y }}
-            tile={tileAt(tiles, { x, y })}
-          />,
+          // マスの無い所は描かない（間と同じく空白にして背景を見せる。空きは studio の編集で押す場所のためのもの）
+          tile ? (
+            <TileButton
+              key={key}
+              position={{ x, y }}
+              tile={tile}
+              pair={pairLabel({ tiles, pairs }, tile)}
+            />
+          ) : (
+            <span key={key} />
+          ),
         );
       } else if (column % 2 === row % 2) {
         cells.push(<span key={key} />);
@@ -318,9 +335,9 @@ function tracks(count: number, tile: number): string {
 // 枠の模様（二重の枠・斜線）で分ける案は、斜め見下ろしでつぶすと見分けにくいため採らなかった。
 // 白は studio のつながりの印に使うので、マスには使わない
 const FIRE = "#d9534f";
-const EARTH = "#c8a24a";
+const EARTH = "#5fae5f";
 const WATER = "#4a7fd4";
-const WIND = "#5fae5f";
+const WIND = "#c8a24a";
 const LAND_COLORS = {
   FIRE,
   EARTH,
@@ -332,21 +349,26 @@ const LAND_COLORS = {
 };
 const BASE_COLOR = "#8e4ec6";
 const CHECKPOINT_COLOR = "#f7a8c8";
+const WARP_COLOR = "#20b2aa";
+const BRIDGE_COLOR = "#8b5a2b";
+const FACILITY_COLOR = "#3a3f55";
+// 施設のマスに書く 1 文字
+const FACILITY_GLYPHS = {
+  SanctuaryTile: "聖",
+  ShrineTile: "祠",
+  ProphecyShopTile: "占",
+  CardShopTile: "店",
+};
 const BOARD_BACKGROUND = "#1b2440";
 
-// 凡例は、属性ごとの土地・拠点・チェックポイントの見本
-const LEGEND: Tile[] = [
-  ...(Object.keys(ATTRIBUTE_LABELS) as (keyof typeof ATTRIBUTE_LABELS)[]).map(
-    (attribute) => ({ x: 0, y: 0, __typename: "LandTile" as const, attribute }),
-  ),
-  { x: 0, y: 0, __typename: "BaseTile" },
-  { x: 0, y: 0, __typename: "CheckpointTile" },
-];
+// 凡例は、studio の道具と同じ並びのマスの見本（PLACEMENTS から作る）
+const LEGEND: Tile[] = PLACEMENTS.map((placement) => ({
+  x: 0,
+  y: 0,
+  ...placement,
+}));
 
-function paint(tile: Tile | undefined): CSSProperties {
-  if (!tile) {
-    return { border: "1px dashed #5a6480", background: "transparent" };
-  }
+function paint(tile: Tile): CSSProperties {
   switch (tile.__typename) {
     case "BaseTile":
       return { border: "1px solid #555", background: BASE_COLOR };
@@ -357,6 +379,31 @@ function paint(tile: Tile | undefined): CSSProperties {
         border: "1px solid #555",
         background: LAND_COLORS[tile.attribute],
       };
+    case "WarpTile":
+      return { border: "1px solid #555", background: WARP_COLOR };
+    case "BridgeTile":
+      return { border: "1px solid #555", background: BRIDGE_COLOR };
+    case "SanctuaryTile":
+    case "ShrineTile":
+    case "ProphecyShopTile":
+    case "CardShopTile":
+      return { border: "1px solid #555", background: FACILITY_COLOR };
+  }
+}
+
+// マスの中に書く文字（特殊なマスだけ）。転送円・橋は対の番号で、相手のいないものは「?」
+function tileText(tile: Tile, pair: PairLabel | undefined): string | undefined {
+  switch (tile.__typename) {
+    case "WarpTile":
+    case "BridgeTile":
+      return pair ? `${pair.number}-${pair.end}` : "?";
+    case "SanctuaryTile":
+    case "ShrineTile":
+    case "ProphecyShopTile":
+    case "CardShopTile":
+      return FACILITY_GLYPHS[tile.__typename];
+    default:
+      return undefined;
   }
 }
 
@@ -364,17 +411,49 @@ function paint(tile: Tile | undefined): CSSProperties {
 function TileButton({
   position,
   tile,
+  pair,
 }: {
   position: Position;
-  tile: Tile | undefined;
+  tile: Tile;
+  // 転送円・橋の対の番号（対になっていなければ無い）
+  pair: PairLabel | undefined;
 }) {
   const name = `(${position.x}, ${position.y}) のマス`;
+  const text = tileText(tile, pair);
+  // 転送円・橋の名前には対の番号（なければ「相手なし」）を添える
+  const pairName = isPairableKind(tile.__typename)
+    ? ` ${pair ? `${pair.number}-${pair.end}` : "相手なし"}`
+    : "";
   return (
     <button
       type="button"
-      aria-label={tile ? `${name} ${tileLabel(tile)}` : name}
+      aria-label={`${name} ${tileLabel(tile)}${pairName}`}
       disabled
-      style={{ ...paint(tile), padding: 0 }}
-    />
+      style={{
+        ...paint(tile),
+        padding: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {text !== undefined && (
+        // 盤面の回転（scaleY(0.5) rotate(45deg)）を打ち消して、文字を正面に向ける
+        <span
+          aria-hidden
+          style={{
+            transform: "rotate(-45deg) scaleY(2)",
+            color: "#ffffff",
+            fontSize: 16,
+            fontWeight: "bold",
+            lineHeight: 1,
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {text}
+        </span>
+      )}
+    </button>
   );
 }
