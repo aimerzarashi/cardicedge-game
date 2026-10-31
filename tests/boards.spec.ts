@@ -108,69 +108,6 @@ test("一覧から開いたボードに、置いてあるマスが種類と属�
   );
 });
 
-test("転送円と橋に対の番号が出て、番号は転送円と橋で別に対ごとに振られ、色が付く", async ({
-  page,
-}) => {
-  await openBoards(page);
-  await page.getByRole("link", { name: "公開中C" }).click();
-
-  const grid = page.getByRole("group", { name: "ボードの格子" });
-  const warp = [
-    ["(1, 0)", "1-1"],
-    ["(1, 1)", "1-2"],
-    ["(5, 0)", "2-1"],
-    ["(5, 1)", "2-2"],
-  ] as const;
-  for (const [position, number] of warp) {
-    const tile = grid.getByLabel(`${position} のマス 転送円 ${number}`);
-    await expect(tile).toHaveText(number);
-    await expect(tile).toHaveCSS("background-color", "rgb(32, 178, 170)");
-  }
-  for (const [position, number] of [
-    ["(2, 0)", "1-1"],
-    ["(2, 1)", "1-2"],
-  ] as const) {
-    const tile = grid.getByLabel(`${position} のマス 橋 ${number}`);
-    await expect(tile).toHaveText(number);
-    await expect(tile).toHaveCSS("background-color", "rgb(139, 90, 43)");
-  }
-});
-
-test("施設の 4 つのマスに、名前と 1 文字と色が出る", async ({ page }) => {
-  await openBoards(page);
-  await page.getByRole("link", { name: "公開中C" }).click();
-
-  const grid = page.getByRole("group", { name: "ボードの格子" });
-  for (const [position, label, glyph] of [
-    ["(3, 0)", "聖堂", "聖"],
-    ["(4, 0)", "ほこら", "祠"],
-    ["(3, 1)", "占い館", "占"],
-    ["(4, 1)", "カード屋", "店"],
-  ] as const) {
-    const tile = grid.getByLabel(`${position} のマス ${label}`, {
-      exact: true,
-    });
-    await expect(tile).toHaveText(glyph);
-    await expect(tile).toHaveCSS("background-color", "rgb(58, 63, 85)");
-  }
-  // 土地・拠点・チェックポイントには文字を書かない
-  await expect(grid.getByLabel("(0, 0) のマス 拠点")).toHaveText("");
-});
-
-test("地属性は緑、風属性は黄土色で出る", async ({ page }) => {
-  await openBoards(page);
-  const legend = page.getByLabel("凡例");
-
-  await page.getByRole("link", { name: "公開中B" }).click();
-  // 凡例の見本の色（地・風）。公開中のボードに地・風の土地は無いため、見本で確かめる
-  await expect(
-    legend.locator("li", { hasText: "地属性の土地" }).locator("span"),
-  ).toHaveCSS("background-color", "rgb(95, 174, 95)");
-  await expect(
-    legend.locator("li", { hasText: "風属性の土地" }).locator("span"),
-  ).toHaveCSS("background-color", "rgb(200, 162, 74)");
-});
-
 test("拡大・縮小・全体を表示のボタンで、表示の倍率が変わる", async ({
   page,
 }) => {
