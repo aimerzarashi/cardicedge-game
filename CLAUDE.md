@@ -26,6 +26,7 @@
 | local/migrate | マイグレーション用イメージ（Atlas Community + migrations。core と同じ構成） |
 | scripts/check-migrations.sh | Atlas が検出しない migrations の違反の検査（core と同じものを置く。変えるときは core / studio と揃える） |
 | scripts/check-auth-schema.sh | better-auth の設定と DB（DATABASE_URL）のスキーマに差分が無いことの検査（マイグレーションの作り忘れを防ぐ） |
+| scripts/save-test-failure.sh | `make test` が落ちたときに、テスト用の環境を消す前に記録（test-results・ログ・DB の中身）を test-failures/ に移す |
 | scripts/seed.ts | 開発・テスト用の、メールアドレスを確認済みのプレイヤーを作る（`pnpm db:seed`） |
 | tests | Playwright のテスト |
 | local/game | 開発用 Dockerfile |
@@ -84,6 +85,7 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 - `run-server` は game の node_modules の `@playwright/test` を Playwright のコンテナに読み取り専用で渡して起動する（npx で起動のたびに npm から取ってこない。npm に届かないとサーバーが立たないため。studio#25）。`@playwright/test`（package.json）と compose の Playwright イメージのバージョンは一致させる
 - テストは tests/fixtures.ts の `test` / `expect` を使う。テストごとに `X-Forwarded-For` で別の IP を名乗り、本番モードのレート制限（ログインは同じ IP から 10 秒に 3 回）でほかのテストと枠を共有しないようにしている。名乗った IP が効くのは、テスト用の環境だけにある中継役用の入口（envoy の 10001。`PLAYWRIGHT_BASE_URL`）を通るとき。公開の入口は `PLAYWRIGHT_PUBLIC_URL`
 - `make test` のテスト用のプレイヤーは seed（player@example.com。パスワード付き・確認済み）。ほかのアカウントはテストの中でサインアップし、Mailpit の確認のメールで確認する（tests/account.ts）
+- 落ちたテストだけ Playwright が trace とスクリーンショットを残し（playwright.config.ts）、`make test` が落ちたときだけ、テスト用の環境を消す前に scripts/save-test-failure.sh が test-results・各コンテナのログ・各 DB の中身（pg_dump）を `test-failures/<日時>/`（git 管理しない）に移す。見方は README の「テストが落ちたとき」。retries は付けない（流し直しで通ると、たまに落ちることが隠れるため）。たまに落ちるテストは再現を探さず、起きたときにこの記録で調べる（投影の遅れで待ちきれなかっただけか、イベントと read model で確かめる。game#22・studio#46）
 - メールは Mailpit が受け止め、テストは Mailpit の API で読む（tests/mail.ts）。メールのリンクのホスト名は BETTER_AUTH_URL のため、パスだけを使う（開発用の環境では localhost:3000 で、ブラウザのコンテナから届かない）
 - core_game のマスタ（公開中のカード・スターターデッキ 2 つ・game_rules・ボード（公開中 3 つと使用不可 1 つ。公開中 C に転送円の対 2 つ・橋の対 1 つ・施設 4 つを置く））は、core-publish-master（compose.test.yaml の使い捨ての psql）が `local/core-master/master.sql` を流して入れる。core の `make publish-master`（studio の read model から写す）と同じ形の行で、形を変えるときは ../core の migrations と tests/testhelper/master.go に合わせる（ボードの metadata は studio の read model の BoardMetadata の形で、kind・attribute は小文字（kind は prophecy_shop 等 snake_case）。default_rules・tile_counts は snake_case で tile_counts は 15 項目すべてを書く。pairs（無ければ `[]`）も必ず書く。core は無い行を読み出しの誤りにするため。土地のマスだけが attribute を持つ）。core はこれが済んでから起動するため、登録すればスターターが配られる
 - tests/core-jwt.spec.ts は、サインアップしたばかりのプレイヤーの JWT で core の `me` を呼び、`PlayerNotRegisteredError` が返ることで、core が game の JWT を受け付けることを確かめる。画面でログインするとトップが登録してしまうため、API でログインする。seed のプレイヤーは tests/player.spec.ts が登録するので使わない
