@@ -31,5 +31,8 @@ export const RULE_LABELS = {
   startingMagic: "開始時の魔力",
   lapBonus: "周回のボーナス",
   checkpointBonus: "チェックポイントのボーナス",
+  roundLimit: "ラウンドの上限",
+  diceMin: "サイコロの目（最小）",
+  diceMax: "サイコロの目（最大）",
 } as const;
 export type RuleField = keyof typeof RULE_LABELS;

@@ -60,6 +60,9 @@ const boardsQuery = graphql(`
               startingMagic
               lapBonus
               checkpointBonus
+              roundLimit
+              diceMin
+              diceMax
             }
           }
         }

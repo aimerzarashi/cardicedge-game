@@ -77,7 +77,7 @@ export type BoardQuery = { board:
         | { __typename: 'SanctuaryTile', x: number, y: number }
         | { __typename: 'ShrineTile', x: number, y: number }
         | { __typename: 'WarpTile', x: number, y: number }
-      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } }
+      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }
     | { __typename: 'BoardNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -88,7 +88,7 @@ export type BoardsQueryVariables = Exact<{
 
 
 export type BoardsQuery = { boards:
-    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'ValidationErrors' }
    };
@@ -192,6 +192,9 @@ export const BoardDocument = new TypedDocumentString(`
         startingMagic
         lapBonus
         checkpointBonus
+        roundLimit
+        diceMin
+        diceMax
       }
     }
   }
@@ -230,6 +233,9 @@ export const BoardsDocument = new TypedDocumentString(`
             startingMagic
             lapBonus
             checkpointBonus
+            roundLimit
+            diceMin
+            diceMax
           }
         }
       }
