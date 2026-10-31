@@ -18,7 +18,8 @@ Node.js・pnpm はコンテナ内で動くため、ホストへのインスト�
 make up      # core（../core）を起動してから、開発サーバー（Next.js）・envoy・DB・Mailpit・Playwright のブラウザを起動
 make fmt     # biome でフォーマットを修正
 make lint    # biome check・型チェック・migrations の検査・better-auth の設定と開発用 DB の差分の検査
-make test    # 専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
+make test-unit # 単体テスト（pnpm test:unit = node --test。core・DB を起動しない。make test も最初に流す）
+make test    # 単体テストを流してから、専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
 make tunnel  # （任意）Cloudflare Quick Tunnel を起動し、外部公開用 URL を表示
 make url     # （任意）起動中の Tunnel の URL を再表示
 make core-local # 手元の ../core から core・core-migrate のイメージを local の版で作る
@@ -81,7 +82,7 @@ URL は起動のたびに変わり、知っていれば誰でもアクセスで�
 |---|---|---|
 | マイルストーンのブランチに向かう MR（Issue の MR） | lint・test（手動） | ふだんは実行せず、手元の `make lint`・`make test` で確かめる。パイプラインは skipped になり、「スキップされたパイプラインを成功とみなす」の設定でマージできる。CI の手順を変えたとき等、CI で確かめたいときだけ手で動かす（失敗するとマージできなくなる） |
 | main に向かう MR（マイルストーンの MR） | lint | `make lint` 相当 |
-| main に向かう MR | test | migrations を空の DB に Atlas で適用し、better-auth の設定とスキーマに差分が無いことを確かめる（Playwright のテストは CI では未実行） |
+| main に向かう MR | test | 単体テスト（node --test）を流し、migrations を空の DB に Atlas で適用し、better-auth の設定とスキーマに差分が無いことを確かめる（Playwright のテストは CI では未実行） |
 | main に向かう MR | build-mr（手動） | `registry.gitlab.com/aimerzarashi/diecardomain/game:mr-<MR番号>` と `.../game/migrate:mr-<MR番号>` に push（lint・test が通った後） |
 | main | release | semantic-release がコミットからバージョンを決め、タグ（`v1.2.0`）と GitLab リリースを作る。リリース対象のコミットが無ければ何もしない |
 | タグ（`v*`） | deploy | Docker Hub の `diecardomain/game:<タグ>`・`:latest` と `diecardomain/game-migrate:<タグ>`・`:latest` に push |
