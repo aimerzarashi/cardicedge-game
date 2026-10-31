@@ -172,6 +172,17 @@ secret は Cookie の署名と、JWT の署名鍵（game-db の `jwks`）の暗�
 
 secret だけが漏れた場合、Cookie の署名は作れるが、セッションの token（DB にあるランダムな値）を知らないとログイン状態は偽造できない。secret と game-db の両方が漏れると、`jwks` の秘密鍵を復号して JWT を偽造できる（core に対して任意のプレイヤーになりすませる）。
 
+## トレース（OpenTelemetry）
+
+開発中に、game から core までのリクエストを 1 本のトレースで見られる（game#25。studio#50 の写し）。`instrumentation.ts` で `@vercel/otel` の `registerOTel` を呼び、Next.js の処理・better-auth の DB の呼び出し・core への fetch をスパンにして送る。
+
+| 項目 | 内容 |
+|---|---|
+| 送り先 | OpenTelemetry の標準の環境変数 `OTEL_EXPORTER_OTLP_ENDPOINT`（開発・テスト用の環境は `http://host.docker.internal:4318`）・`OTEL_EXPORTER_OTLP_PROTOCOL`・`OTEL_SERVICE_NAME`。任意で、渡さなければ送らない（リリース確認の環境・本番のように受け手が無くても、同じイメージのまま普通に動く）。受け手に届かなくても game は普通に動く |
+| 受け手 | core の compose の otel-lgtm（`make up` で core と一緒に起動）。Grafana は http://127.0.0.1:3002（ログインなし）の Explore で Tempo を選ぶ。game のコンテナは共有ネットワークに入れず、`extra_hosts` の `host.docker.internal` でホストの 4318 番に届ける |
+| core とのつながり | core を呼ぶ fetch に `traceparent` を付ける。@vercel/otel は既定では自分と同じ宛先への fetch にしか付けないため、instrumentation.ts の `propagateContextUrls` に `CORE_GRAPHQL_URL` を渡している（無いと game と core が別々のトレースになる）。core は受けた `traceparent` を引き継ぐ |
+| 確かめ方 | `traceparent: 00-<32 桁の 16 進数>-<16 桁の 16 進数>-01` を付けて、ログイン後の Cookie でページ（例: `/boards`）を呼び、`curl http://127.0.0.1:3002/api/datasources/proxy/uid/tempo/api/traces/<trace id>` で game と core のスパンが同じ trace id に並ぶことを見る |
+
 ## DB マイグレーション
 
 core・studio・game で同じ形式（Atlas Community Edition `arigaio/atlas:1.3.3-community`、`migrations/NNNN_name.sql` + `atlas.sum`）にそろえている（方針は core#5、決まりと Atlas の注意点の詳細は core の README）。

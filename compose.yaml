@@ -35,6 +35,13 @@ services:
       PLAYWRIGHT_PUBLIC_URL: http://game-envoy:10000
       # Playwright のテストが、届いたメールを Mailpit の API で読む
       PLAYWRIGHT_MAILPIT_URL: http://game-mailpit:8025
+      # トレースの送り先（OpenTelemetry の標準の環境変数。game#25）。受け手（core の compose の otel-lgtm）が止まっていても game は普通に動く
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: game
+    # 共有ネットワークには入れず、ホストの口（otel-lgtm）へ届ける。理由は core の compose の otel-lgtm の注記（core#74）
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # 共有ネットワーク（diecardomain-game）には参加しない。参加すると core・studio から envoy を通らずに直接届き、
     # x-client-ip を自由に付けてレート制限をすり抜けられる（studio#11）。core を呼ぶときは game-envoy の /game/graphql を通す
     depends_on:
