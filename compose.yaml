@@ -72,7 +72,7 @@ services:
 
   # 送ったメールを受け止める（外には送らない）。ホストから http://localhost:8026 で読む。衝突する場合は GAME_MAILPIT_PORT で変更する（8025 は studio の Mailpit が使う）
   game-mailpit:
-    image: axllent/mailpit:v1.31.4
+    image: axllent/mailpit:v1.33.0
     ports:
       - ${GAME_MAILPIT_PORT:-8026}:8025
 
@@ -98,7 +98,7 @@ services:
 
   # 開発環境の入口。他プロジェクトと衝突する場合は STUDIO_PORT で変更する
   game-envoy:
-    image: envoyproxy/envoy:v1.39.2
+    image: envoyproxy/envoy:v1.40.2
     ports:
       - ${GAME_PORT:-3000}:10000
     volumes:
@@ -120,7 +120,7 @@ services:
 
   # オプション: Cloudflare Quick Tunnel で外部（スマホ等）からアクセスする。make tunnel で起動
   game-tunnel:
-    image: cloudflare/cloudflared:2026.9.3
+    image: cloudflare/cloudflared:2026.10.7
     profiles: ["tunnel"]
     command: ["tunnel", "--no-autoupdate", "--url", "http://game-envoy:10000"]
     depends_on:
@@ -129,7 +129,7 @@ services:
 
   # ブラウザ入りの公式イメージ。@playwright/test とバージョンを一致させる
   game-playwright:
-    image: mcr.microsoft.com/playwright:v1.63.0-noble
+    image: mcr.microsoft.com/playwright:v1.64.1-noble
     init: true
     user: pwuser
     working_dir: /home/pwuser
