@@ -1,7 +1,7 @@
 # コマンド
 
-- `make up` / `make down` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make gen-api` / `make fmt` / `make lint` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
-- `make up` は先に `../core` の `make up` を実行する。`make down` は game だけを止める（core は止めない）
+- `make up` / `make down` / `make clean` / `make core-local` / `make migrate` / `make migrate-generate NAME=<name>` / `make migrate-hash` / `make gen-api` / `make fmt` / `make lint` / `make test-unit` / `make test`、任意で `make tunnel`（Cloudflare Quick Tunnel。URL の再表示は `make url`）
+- `make up` は先に `../core` の `make up` を実行する。`make down` は game だけを止める（core は止めない）。game-db のデータは名前付きのボリュームに置き、`make down` では消さない。消す `make clean` のあとは core も作り直す（seed が作り直したプレイヤーを、core が新しいプレイヤーとして扱い、前のデータが見えなくなるため。game#21・studio#19）
 - pnpm・node はコンテナ内で実行する（例: `docker compose exec game pnpm lint`）。node_modules はコンテナの pnpm が作り、ホストと共有する
 - lint は `make lint`（biome check、`pnpm typecheck`、scripts/check-migrations.sh、scripts/check-auth-schema.sh）でファイルを書き換えない。typecheck は `next typegen` で Next.js の型（LayoutProps 等）を生成してから tsc を実行する。フォーマットの修正は `make fmt`（biome format --write）
 - pnpm のバージョンを上げるときは package.json の `packageManager`、local/game/Dockerfile・.build/Dockerfile・.gitlab-ci.yml の `PNPM_VERSION` を揃える（corepack は使わない）
@@ -11,22 +11,26 @@
 
 | パス | 責務 |
 |---|---|
-| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示・スターターの受け取りの状態・ログアウト、`/avatars` へのリンク）、`/avatars`（自分のアバターの一覧と作るフォーム。作ったら一覧に出るまで待って出し直す。待ち方は app/avatars/wait-avatar.ts）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
+| app | App Router のページ・レイアウト（`/` はログイン後の画面（ログイン中の表示・スターターの受け取りの状態・ログアウト、`/avatars` へのリンク）、`/avatars`（自分のアバターの一覧と作るフォーム。作ったら一覧に出るまで待って出し直す。待ち方は app/avatars/wait-avatar.ts）、`/boards`（公開中のボードの一覧。1 ボードを 2 行にし、名前・大きさ・マスの数（core の tileCounts をそのまま出す。拠点・チェックポイント・土地（属性ごと）の後ろに、転送円・橋・聖堂・ほこら・占い館・カード屋を 0 も含めて並べる）と、既定のルールを出す）・`/boards/[id]`（ボードの表示。既定のルール（目標の魔力・開始時の魔力・周回のボーナス・チェックポイントのボーナス・ラウンドの上限・サイコロの目の最小と最大の 7 つ。項目の呼び方は app/messages.ts の RULE_LABELS）を出す。斜め見下ろしの格子（土地は属性ごとの色（地属性は緑、風属性は黄土色）、拠点は紫、チェックポイントは明るめの桃色、転送円は青緑・橋は茶色で対の番号「1-1」「1-2」を書き、聖堂・ほこら・占い館・カード屋は濃い灰青で 1 文字（聖・祠・占・店）を書く。凡例は 14 個で studio の道具と同じ並び。背景は画面のモードによらず濃い紺に固定し、マスとマスの間とマスの無い所は描かない（将来は背景画を敷く。マスの無い所は game#13））を、ドラッグ・ホイール・ボタンで動かして見る。格子の部品 board-grid.tsx と、そこから出した純粋な関数 board-layout.ts・board-view.ts（表示の計算）・board-paint.ts（色・文字・マスの名前）は studio の app/boards から写したもので、片方を変えたらもう片方もそろえる。`.tsx` は Node が読めず単体テストにできないため、純粋な関数は `.ts` に出す）、`/login`・`/signup`・`/forgot-password`・`/reset-password`、`/api/auth/[...all]` は better-auth） |
 | lib/auth.ts | better-auth の設定（サーバー側）。公式どおり `export const auth = betterAuth(...)`。CLI もこれを読む |
 | lib/auth-client.ts | better-auth のクライアント |
 | lib/core.ts | core の GraphQL を呼ぶ道具（`callCore`。JWT は `auth.api.getToken`。core に届かないときは `{ ok: false, reason: "unavailable" }` を返し、401 はログイン画面へ。studio の lib/core.ts と同じ形） |
 | lib/player.ts | ログイン中のプレイヤー（アバターの一覧を含む）を確かめる `currentPlayer`（`me` を呼び、未登録なら `registerPlayer` を呼んで読み直す。React の `cache` で 1 リクエストの中は使い回す）。プレイヤーの情報を出すページだけで呼び、ログイン等の core を使わないページでは呼ばない |
 | graphql | `make gen-api` が作る生成物（core から取り出したスキーマ `schema.graphql` と graphql-codegen の型）。手で直さない。コミットする（CI に core が無くても型の検査が通るように） |
 | codegen.ts・.graphqlrc.yaml | graphql-codegen の設定と、VSCode の GraphQL の拡張の設定（studio と同じ） |
+| lib/search-params.ts | ページの `searchParams` の値を 1 つにする `first`（studio の lib/search-params.ts から使うものだけ写した） |
 | lib/mail.ts | SMTP でのメール送信（`sendMail`） |
 | lib/use-hydrated.ts | フォームをハイドレーションの後まで送信させないための印（better-auth のクライアントを呼ぶ認証の画面で使う） |
+| instrumentation.ts | OpenTelemetry（`@vercel/otel` の `registerOTel`）。送り先は標準の環境変数（`OTEL_EXPORTER_OTLP_ENDPOINT` 等）で渡し、任意（無ければ送らない）。core を呼ぶ fetch に traceparent を付けるため、`propagateContextUrls` に `CORE_GRAPHQL_URL` を渡す（既定では同じ宛先にしか付かず、トレースが core で切れる）。パッケージは @vercel/otel のほか、同梱の文書が一緒に入れるよう書いている @opentelemetry/sdk-logs・api-logs・instrumentation（@vercel/otel の peer。版は peer の範囲 <0.300 の最新に固定）。開発・テスト用の環境は core の compose の otel-lgtm（ホストの 4318）に送る（`extra_hosts` の host.docker.internal。共有ネットワークには入れない）。見方は README の「トレース」（game#25。studio#50 の写し） |
 | proxy.ts | 未ログインのときにログイン画面へ移す（Next.js 16 の proxy。Cookie の有無だけを見る） |
 | migrations | DB マイグレーション（`NNNN_name.sql` + `atlas.sum`）。better-auth のテーブルも `auth generate` で SQL にしてここに置き、Atlas で適用する |
 | local/migrate | マイグレーション用イメージ（Atlas Community + migrations。core と同じ構成） |
 | scripts/check-migrations.sh | Atlas が検出しない migrations の違反の検査（core と同じものを置く。変えるときは core / studio と揃える） |
 | scripts/check-auth-schema.sh | better-auth の設定と DB（DATABASE_URL）のスキーマに差分が無いことの検査（マイグレーションの作り忘れを防ぐ） |
+| scripts/save-test-failure.sh | `make test` が落ちたときに、テスト用の環境を消す前に記録（test-results・ログ・DB の中身・落ちたテストのトレースとログ）を test-failures/ に移す |
 | scripts/seed.ts | 開発・テスト用の、メールアドレスを確認済みのプレイヤーを作る（`pnpm db:seed`） |
 | tests | Playwright のテスト |
+| `*.test.ts`（app/ 配下） | `node --test` の単体テスト。調べる元のファイルの隣に置く（boards/board-layout.test.ts・boards/board-view.test.ts・boards/board-paint.test.ts）。本番用イメージのビルドには入れない（.dockerignore） |
 | local/game | 開発用 Dockerfile |
 | .build | 本番用 Dockerfile（standalone 出力を node で動かす。テスト用環境・CI でも使う） |
 | local/core-db | テスト用の環境（compose.test.yaml）の core-db の初期化（core_game を作る。core のものを使わないのは、../core のブランチしだいで中身が変わるため） |
@@ -78,16 +82,27 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 
 - `make test` は compose.test.yaml（プロジェクト名 game-test）で専用の core・DB・本番用イメージの game を起動し、終了後に破棄する。開発用環境・開発用 DB には触れない。core は ../core のソースではなく、`CORE_VERSION` のイメージ（`diecardomain/core`・`core-migrate`）を使う
 - テストは開発用イメージの game-test-runner（profile: runner）から `docker compose run` で実行する。本番用イメージにはテストコードを含めない
+- テストの基準（game#23。studio#47 と同じ）。E2E（Playwright）は遅く、機能を足すたびに増えるため、次に絞る。そのほかは単体テストで確かめる
+  - E2E に残すもの: 画面ごとの主な流れを 1 本ずつ（core まで通して操作が届き、画面が最新を出し直す）、層をまたぐ約束、本物のブラウザでしか確かめられないもの（ドラッグ・拡大縮小・認証やメールの流れ）
+  - 単体テストにするもの: 純粋な関数の決まり（番号の振り方・マスの名前・並びや色の対応）。core が判定する決まりそのものは core のテストに任せ、画面では core の結果が表示になることを確かめる
+  - 同じ画面の流れを重ねて確かめない。流れが重なるテストは 1 本にまとめ、テスト名で何を保証するかがわかるようにする
+  - 見た目（色）は自動のテストにせず、目で確かめる（色の定数と塗り分けの対応は単体テストで保証する）
+  - E2E から外したテストは、何で確かめるようになったか（単体テスト・残した E2E・確かめなくてよい理由）を MR に一覧で書く
+- 単体テストは Node 組み込みの `node --test`（Node 24 は型を取り除いて .ts をそのまま読む）で、`describe`/`it` と `node:assert/strict` を使う。標準で足りるのでパッケージは足さない。`pnpm test:unit` で流し（`app/**/*.test.ts`）、`make test` の最初に `make test-unit`（テスト用のランナーのコンテナだけを `--no-deps` で一度動かす。core・DB・ブラウザは起動しない）を流して、落ちたら E2E の環境を起動せずに止める。CI の test ジョブでも流す。`make lint` では流さない
+- 単体テストは調べる元のファイルの隣に `*.test.ts` で置く。JSX を含む `.tsx` は Node が読めないため、部品の中の純粋な関数は `.ts` に出してから単体テストにする（board-view.ts・board-paint.ts。振る舞いは変えない）
+- 単体テストで読むファイル（とそこから値を import するファイル）は、値の相対 import に `.ts` の拡張子を付ける（tsconfig の `allowImportingTsExtensions` で許している。Node は拡張子を補わないため）。型だけの import（`import type`）は消えるので、そのままでよい。`@/` で値を import しているファイルは Node が解決できないため、単体テストで読むなら相対パスにする。単体テストで読まない `.tsx` は拡張子を付けない
 - Playwright のブラウザは game-playwright コンテナ（公式イメージ）で動く。game コンテナから `run-server` に接続して実行する
 - baseURL は `http://game-envoy:10001`（テスト用の環境だけにある中継役用の入口。公開の入口は `PLAYWRIGHT_PUBLIC_URL`）
 - `run-server` は game の node_modules の `@playwright/test` を Playwright のコンテナに読み取り専用で渡して起動する（npx で起動のたびに npm から取ってこない。npm に届かないとサーバーが立たないため。studio#25）。`@playwright/test`（package.json）と compose の Playwright イメージのバージョンは一致させる
 - テストは tests/fixtures.ts の `test` / `expect` を使う。テストごとに `X-Forwarded-For` で別の IP を名乗り、本番モードのレート制限（ログインは同じ IP から 10 秒に 3 回）でほかのテストと枠を共有しないようにしている。名乗った IP が効くのは、テスト用の環境だけにある中継役用の入口（envoy の 10001。`PLAYWRIGHT_BASE_URL`）を通るとき。公開の入口は `PLAYWRIGHT_PUBLIC_URL`
 - `make test` のテスト用のプレイヤーは seed（player@example.com。パスワード付き・確認済み）。ほかのアカウントはテストの中でサインアップし、Mailpit の確認のメールで確認する（tests/account.ts）
+- 落ちたテストだけ Playwright が trace とスクリーンショットを残し、HTML のレポート（playwright-report/。自動では開かない）にすべてのテストの結果と trace id（注記）を出し（playwright.config.ts）、`make test` が落ちたときだけ、テスト用の環境を消す前に scripts/save-test-failure.sh が test-results・HTML のレポート・各コンテナのログ・各 DB の中身（pg_dump）を `test-failures/<日時>/`（git 管理しない）に移す。見方は README の「テストが落ちたとき」。テストごとに tests/fixtures.ts が W3C の traceparent を作り、ブラウザの通信と `request`（`extraHTTPHeaders`。core を直接呼ぶ tests/core-jwt.spec.ts もこれで付く）に付けるため、落ちたテストは `test-results/<テスト>/trace-id.txt` に trace id を残し、save-test-failure.sh が core の compose の otel-lgtm（Grafana の API。GRAFANA_URL、既定 http://127.0.0.1:3002）から Tempo のトレースと Loki のログ（trace_id と、保存のログのイベント（event_id 等）で、その保存より後に絞って引いた投影のログ。読むのに jq を使う）を `traces/<trace id>/` に JSON で保存する（受け手が止まっていれば飛ばす。終了コードは変えない。AI に調べさせるときは `test-failures/<日時>/` を渡し、記録に無いことは Grafana の API で引く（README の「テストが落ちたとき」）。game#26。studio#51 の写し）。retries は付けない（流し直しで通ると、たまに落ちることが隠れるため）。たまに落ちるテストは再現を探さず、起きたときにこの記録で調べる（投影の遅れで待ちきれなかっただけか、イベントと read model で確かめる。game#22・studio#46）
 - メールは Mailpit が受け止め、テストは Mailpit の API で読む（tests/mail.ts）。メールのリンクのホスト名は BETTER_AUTH_URL のため、パスだけを使う（開発用の環境では localhost:3000 で、ブラウザのコンテナから届かない）
-- core_game のマスタ（公開中のカード・スターターデッキ 2 つ・game_rules）は、core-publish-master（compose.test.yaml の使い捨ての psql）が `local/core-master/master.sql` を流して入れる。core の `make publish-master`（studio の read model から写す）と同じ形の行で、形を変えるときは ../core の migrations と tests/testhelper/master.go に合わせる。core はこれが済んでから起動するため、登録すればスターターが配られる
+- core_game のマスタ（公開中のカード・スターターデッキ 2 つ・game_rules・ボード（公開中 3 つと使用不可 1 つ。公開中 C に転送円の対 2 つ・橋の対 1 つ・施設 4 つを置く））は、core-publish-master（compose.test.yaml の使い捨ての psql）が `local/core-master/master.sql` を流して入れる。core の `make publish-master`（studio の read model から写す）と同じ形の行で、形を変えるときは ../core の migrations と tests/testhelper/master.go に合わせる（ボードの metadata は studio の read model の BoardMetadata の形で、kind・attribute は小文字（kind は prophecy_shop 等 snake_case）。default_rules（round_limit・dice_min・dice_max を含む 7 項目）・tile_counts は snake_case で tile_counts は 15 項目すべてを書く。pairs（無ければ `[]`）も必ず書く。core は無い行を読み出しの誤りにするため。土地のマスだけが attribute を持つ）。core はこれが済んでから起動するため、登録すればスターターが配られる
 - tests/core-jwt.spec.ts は、サインアップしたばかりのプレイヤーの JWT で core の `me` を呼び、`PlayerNotRegisteredError` が返ることで、core が game の JWT を受け付けることを確かめる。画面でログインするとトップが登録してしまうため、API でログインする。seed のプレイヤーは tests/player.spec.ts が登録するので使わない
 - tests/player.spec.ts は、トップを開くと core に登録されてスターターを受け取ること（受け取り中は再読み込みして待つ）、もう一度開いても登録が重ならないことを確かめる。core に届かないときの表示は自動のテストにしない（studio と同じ）
 - tests/avatar.spec.ts は、アバターの画面（/avatars）で、作ると一覧に作った順で出ること、名前の誤り（空・長すぎる）、同じ名前は作れず入力した値が残ること、6 体目は作れないことを確かめる。作る数が絡むため、テストごとに新しくサインアップしたプレイヤーを使い、共有の seed のプレイヤーは使わない。core に届かないときの表示は自動のテストにしない
+- tests/boards.spec.ts は、ボードの一覧（/boards）に公開中のボードが名前の順に出て使用不可は出ないこと、一覧にマスの数（特殊なマスを含む）と既定のルールが出ること、ボードの詳細（/boards/[id]）に既定のルールが出ること、ボードの表示でマスの種類（土地は属性つき）とマスの無い所を描かないこと・凡例の 14 個の並び、拡大・縮小・全体を表示で倍率（data-scale）が変わること、使用不可・無い・形の違う ID のボードが「見つからない」になることを確かめる（6 本）。転送円・橋の対の番号、施設の 1 文字、色の対応は単体テスト（board-layout.test.ts・board-paint.test.ts）で確かめる。seed のプレイヤーで読むだけ（登録は同じプレイヤーで何度行っても重ならない）
 
 # 認証（better-auth）
 

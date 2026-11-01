@@ -34,6 +34,11 @@ export default async function Home() {
           core に接続できません。時間をおいて再読み込みしてください。
         </p>
       )}
+      {player.ok ? (
+        <p>
+          <Link href="/boards">ボード</Link>
+        </p>
+      ) : null}
       <LogoutButton />
     </main>
   );

@@ -4,6 +4,24 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/**
+ * 土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
+ * 効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
+ */
+export type BoardTileAttribute =
+  /** 地（地属性） */
+  | 'EARTH'
+  /** 火（火属性） */
+  | 'FIRE'
+  /** 複（複属性）。火・地・水・風の 4 色のマークが描かれた特殊な土地。組み合わせは持たない（属性の値の 1 つ） */
+  | 'MULTI'
+  /** 無（無属性） */
+  | 'NEUTRAL'
+  /** 水（水属性） */
+  | 'WATER'
+  /** 風（風属性） */
+  | 'WIND';
+
 /** アバターを作る入力 */
 export type RegisterAvatarInput = {
   /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
@@ -28,6 +46,8 @@ export type RegisterAvatarMutation = { registerAvatar:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RegisterAvatarSuccess', avatar: { id: string } }
     | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldInvalidFormat' }
+        | { __typename: 'FieldOutOfRange' }
         | { __typename: 'FieldRequired' }
         | { __typename: 'FieldTooLong', max: number }
       > }
@@ -39,6 +59,38 @@ export type AvatarIdsQueryVariables = Exact<{ [key: string]: never; }>;
 export type AvatarIdsQuery = { me:
     | { __typename: 'Player', avatars: Array<{ id: string }> }
     | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type BoardQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type BoardQuery = { board:
+    | { __typename: 'Board', id: string, name: string, width: number, height: number, tiles: Array<
+        | { __typename: 'BaseTile', x: number, y: number }
+        | { __typename: 'BridgeTile', x: number, y: number }
+        | { __typename: 'CardShopTile', x: number, y: number }
+        | { __typename: 'CheckpointTile', x: number, y: number }
+        | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
+        | { __typename: 'ProphecyShopTile', x: number, y: number }
+        | { __typename: 'SanctuaryTile', x: number, y: number }
+        | { __typename: 'ShrineTile', x: number, y: number }
+        | { __typename: 'WarpTile', x: number, y: number }
+      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }
+    | { __typename: 'BoardNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type BoardsQueryVariables = Exact<{
+  after?: string | null | undefined;
+}>;
+
+
+export type BoardsQuery = { boards:
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'ValidationErrors' }
    };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
@@ -108,6 +160,93 @@ export const AvatarIdsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AvatarIdsQuery, AvatarIdsQueryVariables>;
+export const BoardDocument = new TypedDocumentString(`
+    query Board($id: UUID!) {
+  board(id: $id) {
+    __typename
+    ... on Board {
+      id
+      name
+      width
+      height
+      tiles {
+        __typename
+        x
+        y
+        ... on LandTile {
+          attribute
+        }
+      }
+      pairs {
+        a {
+          x
+          y
+        }
+        b {
+          x
+          y
+        }
+      }
+      defaultRules {
+        targetMagic
+        startingMagic
+        lapBonus
+        checkpointBonus
+        roundLimit
+        diceMin
+        diceMax
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BoardQuery, BoardQueryVariables>;
+export const BoardsDocument = new TypedDocumentString(`
+    query Boards($after: String) {
+  boards(after: $after) {
+    __typename
+    ... on BoardsConnection {
+      edges {
+        node {
+          id
+          name
+          width
+          height
+          tileCounts {
+            land
+            base
+            checkpoint
+            fire
+            earth
+            water
+            wind
+            neutral
+            multi
+            warp
+            bridge
+            sanctuary
+            shrine
+            prophecyShop
+            cardShop
+          }
+          defaultRules {
+            targetMagic
+            startingMagic
+            lapBonus
+            checkpointBonus
+            roundLimit
+            diceMin
+            diceMax
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<BoardsQuery, BoardsQueryVariables>;
 export const MeDocument = new TypedDocumentString(`
     query Me {
   me {

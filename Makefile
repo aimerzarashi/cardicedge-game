@@ -3,7 +3,7 @@
 # マイルストーンの途中で、まだリリースしていない core を使うときは、make core-local で手元の ../core から作った
 # diecardomain/core:local・core-migrate:local を make gen-api CORE_VERSION=local・make test CORE_VERSION=local のように引数で渡す（ここを local にしない。コミットした Makefile が、
 # 手元にしか無いイメージを指さないようにするため。studio#23）
-CORE_VERSION := v0.14.0
+CORE_VERSION := v0.15.0
 
 # 環境管理
 
@@ -32,10 +32,16 @@ url:
 	done; \
 	echo "tunnel URL not found within 30s. see: docker compose logs game-tunnel" >&2; exit 1
 
-# tunnel を含む game の全サービスを停止する（core は studio も使うため止めない）。pnpm のキャッシュ用ボリュームは残す（消すときは down -v）
+# tunnel を含む game の全サービスを停止する（core は studio も使うため止めない）。game-db のデータと pnpm のキャッシュのボリュームは残す（消すときは make clean）
 .PHONY: down
 down:
 	docker compose --profile '*' down
+
+# down に加えて、game-db のデータ（と pnpm のキャッシュ）のボリュームも消す。core の DB が残っていると、seed が作り直した
+# プレイヤーを core が新しいプレイヤーとして扱い、前のデータが見えなくなるため、core も作り直す（ルートの make down）（game#21）
+.PHONY: clean
+clean:
+	docker compose --profile '*' down -v
 
 # マイグレーション
 
@@ -94,10 +100,22 @@ gen-api:
 
 # テスト
 
-# 専用の core・DB と本番用イメージの game を使い捨てで起動してテストし、終了後に破棄する（開発用の環境とは独立）
-TEST_COMPOSE := CORE_VERSION=$(CORE_VERSION) docker compose -p game-test -f compose.test.yaml
+# 専用の core・DB と本番用イメージの game を使い捨てで起動してテストし、終了後に破棄する（開発用の環境とは独立）。
+# 落ちたときだけ、破棄する前に記録を test-failures/ に移す（scripts/save-test-failure.sh）
+TEST_PROJECT := -p game-test -f compose.test.yaml
+TEST_COMPOSE := CORE_VERSION=$(CORE_VERSION) docker compose $(TEST_PROJECT)
+
+# 単体テスト（node --test。純粋な関数の決まり）。core・DB・ブラウザを起動せず、テスト用のランナーのコンテナだけを依存なしで一度動かす。
+# 落ちたら E2E を待たずに止める（make test の前提にしている）。記録を残す環境が無いため save-test-failure.sh は呼ばない
+.PHONY: test-unit
+test-unit:
+	$(TEST_COMPOSE) run --rm --no-deps --build game-test-runner pnpm test:unit; \
+	status=$$?; \
+	$(TEST_COMPOSE) --profile runner down -v; exit $$status
 
 .PHONY: test
-test:
+test: test-unit
 	$(TEST_COMPOSE) up -d --build --wait && $(TEST_COMPOSE) run --rm --build game-test-runner; \
-	status=$$?; $(TEST_COMPOSE) --profile runner down -v; exit $$status
+	status=$$?; \
+	if [ $$status -ne 0 ]; then CORE_VERSION=$(CORE_VERSION) scripts/save-test-failure.sh docker compose $(TEST_PROJECT); fi; \
+	$(TEST_COMPOSE) --profile runner down -v; exit $$status

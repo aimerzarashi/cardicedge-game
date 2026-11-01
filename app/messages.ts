@@ -24,3 +24,15 @@ export const PLAYER_NOT_REGISTERED =
 
 export const CORE_UNAVAILABLE =
   "core に接続できません。時間をおいてもう一度作ってください";
+
+// ボードの既定のルールの項目の呼び方（core の項目名から）
+export const RULE_LABELS = {
+  targetMagic: "目標の魔力",
+  startingMagic: "開始時の魔力",
+  lapBonus: "周回のボーナス",
+  checkpointBonus: "チェックポイントのボーナス",
+  roundLimit: "ラウンドの上限",
+  diceMin: "サイコロの目（最小）",
+  diceMax: "サイコロの目（最大）",
+} as const;
+export type RuleField = keyof typeof RULE_LABELS;

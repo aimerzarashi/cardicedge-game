@@ -6,6 +6,7 @@
 
 - Docker Engine + Docker Compose v2 以降
 - make
+- jq（`make test` が落ちたときの記録で、受け手のログを読む。無ければその部分だけ飛ばす）
 
 想定環境は Linux / WSL2（ホストの uid 1000）。開発用コンテナは uid 1000 のユーザーで動き、生成物をホストユーザー所有にする。
 macOS・Windows ネイティブでは、ホストのエディタの型補完・biome 拡張が動かない（node_modules に Linux 用バイナリが入るため）。実行・テスト・lint はコンテナ内で動く。
@@ -18,7 +19,8 @@ Node.js・pnpm はコンテナ内で動くため、ホストへのインスト�
 make up      # core（../core）を起動してから、開発サーバー（Next.js）・envoy・DB・Mailpit・Playwright のブラウザを起動
 make fmt     # biome でフォーマットを修正
 make lint    # biome check・型チェック・migrations の検査・better-auth の設定と開発用 DB の差分の検査
-make test    # 専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
+make test-unit # 単体テスト（pnpm test:unit = node --test。core・DB を起動しない。make test も最初に流す）
+make test    # 単体テストを流してから、専用の core・DB と本番用イメージの game を使い捨てで起動し、Playwright で確認
 make tunnel  # （任意）Cloudflare Quick Tunnel を起動し、外部公開用 URL を表示
 make url     # （任意）起動中の Tunnel の URL を再表示
 make core-local # 手元の ../core から core・core-migrate のイメージを local の版で作る
@@ -26,7 +28,8 @@ make gen-api # 前提にする版の core のイメージから game 用のス�
 make migrate # 未適用の migrations だけを Atlas で適用（DB を作り直さない）
 make migrate-generate NAME=<name> # better-auth の設定と DB の差分 SQL を次の番号で生成
 make migrate-hash # migrations を手で足したら atlas.sum を作り直す
-make down    # game を停止（tunnel を含む。core は studio も使うため止めない）
+make down    # game を停止（tunnel を含む。core は studio も使うため止めない。game-db のデータは残す）
+make clean   # down に加えて game-db のデータも消す（core も作り直すこと。下の注意）
 ```
 
 http://localhost:3000 で開く（envoy 経由。Next.js の開発サーバーはホストに公開していない）。
@@ -55,7 +58,42 @@ game が前提にする core の版は Makefile の `CORE_VERSION` に書く。�
 `make test` はプロジェクト名 `game-test` で、専用の core・DB（`CORE_VERSION` のイメージ）と本番用イメージ（`.build/Dockerfile`）の game を起動し、終了後に破棄する。テストは開発用イメージの game-test-runner から実行する。
 開発用の環境とはコンテナ・ネットワーク・DB が別で、ホストにポートも公開しないため、開発用を起動したままでも実行できる。
 core の DB は、core と同じく studio 用・game 用の 2 つ（core_studio・core_game。core_game は local/core-db の初期化の SQL で作る）。
-スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules を入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
+スターターの配布まで進むよう、core-publish-master（使い捨ての psql）が core_game に公開中のカード・スターターデッキ 2 つ・game_rules・ボードを入れる（`local/core-master/master.sql`。本番は core の `make publish-master` が studio から写す）。core はこれが済んでから起動する。
+
+### テストが落ちたとき
+
+`make test` が落ちたときだけ、テスト用の環境を消す前に、`test-failures/<日時>/`（git 管理しない）に記録を移す（scripts/save-test-failure.sh。game#22・studio#46）。次に流しても消えない。要らなくなったら手で消す。
+
+| 場所 | 中身 | 見方 |
+|---|---|---|
+| `test-results/<テスト>/` | 落ちたテストの trace（`trace.zip`）・スクリーンショット・error-context.md | trace は https://trace.playwright.dev に `trace.zip` を開く（読み込みはブラウザの中だけで、ファイルは送られない）。画面の操作の順、送った通信（Server Action の応答を含む）、各時点の画面が見える |
+| `playwright-report/` | Playwright の HTML のレポート（すべてのテストの結果） | `index.html` をブラウザで開く。落ちたテストは「Failed」で絞り、テスト名を押すと、誤り・操作ごとの時間・スクリーンショット・trace と、「Annotations」の trace id が並ぶ。中の trace は、trace.playwright.dev か `trace.zip` で開く |
+| `logs/<サービス>.log` | 各コンテナのログ（時刻つき） | core のログで、操作のコマンド・投影とポリシーの処理と誤り（ERROR）を時刻で追う |
+| `db/core_studio.sql`・`db/core_game.sql`・`db/game_auth.sql` | 各 DB の中身（pg_dump） | `domain_events` の行で、操作のイベントが保存されていたかを、read model の表（players・avatars 等）で、反映していたかを見る。イベントは保存され read model にも反映していれば、投影の遅れでテストが待ちきれなかっただけと判断できる |
+| `test-results/<テスト>/trace-id.txt` | 落ちたテストの trace id（テストごとに W3C の traceparent を作り、ブラウザの通信と core を直接呼ぶ request の両方に付けている。tests/fixtures.ts） | そのテストの game・core の処理が、この 1 つの trace id でつながっている |
+| `traces/<trace id>/tempo.json` | その trace id の Tempo のトレース（JSON）。game と core のスパン | `batches[].resource` の `service.name`（game / core）ごとに `scopeSpans[].spans[]`（`name`・開始と終了の時刻・親子）を読む。Grafana で開くなら http://localhost:3002 の Explore（Tempo）に trace id を入れる（受け手が動いていれば） |
+| `traces/<trace id>/loki.json` | その trace id を持つ core・game のログ（Loki の query_range の応答。JSON） | `data.result[]` の各 stream の `stream`（`event_id`・`trace_id` 等のメタデータ）と `values[]`（`[時刻(ns), メッセージ]`） |
+| `traces/<trace id>/loki-event-<event_id>.json` | 保存のログのイベント（`event_id`・`entity_type`・`entity_id`・`aggregate_version`）で、その保存より後に絞って引いた core のログ（投影・ポリシーの処理。これらは trace_id を持たずイベントでつながる。event_id だけでは、前に流したテストの同じ番号のログが混ざるため） | 同上。イベントが投影で処理されたか（`duration_ms`・`result`）を見る |
+| `traces/<trace id>/test-dir.txt` | その trace id のテストの `test-results/` の下のディレクトリ名 | trace id とテストの対応 |
+
+trace id の見つけ方は、落ちたテストの `test-results/<テスト>/trace-id.txt`、`traces/` の下のディレクトリ名と `test-dir.txt`、または HTML のレポートの「Annotations」。HTML のレポートには通ったテストの trace id も出るので、通ったが遅かったテストも受け手で調べられる。テストが通ったときのレポートは `playwright-report/`（git 管理しない。次に流すと作り直す）に残る。AI に調べさせるときは、`test-failures/<日時>/` のディレクトリごと渡す。受け手（core の compose の otel-lgtm）が動いていない・取れないときは、`traces/` は作られないか欠ける（`make test` の終了コードは変わらない）。ログは、`logs/core.log` でも `event_id` で引ける（game#26。studio#51 の写し）。
+
+記録に無いことは、受け手に Grafana の API で問い合わせる（受け手が動いていて、core の `make down` の前に限る。前に流したテストや開発の環境のログも入っているので、時刻や条件で絞る）。記録を先に読み、足りないときに使う。時刻は Loki が UNIX 時刻の ns、Tempo の検索が s。
+
+```sh
+G=http://127.0.0.1:3002/api/datasources/proxy/uid
+# core の ERROR のログ（時刻で絞る）
+curl -sG $G/loki/loki/api/v1/query_range --data-urlencode 'query={service_name="core"} | detected_level="error"' \
+  --data-urlencode start=<ns> --data-urlencode end=<ns> | jq -r '.data.result[].values[][1]'
+# 遅れの大きい投影の処理（lag_ms はミリ秒）
+curl -sG $G/loki/loki/api/v1/query_range --data-urlencode 'query={service_name="core"} | subscriber_kind="projection" | lag_ms > 30' \
+  --data-urlencode start=<ns> | jq -r '.data.result[] | [.values[0][0], .stream.event_type, .stream.subscriber_name, .stream.lag_ms] | @tsv'
+# core の処理が 100ms を超えたトレース（TraceQL）。trace id を tempo の /api/traces/<trace id> で開く
+curl -sG $G/tempo/api/search --data-urlencode 'q={ resource.service.name = "core" && duration > 100ms }' \
+  --data-urlencode start=<s> --data-urlencode end=<s> | jq -r '.traces[] | [.traceID, .durationMs] | @tsv'
+```
+
+自動で流し直す（retries）は付けていない。流し直しで通ると、たまに落ちることが隠れるため。たまに落ちるテストは再現を探さず、この記録で調べる。
 
 ### Tunnel（任意）
 
@@ -68,7 +106,7 @@ URL は起動のたびに変わり、知っていれば誰でもアクセスで�
 |---|---|---|
 | マイルストーンのブランチに向かう MR（Issue の MR） | lint・test（手動） | ふだんは実行せず、手元の `make lint`・`make test` で確かめる。パイプラインは skipped になり、「スキップされたパイプラインを成功とみなす」の設定でマージできる。CI の手順を変えたとき等、CI で確かめたいときだけ手で動かす（失敗するとマージできなくなる） |
 | main に向かう MR（マイルストーンの MR） | lint | `make lint` 相当 |
-| main に向かう MR | test | migrations を空の DB に Atlas で適用し、better-auth の設定とスキーマに差分が無いことを確かめる（Playwright のテストは CI では未実行） |
+| main に向かう MR | test | 単体テスト（node --test）を流し、migrations を空の DB に Atlas で適用し、better-auth の設定とスキーマに差分が無いことを確かめる（Playwright のテストは CI では未実行） |
 | main に向かう MR | build-mr（手動） | `registry.gitlab.com/aimerzarashi/diecardomain/game:mr-<MR番号>` と `.../game/migrate:mr-<MR番号>` に push（lint・test が通った後） |
 | main | release | semantic-release がコミットからバージョンを決め、タグ（`v1.2.0`）と GitLab リリースを作る。リリース対象のコミットが無ければ何もしない |
 | タグ（`v*`） | deploy | Docker Hub の `diecardomain/game:<タグ>`・`:latest` と `diecardomain/game-migrate:<タグ>`・`:latest` に push |
@@ -93,6 +131,8 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 
 `make up` では、game-migrate がマイグレーションを適用してから、開発サーバーの起動前に `db:seed`（冪等）を実行する。
 
+game-db のデータは名前付きのボリュームに置き、`make down` では消さない。`make clean` で消すと、seed がプレイヤーを作り直してユーザー ID（JWT の `sub`）が変わり、core が新しいプレイヤーとして扱って、前のプレイヤーのデータ（アバター等）が見えなくなる。`make clean` のあとは core も作り直す（ルートの `make down`）（game#21・studio#19）。
+
 ### サインアップ
 
 - 誰でもアカウントを作れる。確認のメールのリンク（better-auth の `/api/auth/verify-email`）を開くまでログインできない
@@ -101,6 +141,7 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 - メールアドレスの変更（`changeEmail`）は無効のまま（既定）。変えられると、確認済みのメールアドレスという前提が崩れるため
 - パスワードを設定し直すと、その人のセッションはすべて無効になる。登録されていないアドレスでも同じ表示になり、メールは送られない
 - アバターは /avatars で作り、一覧を見る（`registerAvatar` と `me` の `avatars`）。作ったら一覧に出るまで待つ。上限・名前の長さは core が返す値から文言を作る
+- ボードは /boards で公開中のものの一覧を見て、/boards/[id] で斜め見下ろしの格子として見る（`boards`・`board`。見るだけで、押す操作は無い）。公開中でないボードは「見つからない」
 - core へのプレイヤーの登録は、トップを開いたときに `lib/player.ts` が行う（`me` が `PlayerNotRegisteredError` なら `registerPlayer` を呼んで読み直す）。登録前のプレイヤーが core の `me` を呼ぶと `PlayerNotRegisteredError` が返る
 
 ### メール
@@ -154,6 +195,17 @@ secret は Cookie の署名と、JWT の署名鍵（game-db の `jwks`）の暗�
 6. game-db も漏れた疑いがあれば、全プレイヤーのパスワードを無効にし、「パスワードを忘れた」から設定し直してもらう
 
 secret だけが漏れた場合、Cookie の署名は作れるが、セッションの token（DB にあるランダムな値）を知らないとログイン状態は偽造できない。secret と game-db の両方が漏れると、`jwks` の秘密鍵を復号して JWT を偽造できる（core に対して任意のプレイヤーになりすませる）。
+
+## トレース（OpenTelemetry）
+
+開発中に、game から core までのリクエストを 1 本のトレースで見られる（game#25。studio#50 の写し）。`instrumentation.ts` で `@vercel/otel` の `registerOTel` を呼び、Next.js の処理・better-auth の DB の呼び出し・core への fetch をスパンにして送る。
+
+| 項目 | 内容 |
+|---|---|
+| 送り先 | OpenTelemetry の標準の環境変数 `OTEL_EXPORTER_OTLP_ENDPOINT`（開発・テスト用の環境は `http://host.docker.internal:4318`）・`OTEL_EXPORTER_OTLP_PROTOCOL`・`OTEL_SERVICE_NAME`。任意で、渡さなければ送らない（リリース確認の環境・本番のように受け手が無くても、同じイメージのまま普通に動く）。受け手に届かなくても game は普通に動く |
+| 受け手 | core の compose の otel-lgtm（`make up` で core と一緒に起動）。Grafana は http://127.0.0.1:3002（ログインなし）の Explore で Tempo を選ぶ。game のコンテナは共有ネットワークに入れず、`extra_hosts` の `host.docker.internal` でホストの 4318 番に届ける |
+| core とのつながり | core を呼ぶ fetch に `traceparent` を付ける。@vercel/otel は既定では自分と同じ宛先への fetch にしか付けないため、instrumentation.ts の `propagateContextUrls` に `CORE_GRAPHQL_URL` を渡している（無いと game と core が別々のトレースになる）。core は受けた `traceparent` を引き継ぐ |
+| 確かめ方 | `traceparent: 00-<32 桁の 16 進数>-<16 桁の 16 進数>-01` を付けて、ログイン後の Cookie でページ（例: `/boards`）を呼び、`curl http://127.0.0.1:3002/api/datasources/proxy/uid/tempo/api/traces/<trace id>` で game と core のスパンが同じ trace id に並ぶことを見る |
 
 ## DB マイグレーション
 
