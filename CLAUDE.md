@@ -81,6 +81,7 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 # テスト
 
 - `make test` は compose.test.yaml（プロジェクト名 game-test）で専用の core・DB・本番用イメージの game を起動し、終了後に破棄する。開発用環境・開発用 DB には触れない。core は ../core のソースではなく、`CORE_VERSION` のイメージ（`diecardomain/core`・`core-migrate`）を使う
+- テスト用の環境の game は、起動の確かめ（healthcheck）で better-auth の入口（`/api/auth/ok`）を読み、その部品の読み込みをテストの前に済ませる（固定のファイルを読む形だと、最初のログインに読み込みが重なり、表示を待つ上限の 5 秒を超えて落ちたことがあるため。game#31）。開発の環境の compose.yaml も同じ
 - テストは開発用イメージの game-test-runner（profile: runner）から `docker compose run` で実行する。本番用イメージにはテストコードを含めない
 - テストの基準（game#23。studio#47 と同じ）。E2E（Playwright）は遅く、機能を足すたびに増えるため、次に絞る。そのほかは単体テストで確かめる
   - E2E に残すもの: 画面ごとの主な流れを 1 本ずつ（core まで通して操作が届き、画面が最新を出し直す）、層をまたぐ約束、本物のブラウザでしか確かめられないもの（ドラッグ・拡大縮小・認証やメールの流れ）
