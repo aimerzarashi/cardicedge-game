@@ -22,6 +22,12 @@ export type BoardTileAttribute =
   /** 風（風属性） */
   | 'WIND';
 
+/** カードの種類 */
+export type CardType =
+  | 'CREATURE'
+  | 'ITEM'
+  | 'SPELL';
+
 /** アバターを作る入力 */
 export type RegisterAvatarInput = {
   /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
@@ -89,6 +95,28 @@ export type BoardsQueryVariables = Exact<{
 
 export type BoardsQuery = { boards:
     | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'ValidationErrors' }
+   };
+
+export type NpcAvatarQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type NpcAvatarQuery = { npcAvatar:
+    | { __typename: 'NpcAvatar', id: string, name: string, decks: Array<{ id: string, name: string, totalCount: number, cards: Array<{ count: number, card: { id: string, name: string, type: CardType } }> }> }
+    | { __typename: 'NpcAvatarNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type NpcAvatarsQueryVariables = Exact<{
+  after?: string | null | undefined;
+}>;
+
+
+export type NpcAvatarsQuery = { npcAvatars:
+    | { __typename: 'NpcAvatarsConnection', edges: Array<{ node: { id: string, name: string, decks: Array<{ id: string, name: string }> } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'ValidationErrors' }
    };
@@ -247,6 +275,53 @@ export const BoardsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<BoardsQuery, BoardsQueryVariables>;
+export const NpcAvatarDocument = new TypedDocumentString(`
+    query NpcAvatar($id: UUID!) {
+  npcAvatar(id: $id) {
+    __typename
+    ... on NpcAvatar {
+      id
+      name
+      decks {
+        id
+        name
+        totalCount
+        cards {
+          count
+          card {
+            id
+            name
+            type
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<NpcAvatarQuery, NpcAvatarQueryVariables>;
+export const NpcAvatarsDocument = new TypedDocumentString(`
+    query NpcAvatars($after: String) {
+  npcAvatars(after: $after) {
+    __typename
+    ... on NpcAvatarsConnection {
+      edges {
+        node {
+          id
+          name
+          decks {
+            id
+            name
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<NpcAvatarsQuery, NpcAvatarsQueryVariables>;
 export const MeDocument = new TypedDocumentString(`
     query Me {
   me {
