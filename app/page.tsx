@@ -39,6 +39,11 @@ export default async function Home() {
           <Link href="/boards">ボード</Link>
         </p>
       ) : null}
+      {player.ok ? (
+        <p>
+          <Link href="/npc-avatars">NPC</Link>
+        </p>
+      ) : null}
       <LogoutButton />
     </main>
   );

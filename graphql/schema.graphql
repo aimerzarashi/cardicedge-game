@@ -338,6 +338,14 @@ type CardShopTile implements BoardTile {
 	y: Int!
 }
 """
+カードの種類
+"""
+enum CardType {
+	CREATURE
+	ITEM
+	SPELL
+}
+"""
 チェックポイント
 """
 type CheckpointTile implements BoardTile {
@@ -439,6 +447,117 @@ type Mutation {
 	registerPlayer: RegisterPlayerResult!
 }
 """
+NPC のアバター（公開中のもの）
+"""
+type NpcAvatar {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うデッキ（割り当てた順。公開中のものだけ）
+	"""
+	decks: [NpcDeck!]!
+}
+"""
+公開中の NPC のアバターが無い（公開中でないものを含む）
+"""
+type NpcAvatarNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+NPC のアバターの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union NpcAvatarResult = NpcAvatar | NpcAvatarNotFoundError | PlayerNotRegisteredError
+"""
+NPC のアバターの一覧の 1 ページ（名前の順）
+"""
+type NpcAvatarsConnection {
+	"""
+	このページの NPC のアバター
+	"""
+	edges: [NpcAvatarsEdge!]!
+	"""
+	ページの情報
+	"""
+	pageInfo: PageInfo!
+}
+"""
+NPC のアバターの一覧の 1 件と、その位置
+"""
+type NpcAvatarsEdge {
+	"""
+	この 1 件の位置（次のページを取るときに after に渡す）
+	"""
+	cursor: String!
+	"""
+	NPC のアバター
+	"""
+	node: NpcAvatar!
+}
+"""
+NPC のアバターの一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union NpcAvatarsResult = NpcAvatarsConnection | ValidationErrors | PlayerNotRegisteredError
+"""
+NPC のデッキ（公開中のもの）。NPC のアバターを通してだけ出る
+"""
+type NpcDeck {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	入っているカードと枚数（種類 → 名前の順。種類は Creature → Item → Spell）。枚数が 0 のカードは含まない
+	"""
+	cards: [NpcDeckCard!]!
+	"""
+	カードの枚数の合計
+	"""
+	totalCount: Int!
+}
+"""
+NPC のデッキに入っているカードと、その枚数
+"""
+type NpcDeckCard {
+	"""
+	カード
+	"""
+	card: NpcDeckCardInfo!
+	"""
+	枚数
+	"""
+	count: Int!
+}
+"""
+NPC のデッキに入っているカードの、見せるのに要る項目
+"""
+type NpcDeckCardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	種類
+	"""
+	type: CardType!
+}
+"""
 ページの情報
 """
 type PageInfo {
@@ -522,6 +641,29 @@ type Query {
 		"""
 		id: UUID!
 	): BoardResult!
+	"""
+	公開中の NPC のアバターの一覧（登録済みのプレイヤーだけ）
+	"""
+	npcAvatars(
+		"""
+		1 ページの件数（1〜100。指定が無ければ 50）
+		"""
+		first: Int
+
+		"""
+		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
+		"""
+		after: String
+	): NpcAvatarsResult!
+	"""
+	公開中の NPC のアバターの詳細（登録済みのプレイヤーだけ）。公開中でなければ NpcAvatarNotFoundError
+	"""
+	npcAvatar(
+		"""
+		NPC のアバターの公開用の ID
+		"""
+		id: UUID!
+	): NpcAvatarResult!
 	"""
 	ログイン中のプレイヤー（JWT の (iss, sub) に登録済みのプレイヤー）を返す。未登録なら PlayerNotRegisteredError
 	"""

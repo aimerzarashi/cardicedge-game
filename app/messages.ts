@@ -1,5 +1,7 @@
 // core は文言を返さず、理由の型と値だけを返すため、文言はここで作る
 
+import type { CardType } from "@/graphql/graphql";
+
 export function nameErrorMessage(
   errors: { __typename: string; max?: number }[],
 ): string {
@@ -36,3 +38,11 @@ export const RULE_LABELS = {
   diceMax: "サイコロの目（最大）",
 } as const;
 export type RuleField = keyof typeof RULE_LABELS;
+
+// カードの種類の呼び方（studio の lib/card-type.ts と同じ）。Record<string, string> にしないのは、種類が core に加わったときに
+// 足し忘れると、型検査に引っかからず種類の欄が黙って空になるため
+export const CARD_TYPE_LABELS: Record<CardType, string> = {
+  CREATURE: "クリーチャー",
+  ITEM: "アイテム",
+  SPELL: "スペル",
+};
