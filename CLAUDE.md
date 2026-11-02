@@ -81,6 +81,7 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
 # テスト
 
 - `make test` は compose.test.yaml（プロジェクト名 game-test）で専用の core・DB・本番用イメージの game を起動し、終了後に破棄する。開発用環境・開発用 DB には触れない。core は ../core のソースではなく、`CORE_VERSION` のイメージ（`diecardomain/core`・`core-migrate`）を使う
+- テスト用の環境の game は、起動の確かめ（healthcheck）で better-auth の入口（`/api/auth/ok`）を読み、その部品の読み込みをテストの前に済ませる（固定のファイルを読む形だと、最初のログインに読み込みが重なり、表示を待つ上限の 5 秒を超えて落ちたことがあるため。game#31）。開発の環境の compose.yaml も同じ
 - テストは開発用イメージの game-test-runner（profile: runner）から `docker compose run` で実行する。本番用イメージにはテストコードを含めない
 - テストの基準（game#23。studio#47 と同じ）。E2E（Playwright）は遅く、機能を足すたびに増えるため、次に絞る。そのほかは単体テストで確かめる
   - E2E に残すもの: 画面ごとの主な流れを 1 本ずつ（core まで通して操作が届き、画面が最新を出し直す）、層をまたぐ約束、本物のブラウザでしか確かめられないもの（ドラッグ・拡大縮小・認証やメールの流れ）
@@ -88,7 +89,7 @@ studio の決まりに合わせる（game は studio と同じ構成にする。
   - 同じ画面の流れを重ねて確かめない。流れが重なるテストは 1 本にまとめ、テスト名で何を保証するかがわかるようにする
   - 見た目（色）は自動のテストにせず、目で確かめる（色の定数と塗り分けの対応は単体テストで保証する）
   - E2E から外したテストは、何で確かめるようになったか（単体テスト・残した E2E・確かめなくてよい理由）を MR に一覧で書く
-- 単体テストは Node 組み込みの `node --test`（Node 24 は型を取り除いて .ts をそのまま読む）で、`describe`/`it` と `node:assert/strict` を使う。標準で足りるのでパッケージは足さない。`pnpm test:unit` で流し（`app/**/*.test.ts`）、`make test` の最初に `make test-unit`（テスト用のランナーのコンテナだけを `--no-deps` で一度動かす。core・DB・ブラウザは起動しない）を流して、落ちたら E2E の環境を起動せずに止める。CI の test ジョブでも流す。`make lint` では流さない
+- 単体テストは Node 組み込みの `node --test`（Node 26 は型を取り除いて .ts をそのまま読む）で、`describe`/`it` と `node:assert/strict` を使う。標準で足りるのでパッケージは足さない。`pnpm test:unit` で流し（`app/**/*.test.ts`）、`make test` の最初に `make test-unit`（テスト用のランナーのコンテナだけを `--no-deps` で一度動かす。core・DB・ブラウザは起動しない）を流して、落ちたら E2E の環境を起動せずに止める。CI の check のジョブでも流す。`make lint` では流さない
 - 単体テストは調べる元のファイルの隣に `*.test.ts` で置く。JSX を含む `.tsx` は Node が読めないため、部品の中の純粋な関数は `.ts` に出してから単体テストにする（board-view.ts・board-paint.ts。振る舞いは変えない）
 - 単体テストで読むファイル（とそこから値を import するファイル）は、値の相対 import に `.ts` の拡張子を付ける（tsconfig の `allowImportingTsExtensions` で許している。Node は拡張子を補わないため）。型だけの import（`import type`）は消えるので、そのままでよい。`@/` で値を import しているファイルは Node が解決できないため、単体テストで読むなら相対パスにする。単体テストで読まない `.tsx` は拡張子を付けない
 - Playwright のブラウザは game-playwright コンテナ（公式イメージ）で動く。game コンテナから `run-server` に接続して実行する
