@@ -99,6 +99,25 @@ export type BoardsQuery = { boards:
     | { __typename: 'ValidationErrors' }
    };
 
+export type PlayerDeckQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type PlayerDeckQuery = { deck:
+    | { __typename: 'Deck', id: string, name: string, totalCount: number, cards: Array<{ count: number, card: { id: string, name: string, type: CardType } }> }
+    | { __typename: 'DeckNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type PlayerDecksQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type PlayerDecksQuery = { me:
+    | { __typename: 'Player', decks: Array<{ id: string, name: string, totalCount: number, typeCounts: { creature: number, item: number, spell: number } }> }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
 export type NpcAvatarQueryVariables = Exact<{
   id: string;
 }>;
@@ -275,6 +294,45 @@ export const BoardsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<BoardsQuery, BoardsQueryVariables>;
+export const PlayerDeckDocument = new TypedDocumentString(`
+    query PlayerDeck($id: UUID!) {
+  deck(id: $id) {
+    __typename
+    ... on Deck {
+      id
+      name
+      totalCount
+      cards {
+        count
+        card {
+          id
+          name
+          type
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<PlayerDeckQuery, PlayerDeckQueryVariables>;
+export const PlayerDecksDocument = new TypedDocumentString(`
+    query PlayerDecks {
+  me {
+    __typename
+    ... on Player {
+      decks {
+        id
+        name
+        totalCount
+        typeCounts {
+          creature
+          item
+          spell
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<PlayerDecksQuery, PlayerDecksQueryVariables>;
 export const NpcAvatarDocument = new TypedDocumentString(`
     query NpcAvatar($id: UUID!) {
   npcAvatar(id: $id) {
