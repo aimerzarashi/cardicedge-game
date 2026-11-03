@@ -359,6 +359,91 @@ type CheckpointTile implements BoardTile {
 	y: Int!
 }
 """
+プレイヤーのデッキ。持ち主のプレイヤーだけが読む（ほかのプレイヤーのデッキは、me.decks にも deck(id) にも出ない）
+"""
+type Deck {
+	"""
+	デッキの公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	入っているカードと枚数（種類 → 名前の順。種類は Creature → Item → Spell）。枚数が 0 のカードは含まない
+	"""
+	cards: [DeckCard!]!
+	"""
+	カードの枚数の合計
+	"""
+	totalCount: Int!
+	"""
+	カードの種類ごとの枚数の合計（種類の数ではなく、枚数の和。入っていない種類は 0）
+	"""
+	typeCounts: DeckTypeCounts!
+}
+"""
+デッキに入っているカードと、その枚数
+"""
+type DeckCard {
+	"""
+	カード
+	"""
+	card: DeckCardInfo!
+	"""
+	枚数
+	"""
+	count: Int!
+}
+"""
+デッキに入っているカードの、見せるのに要る項目
+"""
+type DeckCardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	種類
+	"""
+	type: CardType!
+}
+"""
+自分のものとしてデッキが無い（無い・ほかのプレイヤーのもの。存在を明かさないため区別しない）
+"""
+type DeckNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+デッキの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union DeckResult = Deck | DeckNotFoundError | PlayerNotRegisteredError
+"""
+デッキに入っているカードの、種類ごとの枚数の合計（デッキの read model から返すときに数える）
+"""
+type DeckTypeCounts {
+	"""
+	Creature の枚数
+	"""
+	creature: Int!
+	"""
+	Item の枚数
+	"""
+	item: Int!
+	"""
+	Spell の枚数
+	"""
+	spell: Int!
+}
+"""
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
 interface FieldError {
@@ -416,6 +501,19 @@ type FieldTooLong implements FieldError {
 	max: Int!
 }
 """
+ゲーム全体のルール
+"""
+type GameRules {
+	"""
+	対戦の決まり
+	"""
+	match: MatchRules!
+}
+"""
+ゲーム全体のルールの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union GameRulesResult = GameRules | PlayerNotRegisteredError
+"""
 土地（ふつうのマス）
 """
 type LandTile implements BoardTile {
@@ -431,6 +529,23 @@ type LandTile implements BoardTile {
 	属性
 	"""
 	attribute: BoardTileAttribute!
+}
+"""
+対戦の決まり（盤面や部屋によらず、ゲーム全体で同じ値）
+"""
+type MatchRules {
+	"""
+	対戦に参加できる人数の下限（この値を含む）
+	"""
+	minPlayers: Int!
+	"""
+	対戦に参加できる人数の上限（この値を含む）
+	"""
+	maxPlayers: Int!
+	"""
+	手札の上限の枚数
+	"""
+	maxHandCards: Int!
 }
 """
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError
@@ -594,6 +709,10 @@ type Player {
 	このプレイヤーのアバター（作った順。上限があるので、ページ分けしないリスト）
 	"""
 	avatars: [Avatar!]!
+	"""
+	このプレイヤーのデッキ（作った順。スターターの配布で作る数だけなので、ページ分けしないリスト）
+	"""
+	decks: [Deck!]!
 }
 """
 JWT の (iss, sub) のプレイヤーが、まだ登録されていない。game は registerPlayer を呼んでから、me を呼び直す
@@ -641,6 +760,19 @@ type Query {
 		"""
 		id: UUID!
 	): BoardResult!
+	"""
+	自分のデッキの詳細（登録済みのプレイヤーだけ）。無い・ほかのプレイヤーのデッキなら DeckNotFoundError
+	"""
+	deck(
+		"""
+		デッキの公開用の ID
+		"""
+		id: UUID!
+	): DeckResult!
+	"""
+	ゲーム全体のルール
+	"""
+	gameRules: GameRulesResult!
 	"""
 	公開中の NPC のアバターの一覧（登録済みのプレイヤーだけ）
 	"""
