@@ -562,7 +562,7 @@ type Mutation {
 	registerPlayer: RegisterPlayerResult!
 }
 """
-NPC のアバター（公開中のもの）
+NPC のアバター（プレイヤーが解放した公開中のもの）
 """
 type NpcAvatar {
 	"""
@@ -579,7 +579,7 @@ type NpcAvatar {
 	decks: [NpcDeck!]!
 }
 """
-公開中の NPC のアバターが無い（公開中でないものを含む）
+解放した公開中の NPC のアバターが無い（解放していない・公開中でないものを含む。区別しない）
 """
 type NpcAvatarNotFoundError {
 	"""
@@ -591,36 +591,6 @@ type NpcAvatarNotFoundError {
 NPC のアバターの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union NpcAvatarResult = NpcAvatar | NpcAvatarNotFoundError | PlayerNotRegisteredError
-"""
-NPC のアバターの一覧の 1 ページ（名前の順）
-"""
-type NpcAvatarsConnection {
-	"""
-	このページの NPC のアバター
-	"""
-	edges: [NpcAvatarsEdge!]!
-	"""
-	ページの情報
-	"""
-	pageInfo: PageInfo!
-}
-"""
-NPC のアバターの一覧の 1 件と、その位置
-"""
-type NpcAvatarsEdge {
-	"""
-	この 1 件の位置（次のページを取るときに after に渡す）
-	"""
-	cursor: String!
-	"""
-	NPC のアバター
-	"""
-	node: NpcAvatar!
-}
-"""
-NPC のアバターの一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
-"""
-union NpcAvatarsResult = NpcAvatarsConnection | ValidationErrors | PlayerNotRegisteredError
 """
 NPC のデッキ（公開中のもの）。NPC のアバターを通してだけ出る
 """
@@ -710,9 +680,17 @@ type Player {
 	"""
 	avatars: [Avatar!]!
 	"""
+	このプレイヤーが解放したボード（解放した順。公開中のものだけで、使用不可になったボードは含まれない。まだ解放が届いていなければ空）
+	"""
+	boards: [Board!]!
+	"""
 	このプレイヤーのデッキ（作った順。スターターの配布で作る数だけなので、ページ分けしないリスト）
 	"""
 	decks: [Deck!]!
+	"""
+	このプレイヤーが解放した NPC のアバター（解放した順。公開中のものだけで、使用不可になったアバターは含まれない。まだ解放が届いていなければ空）
+	"""
+	npcAvatars: [NpcAvatar!]!
 }
 """
 JWT の (iss, sub) のプレイヤーが、まだ登録されていない。game は registerPlayer を呼んでから、me を呼び直す
@@ -774,21 +752,7 @@ type Query {
 	"""
 	gameRules: GameRulesResult!
 	"""
-	公開中の NPC のアバターの一覧（登録済みのプレイヤーだけ）
-	"""
-	npcAvatars(
-		"""
-		1 ページの件数（1〜100。指定が無ければ 50）
-		"""
-		first: Int
-
-		"""
-		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
-		"""
-		after: String
-	): NpcAvatarsResult!
-	"""
-	公開中の NPC のアバターの詳細（登録済みのプレイヤーだけ）。公開中でなければ NpcAvatarNotFoundError
+	解放した公開中の NPC のアバターの詳細（登録済みのプレイヤーだけ）。解放していない・公開中でなければ NpcAvatarNotFoundError
 	"""
 	npcAvatar(
 		"""
@@ -871,7 +835,7 @@ enum StarterGrantStatus {
 	"""
 	IN_PROGRESS
 	"""
-	所持カードとデッキがそろった
+	所持カード・デッキ・解放がそろった
 	"""
 	COMPLETED
 }
