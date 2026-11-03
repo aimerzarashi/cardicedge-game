@@ -1,57 +1,45 @@
 import Link from "next/link";
 import { graphql } from "@/graphql";
 import type { NpcAvatarsQuery } from "@/graphql/graphql";
-import { type CoreResult, callCore } from "@/lib/core";
+import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
-import { first } from "@/lib/search-params";
 
+// currentPlayer の me には含めない。含めると、NPC を見せないページまで毎回 NPC を読むため。
+// 解放した NPC だけが返る（全員の一覧は無い）。数が少ないのでページ分けはしない
 const npcAvatarsQuery = graphql(`
-  query NpcAvatars($after: String) {
-    npcAvatars(after: $after) {
+  query NpcAvatars {
+    me {
       __typename
-      ... on NpcAvatarsConnection {
-        edges {
-          node {
+      ... on Player {
+        npcAvatars {
+          id
+          name
+          decks {
             id
             name
-            decks {
-              id
-              name
-            }
           }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
         }
       }
     }
   }
 `);
 
-// 続きは URL に持つ（再読み込み・共有で同じページに戻るため）
-function pageURL(after?: string): string {
-  return after === undefined
-    ? "/npc-avatars"
-    : `/npc-avatars?${new URLSearchParams({ after })}`;
-}
-
-export default async function NpcAvatarsPage({
-  searchParams,
-}: PageProps<"/npc-avatars">) {
-  const params = await searchParams;
-  const after = first(params.after);
-
-  // 未登録のプレイヤーは core の npcAvatars が PlayerNotRegisteredError を返すため、先に登録を済ませる
+export default async function NpcAvatarsPage() {
+  // 未登録のプレイヤーは core の me が PlayerNotRegisteredError を返すため、先に登録を済ませる
   const player = await currentPlayer();
-  const result = player.ok
-    ? await callCore(npcAvatarsQuery, { after })
-    : player;
+  const result = player.ok ? await callCore(npcAvatarsQuery) : player;
 
   return (
     <main>
       <h1>NPC の一覧</h1>
-      <NpcAvatarsResult result={result} after={after} />
+      {result.ok ? (
+        <NpcAvatars me={result.data.me} />
+      ) : (
+        <p role="alert">
+          core に接続できません。時間をおいて再読み込みしてください。{" "}
+          <Link href="/npc-avatars">再読み込み</Link>
+        </p>
+      )}
       <p>
         <Link href="/">トップへ</Link>
       </p>
@@ -59,68 +47,32 @@ export default async function NpcAvatarsPage({
   );
 }
 
-function NpcAvatarsResult({
-  result,
-  after,
-}: {
-  result: CoreResult<NpcAvatarsQuery>;
-  after?: string;
-}) {
-  if (!result.ok) {
-    return (
-      <p role="alert">
-        core に接続できません。時間をおいて再読み込みしてください。{" "}
-        <Link href={pageURL(after)}>再読み込み</Link>
-      </p>
-    );
+function NpcAvatars({ me }: { me: NpcAvatarsQuery["me"] }) {
+  if (me.__typename !== "Player") {
+    // 登録の直後に未登録のままなのは、core の不具合（想定外）
+    throw new Error("player is not registered after registerPlayer");
   }
-  const avatars = result.data.npcAvatars;
-  switch (avatars.__typename) {
-    case "ValidationErrors":
-      return (
-        <p role="alert">
-          条件が正しくありません。{" "}
-          <Link href="/npc-avatars">最初のページへ</Link>
-        </p>
-      );
-    case "PlayerNotRegisteredError":
-      // 登録の直後に未登録のままなのは、core の不具合（想定外）
-      throw new Error("player is not registered after registerPlayer");
-    case "NpcAvatarsConnection":
-      return (
-        <>
-          {avatars.edges.length === 0 ? (
-            <p>NPC がいません</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>名前</th>
-                  <th>使うデッキ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {avatars.edges.map(({ node }) => (
-                  <tr key={node.id}>
-                    <td>
-                      <Link href={`/npc-avatars/${node.id}`}>{node.name}</Link>
-                    </td>
-                    <td>{node.decks.map((deck) => deck.name).join("、")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <p>
-            <Link href="/npc-avatars">最初のページへ</Link>
-            {avatars.pageInfo.hasNextPage && avatars.pageInfo.endCursor && (
-              <>
-                {" "}
-                <Link href={pageURL(avatars.pageInfo.endCursor)}>次へ</Link>
-              </>
-            )}
-          </p>
-        </>
-      );
+  if (me.npcAvatars.length === 0) {
+    return <p>まだ解放した NPC がいません</p>;
   }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>使うデッキ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {me.npcAvatars.map((avatar) => (
+          <tr key={avatar.id}>
+            <td>
+              <Link href={`/npc-avatars/${avatar.id}`}>{avatar.name}</Link>
+            </td>
+            <td>{avatar.decks.map((deck) => deck.name).join("、")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }

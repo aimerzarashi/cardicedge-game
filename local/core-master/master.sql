@@ -1,13 +1,13 @@
--- make test の core_game に入れるマスタ（公開中のカード 3 枚・公開中のスターターデッキ 2 つ・game_rules・ボード・NPC のアバターと割り当てたデッキ）。
+-- make test の core_game に入れるマスタ（公開中のカード 3 枚・公開中の配布デッキ 2 つ・スターターセット・game_rules・ボード・NPC のアバターと割り当てたデッキ）。
 -- core の make publish-master（studio の read model の行を game の DB に写す）の結果と同じ形の行を、固定の値で入れる。
--- 行の形は core の migrations（cards・starter_decks・game_rules・boards・npc_avatars・npc_decks）と、tests/testhelper/master.go（PublishMaster）に合わせてある。
+-- 行の形は core の migrations（cards・grant_decks・starter_sets・game_rules・boards・npc_avatars・npc_decks）と、tests/testhelper/master.go（PublishMaster）に合わせてある。
 -- カード A・B・C は、デッキ 1 に A を 4 枚・B を 1 枚、デッキ 2 に A を 2 枚・B を 3 枚・C を 2 枚入れる
 INSERT INTO cards (card_id, card_type, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-00000000000a', 1, 'a', 'published', '{"id":"00000000-0000-4000-8000-00000000000a","name":"A","status":"published"}'),
   ('00000000-0000-4000-8000-00000000000b', 1, 'b', 'published', '{"id":"00000000-0000-4000-8000-00000000000b","name":"B","status":"published"}'),
   ('00000000-0000-4000-8000-00000000000c', 1, 'c', 'published', '{"id":"00000000-0000-4000-8000-00000000000c","name":"C","status":"published"}');
 
-INSERT INTO starter_decks (starter_deck_id, sort_name, status, total_count, metadata) VALUES
+INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata) VALUES
   ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 5, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}'),
   ('00000000-0000-4000-8000-0000000000d2', '2', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d2","name":"水","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":2},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3},{"card_id":"00000000-0000-4000-8000-00000000000c","count":2}]}');
 
@@ -35,4 +35,10 @@ INSERT INTO npc_decks (npc_deck_id, sort_name, status, total_count, metadata) VA
 INSERT INTO npc_avatars (npc_avatar_id, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-0000000000f1', '炎の剣士', 'published', '{"id":"00000000-0000-4000-8000-0000000000f1","name":"炎の剣士","status":"published","decks":["00000000-0000-4000-8000-0000000000e2","00000000-0000-4000-8000-0000000000e1","00000000-0000-4000-8000-0000000000e3"]}'),
   ('00000000-0000-4000-8000-0000000000f2', '森の番人', 'published', '{"id":"00000000-0000-4000-8000-0000000000f2","name":"森の番人","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
-  ('00000000-0000-4000-8000-0000000000f3', '使用不可のnpc', 'retired', '{"id":"00000000-0000-4000-8000-0000000000f3","name":"使用不可の NPC","status":"retired","decks":["00000000-0000-4000-8000-0000000000e1"]}');
+  ('00000000-0000-4000-8000-0000000000f3', '使用不可のnpc', 'retired', '{"id":"00000000-0000-4000-8000-0000000000f3","name":"使用不可の NPC","status":"retired","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
+  ('00000000-0000-4000-8000-0000000000f4', '未解放のnpc', 'published', '{"id":"00000000-0000-4000-8000-0000000000f4","name":"未解放の NPC","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}');
+
+-- 公開中のスターターセット。配るデッキは 火・水、解放する NPC は 森の番人 → 使用不可 → 炎の剣士 の順（名前の順でも行の順でもない）。
+-- 未解放の NPC は公開中でも解放しない。使用不可の NPC は解放していても出ない
+INSERT INTO starter_sets (starter_set_id, sort_name, status, metadata) VALUES
+  ('00000000-0000-4000-8000-0000000000a1', '1', 'published', '{"id":"00000000-0000-4000-8000-0000000000a1","name":"公開中","status":"published","revision":1,"grant_decks":["00000000-0000-4000-8000-0000000000d1","00000000-0000-4000-8000-0000000000d2"],"unlock_boards":[],"unlock_npc_avatars":["00000000-0000-4000-8000-0000000000f2","00000000-0000-4000-8000-0000000000f3","00000000-0000-4000-8000-0000000000f1"]}');

@@ -3,7 +3,7 @@ import { login, seedPlayer } from "./account";
 import { expect, test } from "./fixtures";
 
 // マスタ（local/core-master/master.sql）の NPC: 炎の剣士（水 → 火 → 古い（使用不可）の順に割り当て）・森の番人（火）・
-// 使用不可の NPC。seed のプレイヤーで読むだけ
+// 使用不可の NPC・未解放の NPC。スターターセットが解放するのは 森の番人 → 使用不可の NPC → 炎の剣士 の順。seed のプレイヤーで読むだけ
 
 async function openNpcAvatars(page: Page) {
   await login(page, seedPlayer.email, seedPlayer.password);
@@ -12,7 +12,7 @@ async function openNpcAvatars(page: Page) {
   await expect(page).toHaveURL(/\/npc-avatars$/);
 }
 
-test("一覧に公開中の NPC が名前の順に、使う公開中のデッキと一緒に出て、使用不可の NPC は出ない", async ({
+test("一覧に解放した公開中の NPC だけが解放した順に、使う公開中のデッキと一緒に出て、未解放・使用不可の NPC は出ない", async ({
   page,
 }) => {
   await openNpcAvatars(page);
@@ -24,6 +24,7 @@ test("一覧に公開中の NPC が名前の順に、使う公開中のデッキ
   await expect(rows.nth(1)).toContainText("炎の剣士");
   await expect(rows.nth(1)).toContainText("水の NPC デッキ、火の NPC デッキ");
   await expect(page.getByText("使用不可の NPC")).toHaveCount(0);
+  await expect(page.getByText("未解放の NPC")).toHaveCount(0);
   await expect(page.getByText("古い NPC デッキ")).toHaveCount(0);
 });
 
@@ -45,12 +46,13 @@ test("詳細に、割り当てた順の公開中のデッキごとに、カー�
   await expect(rows.nth(1)).toHaveText(/C\s*クリーチャー\s*2/);
 });
 
-test("使用不可・無い・形の違う ID の NPC は「見つからない」になる", async ({
+test("未解放・使用不可・無い・形の違う ID の NPC は「見つからない」になる", async ({
   page,
 }) => {
   await openNpcAvatars(page);
 
   for (const id of [
+    "00000000-0000-4000-8000-0000000000f4",
     "00000000-0000-4000-8000-0000000000f3",
     "00000000-0000-4000-8000-0000000000ff",
     "not-a-uuid",

@@ -36,7 +36,7 @@ export type RegisterAvatarInput = {
 
 /** スターターの配布の状態 */
 export type StarterGrantStatus =
-  /** 所持カードとデッキがそろった */
+  /** 所持カード・デッキ・解放がそろった */
   | 'COMPLETED'
   /** まだ届いていない（登録の直後で配布が始まっていない・配っている途中を含む） */
   | 'IN_PROGRESS';
@@ -129,15 +129,12 @@ export type NpcAvatarQuery = { npcAvatar:
     | { __typename: 'PlayerNotRegisteredError' }
    };
 
-export type NpcAvatarsQueryVariables = Exact<{
-  after?: string | null | undefined;
-}>;
+export type NpcAvatarsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type NpcAvatarsQuery = { npcAvatars:
-    | { __typename: 'NpcAvatarsConnection', edges: Array<{ node: { id: string, name: string, decks: Array<{ id: string, name: string }> } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+export type NpcAvatarsQuery = { me:
+    | { __typename: 'Player', npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'ValidationErrors' }
    };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
@@ -358,23 +355,17 @@ export const NpcAvatarDocument = new TypedDocumentString(`
 }
     `) as unknown as TypedDocumentString<NpcAvatarQuery, NpcAvatarQueryVariables>;
 export const NpcAvatarsDocument = new TypedDocumentString(`
-    query NpcAvatars($after: String) {
-  npcAvatars(after: $after) {
+    query NpcAvatars {
+  me {
     __typename
-    ... on NpcAvatarsConnection {
-      edges {
-        node {
+    ... on Player {
+      npcAvatars {
+        id
+        name
+        decks {
           id
           name
-          decks {
-            id
-            name
-          }
         }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
       }
     }
   }

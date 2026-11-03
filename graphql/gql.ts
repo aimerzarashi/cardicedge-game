@@ -22,7 +22,7 @@ type Documents = {
     "\n  query PlayerDeck($id: UUID!) {\n    deck(id: $id) {\n      __typename\n      ... on Deck {\n        id\n        name\n        totalCount\n        cards {\n          count\n          card {\n            id\n            name\n            type\n          }\n        }\n      }\n    }\n  }\n": typeof types.PlayerDeckDocument,
     "\n  query PlayerDecks {\n    me {\n      __typename\n      ... on Player {\n        decks {\n          id\n          name\n          totalCount\n          typeCounts {\n            creature\n            item\n            spell\n          }\n        }\n      }\n    }\n  }\n": typeof types.PlayerDecksDocument,
     "\n  query NpcAvatar($id: UUID!) {\n    npcAvatar(id: $id) {\n      __typename\n      ... on NpcAvatar {\n        id\n        name\n        decks {\n          id\n          name\n          totalCount\n          cards {\n            count\n            card {\n              id\n              name\n              type\n            }\n          }\n        }\n      }\n    }\n  }\n": typeof types.NpcAvatarDocument,
-    "\n  query NpcAvatars($after: String) {\n    npcAvatars(after: $after) {\n      __typename\n      ... on NpcAvatarsConnection {\n        edges {\n          node {\n            id\n            name\n            decks {\n              id\n              name\n            }\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n": typeof types.NpcAvatarsDocument,
+    "\n  query NpcAvatars {\n    me {\n      __typename\n      ... on Player {\n        npcAvatars {\n          id\n          name\n          decks {\n            id\n            name\n          }\n        }\n      }\n    }\n  }\n": typeof types.NpcAvatarsDocument,
     "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n        avatars {\n          id\n          name\n        }\n      }\n    }\n  }\n": typeof types.MeDocument,
     "\n  mutation RegisterPlayer {\n    registerPlayer {\n      __typename\n    }\n  }\n": typeof types.RegisterPlayerDocument,
 };
@@ -34,7 +34,7 @@ const documents: Documents = {
     "\n  query PlayerDeck($id: UUID!) {\n    deck(id: $id) {\n      __typename\n      ... on Deck {\n        id\n        name\n        totalCount\n        cards {\n          count\n          card {\n            id\n            name\n            type\n          }\n        }\n      }\n    }\n  }\n": types.PlayerDeckDocument,
     "\n  query PlayerDecks {\n    me {\n      __typename\n      ... on Player {\n        decks {\n          id\n          name\n          totalCount\n          typeCounts {\n            creature\n            item\n            spell\n          }\n        }\n      }\n    }\n  }\n": types.PlayerDecksDocument,
     "\n  query NpcAvatar($id: UUID!) {\n    npcAvatar(id: $id) {\n      __typename\n      ... on NpcAvatar {\n        id\n        name\n        decks {\n          id\n          name\n          totalCount\n          cards {\n            count\n            card {\n              id\n              name\n              type\n            }\n          }\n        }\n      }\n    }\n  }\n": types.NpcAvatarDocument,
-    "\n  query NpcAvatars($after: String) {\n    npcAvatars(after: $after) {\n      __typename\n      ... on NpcAvatarsConnection {\n        edges {\n          node {\n            id\n            name\n            decks {\n              id\n              name\n            }\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n": types.NpcAvatarsDocument,
+    "\n  query NpcAvatars {\n    me {\n      __typename\n      ... on Player {\n        npcAvatars {\n          id\n          name\n          decks {\n            id\n            name\n          }\n        }\n      }\n    }\n  }\n": types.NpcAvatarsDocument,
     "\n  query Me {\n    me {\n      __typename\n      ... on Player {\n        id\n        starterGrant\n        avatars {\n          id\n          name\n        }\n      }\n    }\n  }\n": types.MeDocument,
     "\n  mutation RegisterPlayer {\n    registerPlayer {\n      __typename\n    }\n  }\n": types.RegisterPlayerDocument,
 };
@@ -70,7 +70,7 @@ export function graphql(source: "\n  query NpcAvatar($id: UUID!) {\n    npcAvata
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  query NpcAvatars($after: String) {\n    npcAvatars(after: $after) {\n      __typename\n      ... on NpcAvatarsConnection {\n        edges {\n          node {\n            id\n            name\n            decks {\n              id\n              name\n            }\n          }\n        }\n        pageInfo {\n          hasNextPage\n          endCursor\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').NpcAvatarsDocument;
+export function graphql(source: "\n  query NpcAvatars {\n    me {\n      __typename\n      ... on Player {\n        npcAvatars {\n          id\n          name\n          decks {\n            id\n            name\n          }\n        }\n      }\n    }\n  }\n"): typeof import('./graphql').NpcAvatarsDocument;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
