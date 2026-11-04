@@ -28,11 +28,115 @@ export type CardType =
   | 'ITEM'
   | 'SPELL';
 
+/** 対戦ルールを決める入力。7 つの値の名前と決まりは、ボードの既定のルールと同じ */
+export type ChangeRoomMatchRulesInput = {
+  /** ボードの公開用の ID（作った人が解放した公開中のもの。Player.boards に出るもの） */
+  boardId: string;
+  /** チェックポイントのボーナス（0 以上） */
+  checkpointBonus: number;
+  /** サイコロの目の最大（最小以上） */
+  diceMax: number;
+  /** サイコロの目の最小（1 以上） */
+  diceMin: number;
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 周回のボーナス（0 以上） */
+  lapBonus: number;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+  /** ラウンドの上限（1 以上） */
+  roundLimit: number;
+  /** 開始時の魔力（0 以上） */
+  startingMagic: number;
+  /** 目標の魔力（1 以上、開始時の魔力より大きい） */
+  targetMagic: number;
+};
+
+/** 席のアバターとデッキを選ぶ入力。席の種類で、選ぶものが変わる */
+export type ChangeRoomSeatChoiceInput = {
+  /** アバターの公開用の ID（プレイヤーの席は座っている人のアバター（Player.avatars に出るもの）、NPC の席は作った人が解放した公開中の NPC のアバター（Player.npcAvatars に出るもの）） */
+  avatarId: string;
+  /** デッキの公開用の ID（プレイヤーの席は座っている人のデッキ（Player.decks に出るもの）、NPC の席は選んだ NPC のアバターに割り当てた公開中のデッキ（Player.npcAvatars の decks に出るもの）） */
+  deckId: string;
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+  /** 席の番号（席の並びの何番目か。0 始まり） */
+  seat: number;
+};
+
+/** 席の並びを決める入力 */
+export type ChangeRoomSeatsInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+  /** 席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる */
+  seats: Array<RoomSeatKind>;
+};
+
+/** 部屋を閉じる入力 */
+export type CloseRoomInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
+/** 部屋を作る入力 */
+export type CreateRoomInput = {
+  /** 部屋の名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max。ほかの部屋と同じでもよい） */
+  name: string;
+};
+
+/** 準備完了を申告する入力 */
+export type DeclareRoomReadyInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
+/** 部屋を公開する入力 */
+export type PublishRoomInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
 /** アバターを作る入力 */
 export type RegisterAvatarInput = {
   /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
   name: string;
 };
+
+/** 部屋の名前を変える入力 */
+export type RenameRoomInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 新しい名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max） */
+  name: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
+/** 席に座るのがプレイヤーか NPC か。形式（個人戦／チーム戦）とチームは持たない */
+export type RoomSeatKind =
+  /** NPC の席 */
+  | 'NPC'
+  /** プレイヤーの席。今は 1 つで、作った人が座る */
+  | 'PLAYER';
+
+/** 部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない） */
+export type RoomStatus =
+  /** 閉じた（作った人が閉じた）。一覧には出ない */
+  | 'CLOSED'
+  /** 公開前（マスタの「準備中」と分けて、公開前と呼ぶ）。席・対戦ルール・席の選択を何でも決められる */
+  | 'DRAFT'
+  /** 準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める */
+  | 'PREPARING';
 
 /** スターターの配布の状態 */
 export type StarterGrantStatus =
@@ -52,10 +156,15 @@ export type RegisterAvatarMutation = { registerAvatar:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RegisterAvatarSuccess', avatar: { id: string } }
     | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
+        | { __typename: 'FieldLessThan' }
+        | { __typename: 'FieldNotFound' }
+        | { __typename: 'FieldNotGreaterThan' }
         | { __typename: 'FieldOutOfRange' }
         | { __typename: 'FieldRequired' }
         | { __typename: 'FieldTooLong', max: number }
+        | { __typename: 'FieldTooSmall' }
       > }
    };
 
@@ -135,6 +244,204 @@ export type NpcAvatarsQueryVariables = Exact<{ [key: string]: never; }>;
 export type NpcAvatarsQuery = { me:
     | { __typename: 'Player', npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
     | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type RoomDetailQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type RoomDetailQuery = { room:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
+    | { __typename: 'RoomNotFoundError' }
+  , me:
+    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
+    | { __typename: 'PlayerNotRegisteredError' }
+  , gameRules:
+    | { __typename: 'GameRules', match: { minPlayers: number, maxPlayers: number } }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type CreateRoomMutationVariables = Exact<{
+  input: CreateRoomInput;
+}>;
+
+
+export type CreateRoomMutation = { createRoom:
+    | { __typename: 'CreateRoomSuccess', id: string }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch' }
+        | { __typename: 'FieldInvalidFormat' }
+        | { __typename: 'FieldLessThan' }
+        | { __typename: 'FieldNotFound' }
+        | { __typename: 'FieldNotGreaterThan' }
+        | { __typename: 'FieldOutOfRange' }
+        | { __typename: 'FieldRequired' }
+        | { __typename: 'FieldTooLong', max: number }
+        | { __typename: 'FieldTooSmall' }
+      > }
+   };
+
+export type RenameRoomMutationVariables = Exact<{
+  input: RenameRoomInput;
+}>;
+
+
+export type RenameRoomMutation = { renameRoom:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RenameRoomSuccess' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldLessThan', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', max: number, field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type ChangeRoomSeatsMutationVariables = Exact<{
+  input: ChangeRoomSeatsInput;
+}>;
+
+
+export type ChangeRoomSeatsMutation = { changeRoomSeats:
+    | { __typename: 'ChangeRoomSeatsSuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', expected: number, field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldLessThan', than: string, field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', than: string, field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', min: number, field: string }
+      > }
+   };
+
+export type ChangeRoomMatchRulesMutationVariables = Exact<{
+  input: ChangeRoomMatchRulesInput;
+}>;
+
+
+export type ChangeRoomMatchRulesMutation = { changeRoomMatchRules:
+    | { __typename: 'ChangeRoomMatchRulesSuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomAlreadyReadyError' }
+    | { __typename: 'RoomConditionLockedError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', expected: number, field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldLessThan', than: string, field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', than: string, field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', min: number, field: string }
+      > }
+   };
+
+export type ChangeRoomSeatChoiceMutationVariables = Exact<{
+  input: ChangeRoomSeatChoiceInput;
+}>;
+
+
+export type ChangeRoomSeatChoiceMutation = { changeRoomSeatChoice:
+    | { __typename: 'ChangeRoomSeatChoiceSuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomAlreadyReadyError' }
+    | { __typename: 'RoomConditionLockedError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomSeatsNotDecidedError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', expected: number, field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldLessThan', than: string, field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', than: string, field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', min: number, field: string }
+      > }
+   };
+
+export type PublishRoomMutationVariables = Exact<{
+  input: PublishRoomInput;
+}>;
+
+
+export type PublishRoomMutation = { publishRoom:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'PublishRoomSuccess' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomSeatsNotDecidedError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type DeclareRoomReadyMutationVariables = Exact<{
+  input: DeclareRoomReadyInput;
+}>;
+
+
+export type DeclareRoomReadyMutation = { declareRoomReady:
+    | { __typename: 'DeclareRoomReadySuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomAlreadyReadyError' }
+    | { __typename: 'RoomConditionsNotDecidedError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type CloseRoomMutationVariables = Exact<{
+  input: CloseRoomInput;
+}>;
+
+
+export type CloseRoomMutation = { closeRoom:
+    | { __typename: 'CloseRoomSuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+   };
+
+export type MyRoomsQueryVariables = Exact<{
+  after?: string | null | undefined;
+}>;
+
+
+export type MyRoomsQuery = { myRooms:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RoomsConnection', edges: Array<{ node: { id: string, name: string, status: RoomStatus, seats: Array<{ kind: RoomSeatKind }>, matchRules: { board: { name: string } } | null } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'ValidationErrors' }
    };
 
 export type MeQueryVariables = Exact<{ [key: string]: never; }>;
@@ -371,6 +678,272 @@ export const NpcAvatarsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<NpcAvatarsQuery, NpcAvatarsQueryVariables>;
+export const RoomDetailDocument = new TypedDocumentString(`
+    query RoomDetail($id: UUID!) {
+  room(id: $id) {
+    __typename
+    ... on Room {
+      id
+      revision
+      name
+      status
+      capabilities {
+        changeSeats
+        changeMatchRules
+        publish
+        declareReady
+        close
+        rename
+      }
+      participants {
+        playerId
+        owner
+        ready
+      }
+      seats {
+        kind
+        playerId
+        choiceChangeable
+        avatar {
+          id
+          name
+        }
+        deck {
+          id
+          name
+        }
+      }
+      matchRules {
+        board {
+          id
+          name
+        }
+        targetMagic
+        startingMagic
+        lapBonus
+        checkpointBonus
+        roundLimit
+        diceMin
+        diceMax
+      }
+    }
+  }
+  me {
+    __typename
+    ... on Player {
+      id
+      avatars {
+        id
+        name
+      }
+      decks {
+        id
+        name
+      }
+      boards {
+        id
+        name
+        defaultRules {
+          targetMagic
+          startingMagic
+          lapBonus
+          checkpointBonus
+          roundLimit
+          diceMin
+          diceMax
+        }
+      }
+      npcAvatars {
+        id
+        name
+        decks {
+          id
+          name
+        }
+      }
+    }
+  }
+  gameRules {
+    __typename
+    ... on GameRules {
+      match {
+        minPlayers
+        maxPlayers
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RoomDetailQuery, RoomDetailQueryVariables>;
+export const CreateRoomDocument = new TypedDocumentString(`
+    mutation CreateRoom($input: CreateRoomInput!) {
+  createRoom(input: $input) {
+    __typename
+    ... on CreateRoomSuccess {
+      id
+    }
+    ... on ValidationErrors {
+      errors {
+        __typename
+        ... on FieldTooLong {
+          max
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CreateRoomMutation, CreateRoomMutationVariables>;
+export const RenameRoomDocument = new TypedDocumentString(`
+    mutation RenameRoom($input: RenameRoomInput!) {
+  renameRoom(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldTooLong {
+          max
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RenameRoomMutation, RenameRoomMutationVariables>;
+export const ChangeRoomSeatsDocument = new TypedDocumentString(`
+    mutation ChangeRoomSeats($input: ChangeRoomSeatsInput!) {
+  changeRoomSeats(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+        ... on FieldTooSmall {
+          min
+        }
+        ... on FieldCountMismatch {
+          expected
+        }
+        ... on FieldNotGreaterThan {
+          than
+        }
+        ... on FieldLessThan {
+          than
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChangeRoomSeatsMutation, ChangeRoomSeatsMutationVariables>;
+export const ChangeRoomMatchRulesDocument = new TypedDocumentString(`
+    mutation ChangeRoomMatchRules($input: ChangeRoomMatchRulesInput!) {
+  changeRoomMatchRules(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+        ... on FieldTooSmall {
+          min
+        }
+        ... on FieldCountMismatch {
+          expected
+        }
+        ... on FieldNotGreaterThan {
+          than
+        }
+        ... on FieldLessThan {
+          than
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChangeRoomMatchRulesMutation, ChangeRoomMatchRulesMutationVariables>;
+export const ChangeRoomSeatChoiceDocument = new TypedDocumentString(`
+    mutation ChangeRoomSeatChoice($input: ChangeRoomSeatChoiceInput!) {
+  changeRoomSeatChoice(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+        ... on FieldTooSmall {
+          min
+        }
+        ... on FieldCountMismatch {
+          expected
+        }
+        ... on FieldNotGreaterThan {
+          than
+        }
+        ... on FieldLessThan {
+          than
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChangeRoomSeatChoiceMutation, ChangeRoomSeatChoiceMutationVariables>;
+export const PublishRoomDocument = new TypedDocumentString(`
+    mutation PublishRoom($input: PublishRoomInput!) {
+  publishRoom(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<PublishRoomMutation, PublishRoomMutationVariables>;
+export const DeclareRoomReadyDocument = new TypedDocumentString(`
+    mutation DeclareRoomReady($input: DeclareRoomReadyInput!) {
+  declareRoomReady(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<DeclareRoomReadyMutation, DeclareRoomReadyMutationVariables>;
+export const CloseRoomDocument = new TypedDocumentString(`
+    mutation CloseRoom($input: CloseRoomInput!) {
+  closeRoom(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<CloseRoomMutation, CloseRoomMutationVariables>;
+export const MyRoomsDocument = new TypedDocumentString(`
+    query MyRooms($after: String) {
+  myRooms(after: $after) {
+    __typename
+    ... on RoomsConnection {
+      edges {
+        node {
+          id
+          name
+          status
+          seats {
+            kind
+          }
+          matchRules {
+            board {
+              name
+            }
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<MyRoomsQuery, MyRoomsQueryVariables>;
 export const MeDocument = new TypedDocumentString(`
     query Me {
   me {

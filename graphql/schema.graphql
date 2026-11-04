@@ -346,6 +346,146 @@ enum CardType {
 	SPELL
 }
 """
+対戦ルールを決める入力。7 つの値の名前と決まりは、ボードの既定のルールと同じ
+"""
+input ChangeRoomMatchRulesInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	ボードの公開用の ID（作った人が解放した公開中のもの。Player.boards に出るもの）
+	"""
+	boardId: UUID!
+	"""
+	目標の魔力（1 以上、開始時の魔力より大きい）
+	"""
+	targetMagic: Int!
+	"""
+	開始時の魔力（0 以上）
+	"""
+	startingMagic: Int!
+	"""
+	周回のボーナス（0 以上）
+	"""
+	lapBonus: Int!
+	"""
+	チェックポイントのボーナス（0 以上）
+	"""
+	checkpointBonus: Int!
+	"""
+	ラウンドの上限（1 以上）
+	"""
+	roundLimit: Int!
+	"""
+	サイコロの目の最小（1 以上）
+	"""
+	diceMin: Int!
+	"""
+	サイコロの目の最大（最小以上）
+	"""
+	diceMax: Int!
+}
+"""
+changeRoomMatchRules の結果（公開前、または公開前に決めていなければ準備中。決めるのは作った人）。
+入力の誤りは ValidationErrors（段階ごと。7 つの値は targetMagic 等の項目名、ボードが選べなければ boardId の FieldNotFound）
+"""
+union ChangeRoomMatchRulesResult = ChangeRoomMatchRulesSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomConditionLockedError | RoomNotResponsibleError | RoomAlreadyReadyError | PlayerNotRegisteredError
+"""
+対戦ルールを決めた（同じ値なら何も変えず、revision も進まない）
+"""
+type ChangeRoomMatchRulesSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+席のアバターとデッキを選ぶ入力。席の種類で、選ぶものが変わる
+"""
+input ChangeRoomSeatChoiceInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	席の番号（席の並びの何番目か。0 始まり）
+	"""
+	seat: Int!
+	"""
+	アバターの公開用の ID（プレイヤーの席は座っている人のアバター（Player.avatars に出るもの）、NPC の席は作った人が解放した公開中の NPC のアバター（Player.npcAvatars に出るもの））
+	"""
+	avatarId: UUID!
+	"""
+	デッキの公開用の ID（プレイヤーの席は座っている人のデッキ（Player.decks に出るもの）、NPC の席は選んだ NPC のアバターに割り当てた公開中のデッキ（Player.npcAvatars の decks に出るもの））
+	"""
+	deckId: UUID!
+}
+"""
+changeRoomSeatChoice の結果（公開前、または公開前に決めていなければ準備中）。選んだ時の 1 回だけ、選べるものかを確かめる（準備完了の時には確かめ直さない）。
+入力の誤りは ValidationErrors（段階ごと。席が範囲の外なら seat の FieldOutOfRange、次に avatarId・deckId の FieldNotFound。NPC の席は、アバターが選べるときだけデッキを確かめる）
+"""
+union ChangeRoomSeatChoiceResult = ChangeRoomSeatChoiceSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomSeatsNotDecidedError | RoomConditionLockedError | RoomNotResponsibleError | RoomAlreadyReadyError | PlayerNotRegisteredError
+"""
+席のアバターとデッキを選んだ（同じ選択なら何も変えず、revision も進まない）
+"""
+type ChangeRoomSeatChoiceSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+席の並びを決める入力
+"""
+input ChangeRoomSeatsInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる
+	"""
+	seats: [RoomSeatKind!]!
+}
+"""
+changeRoomSeats の結果（公開前だけ。作った人だけ）
+"""
+union ChangeRoomSeatsResult = ChangeRoomSeatsSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+席の並びを決めた（同じ並びなら何も変えず、revision も進まない）
+"""
+type ChangeRoomSeatsSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
 チェックポイント
 """
 type CheckpointTile implements BoardTile {
@@ -357,6 +497,62 @@ type CheckpointTile implements BoardTile {
 	行
 	"""
 	y: Int!
+}
+"""
+部屋を閉じる入力
+"""
+input CloseRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+closeRoom の結果（作った人だけ。対戦中は閉じられない（対戦中の状態は対戦を作るときに足す））
+"""
+union CloseRoomResult = CloseRoomSuccess | RoomNotFoundError | RevisionConflictError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋を閉じた（閉じた部屋をもう一度閉じても、何も変えず成功する）
+"""
+type CloseRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	閉じた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+部屋を作る入力
+"""
+input CreateRoomInput {
+	"""
+	部屋の名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max。ほかの部屋と同じでもよい）
+	"""
+	name: String!
+}
+"""
+createRoom の結果。名前の誤りは ValidationErrors（項目名 name）。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union CreateRoomResult = CreateRoomSuccess | ValidationErrors | PlayerNotRegisteredError
+"""
+部屋を作った（公開前。席は 0）
+"""
+type CreateRoomSuccess {
+	"""
+	作った部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	作った部屋の revision
+	"""
+	revision: Int!
 }
 """
 プレイヤーのデッキ。持ち主のプレイヤーだけが読む（ほかのプレイヤーのデッキは、me.decks にも deck(id) にも出ない）
@@ -444,6 +640,49 @@ type DeckTypeCounts {
 	spell: Int!
 }
 """
+準備完了を申告する入力
+"""
+input DeclareRoomReadyInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+declareRoomReady の結果（準備中だけ。自分の担当の分がすべて決まっているときだけ）
+"""
+union DeclareRoomReadyResult = DeclareRoomReadySuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomConditionsNotDecidedError | RoomAlreadyReadyError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+準備完了を申告した（以後、自分の担当の分を選び直せない。取り消す操作は無い）
+"""
+type DeclareRoomReadySuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	申告した部屋の revision
+	"""
+	revision: Int!
+}
+"""
+入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
+"""
+type FieldCountMismatch implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	決まりの個数
+	"""
+	expected: Int!
+}
+"""
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
 interface FieldError {
@@ -460,6 +699,41 @@ type FieldInvalidFormat implements FieldError {
 	誤りのある入力の項目
 	"""
 	field: String!
+}
+"""
+入力が、別の入力の項目の値より小さい（等しいのは誤りでない。例: サイコロの目の最大が最小より小さい）
+"""
+type FieldLessThan implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	下回ってはいけない相手の入力の項目（例: diceMin）
+	"""
+	than: String!
+}
+"""
+入力の ID が指すものが、選べるものの中に無い（無い・ほかのプレイヤーのもの・解放していない・公開中でない等。区別しない）
+"""
+type FieldNotFound implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+}
+"""
+入力が、別の入力の項目の値より大きくない（等しいのも含む。例: 目標の魔力が開始時の魔力以下）
+"""
+type FieldNotGreaterThan implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	大きくなければならない相手の入力の項目（例: startingMagic）
+	"""
+	than: String!
 }
 """
 入力が範囲の外
@@ -499,6 +773,19 @@ type FieldTooLong implements FieldError {
 	上限の文字数
 	"""
 	max: Int!
+}
+"""
+入力が下限より小さい（上限は無い）
+"""
+type FieldTooSmall implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	下限（この値を含む）
+	"""
+	min: Int!
 }
 """
 ゲーム全体のルール
@@ -560,7 +847,43 @@ type Mutation {
 	JWT の (iss, sub) のプレイヤーを登録する。何度呼んでも、プレイヤーは 1 人だけで、登録済みでも同じ形（同じ id）で返す。game は me が PlayerNotRegisteredError のときに呼ぶ
 	"""
 	registerPlayer: RegisterPlayerResult!
+	"""
+	部屋を作る（名前を受け取る）。作った人はプレイヤーの席に自動で座る。席の並びを決めるまでは席が 0 の部屋
+	"""
+	createRoom(input: CreateRoomInput!): CreateRoomResult!
+	"""
+	部屋の名前を変える（作った人だけ。閉じる前まで）
+	"""
+	renameRoom(input: RenameRoomInput!): RenameRoomResult!
+	"""
+	席の並びを決める（公開前だけ）。並びを変えたら、席ごとの選択はすべて外れる
+	"""
+	changeRoomSeats(input: ChangeRoomSeatsInput!): ChangeRoomSeatsResult!
+	"""
+	対戦ルール（ボードと 7 つの値）を決める
+	"""
+	changeRoomMatchRules(input: ChangeRoomMatchRulesInput!): ChangeRoomMatchRulesResult!
+	"""
+	席のアバターとデッキを選ぶ
+	"""
+	changeRoomSeatChoice(input: ChangeRoomSeatChoiceInput!): ChangeRoomSeatChoiceResult!
+	"""
+	部屋を公開する（プレイヤーの席が定員なら、そのまま準備中に進む）
+	"""
+	publishRoom(input: PublishRoomInput!): PublishRoomResult!
+	"""
+	準備完了を申告する
+	"""
+	declareRoomReady(input: DeclareRoomReadyInput!): DeclareRoomReadyResult!
+	"""
+	部屋を閉じる
+	"""
+	closeRoom(input: CloseRoomInput!): CloseRoomResult!
 }
+"""
+自分の部屋の一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MyRoomsResult = RoomsConnection | ValidationErrors | PlayerNotRegisteredError
 """
 NPC のアバター（プレイヤーが解放した公開中のもの）
 """
@@ -714,6 +1037,36 @@ type ProphecyShopTile implements BoardTile {
 	"""
 	y: Int!
 }
+"""
+部屋を公開する入力
+"""
+input PublishRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+publishRoom の結果（公開前だけ。作った人だけ。席の並びが決まっていなければ RoomSeatsNotDecidedError。対戦ルールと席の選択は、決まっていなくても公開できる）
+"""
+union PublishRoomResult = PublishRoomSuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomSeatsNotDecidedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋を公開した（プレイヤーの席が定員なので、そのまま準備中に進む。公開前に決めたものは、準備中に変えられなくなる）
+"""
+type PublishRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	公開した部屋の revision
+	"""
+	revision: Int!
+}
 type Query {
 	"""
 	公開中のボードの一覧（登録済みのプレイヤーだけ）
@@ -764,6 +1117,29 @@ type Query {
 	ログイン中のプレイヤー（JWT の (iss, sub) に登録済みのプレイヤー）を返す。未登録なら PlayerNotRegisteredError
 	"""
 	me: MeResult!
+	"""
+	自分が入っている部屋の一覧（登録済みのプレイヤーだけ。新しい順。閉じた部屋は含まない）
+	"""
+	myRooms(
+		"""
+		1 ページの件数（1〜100。指定が無ければ 50）
+		"""
+		first: Int
+
+		"""
+		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
+		"""
+		after: String
+	): MyRoomsResult!
+	"""
+	自分が入っている部屋の詳細（登録済みのプレイヤーだけ。閉じた部屋も読める）。無い・入っていない部屋は RoomNotFoundError
+	"""
+	room(
+		"""
+		部屋の公開用の ID
+		"""
+		id: UUID!
+	): RoomResult!
 }
 """
 アバターを作る入力
@@ -799,6 +1175,333 @@ type RegisterPlayerSuccess {
 	登録したプレイヤー。すでに登録済みなら、そのプレイヤー（新しく作らない）
 	"""
 	player: Player!
+}
+"""
+部屋の名前を変える入力
+"""
+input RenameRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	新しい名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max）
+	"""
+	name: String!
+}
+"""
+renameRoom の結果（作った人だけ。閉じる前まで。公開の後にも変えられる。閉じた部屋は RoomStatusNotAllowedError）
+"""
+union RenameRoomResult = RenameRoomSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋の名前を変えた（同じ名前なら何も変えず、revision も進まない）
+"""
+type RenameRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+先に変えられた（画面を開いた後に、ほかの操作でこの対象が変わった。操作は行われていない）。読み直してから操作し直す
+"""
+type RevisionConflictError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋。自分が入っている部屋だけが読める（入っていない人には RoomNotFoundError）。
+席・対戦ルール・席の選択は、それぞれ「まだ決まっていない（空の席の並び・null）／決まった」で返す
+"""
+type Room {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	部屋の名前（ほかの部屋と同じでもよい）
+	"""
+	name: String!
+	"""
+	更新の番号（変える操作の revision に渡す。画面は詳細を読み直し、この revision を持つ）
+	"""
+	revision: Int!
+	"""
+	状態
+	"""
+	status: RoomStatus!
+	"""
+	部屋に入っている人（作った人が先）と、準備完了の申告
+	"""
+	participants: [RoomParticipant!]!
+	"""
+	席の並び（まだ決めていなければ空）
+	"""
+	seats: [RoomSeat!]!
+	"""
+	対戦ルール（まだ決めていなければ null）
+	"""
+	matchRules: RoomMatchRules
+	"""
+	見ている人にできる操作。部屋の詳細（room）だけが返し、一覧（myRooms）では null
+	"""
+	capabilities: RoomCapabilities
+}
+"""
+準備完了を申告した後に、自分の担当の分を選び直そうとした、または申告し直そうとした（操作は行われていない）
+"""
+type RoomAlreadyReadyError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+見ている人にできる操作。core の Decide と同じ関数で判断した値で、画面は担当・公開前に決めたものの固定・準備完了の条件を自分で判断せず、
+この値で出し分けるだけにする。席ごとの選び直しは RoomSeat.choiceChangeable
+"""
+type RoomCapabilities {
+	"""
+	席の並びを変えられるか（changeRoomSeats）
+	"""
+	changeSeats: Boolean!
+	"""
+	対戦ルールを変えられるか（changeRoomMatchRules）
+	"""
+	changeMatchRules: Boolean!
+	"""
+	公開できるか（publishRoom）
+	"""
+	publish: Boolean!
+	"""
+	準備完了を押せるか（declareRoomReady）
+	"""
+	declareReady: Boolean!
+	"""
+	閉じられるか（closeRoom）。閉じた部屋は、閉じ直しても何も変わらないので false
+	"""
+	close: Boolean!
+	"""
+	名前を変えられるか（renameRoom）
+	"""
+	rename: Boolean!
+}
+"""
+公開前に決めたものを、準備中に変えようとした（操作は行われていない）
+"""
+type RoomConditionLockedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+自分の担当の分に、まだ決まっていないものがある（準備完了は押せない。操作は行われていない）
+"""
+type RoomConditionsNotDecidedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋の対戦ルール。ボードと 7 つの値で、7 つの値はボードの既定のルール（BoardDefaultRules）と同じ名前と決まり。
+部屋では既定ではなく、ボードごと決める値なので、入れ子にせず並べる
+"""
+type RoomMatchRules {
+	"""
+	ボード（作った人が解放した公開中のもの）
+	"""
+	board: RoomNamed!
+	"""
+	目標の魔力（魔力がこの値に届いて拠点に戻ると勝ち。1 以上、開始時の魔力より大きい）
+	"""
+	targetMagic: Int!
+	"""
+	開始時の魔力（0 以上）
+	"""
+	startingMagic: Int!
+	"""
+	周回のボーナス（拠点に戻ったときに増える魔力。0 以上）
+	"""
+	lapBonus: Int!
+	"""
+	チェックポイントのボーナス（チェックポイントを通ったときに増える魔力。0 以上）
+	"""
+	checkpointBonus: Int!
+	"""
+	ラウンドの上限（上限に達したら、その時点で魔力の多い人が勝つ。1 以上）
+	"""
+	roundLimit: Int!
+	"""
+	サイコロの目の最小（1 以上）
+	"""
+	diceMin: Int!
+	"""
+	サイコロの目の最大（最小以上）
+	"""
+	diceMax: Int!
+}
+"""
+アバター・デッキ・ボードを、公開用の ID と名前で見せる値（名前は読むときに引く）
+"""
+type RoomNamed {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+}
+"""
+部屋が無い（無い・入っていない部屋。区別しない）
+"""
+type RoomNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+その操作の担当ではない（作った人だけの操作、ほかの人の席の選択。操作は行われていない）
+"""
+type RoomNotResponsibleError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋に入っている人と、準備完了の申告
+"""
+type RoomParticipant {
+	"""
+	プレイヤーの公開用の ID
+	"""
+	playerId: UUID!
+	"""
+	部屋を作った人か
+	"""
+	owner: Boolean!
+	"""
+	準備完了を申告したか
+	"""
+	ready: Boolean!
+}
+"""
+部屋の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union RoomResult = Room | RoomNotFoundError | PlayerNotRegisteredError
+"""
+席 1 つ。席の並びの順に返す
+"""
+type RoomSeat {
+	"""
+	席の種類
+	"""
+	kind: RoomSeatKind!
+	"""
+	座っているプレイヤーの公開用の ID（プレイヤーの席だけ。NPC の席は null）
+	"""
+	playerId: UUID
+	"""
+	選んだアバター（プレイヤーの席は座っている人のアバター、NPC の席は NPC のアバター。まだ選んでいなければ null）
+	"""
+	avatar: RoomNamed
+	"""
+	選んだデッキ（プレイヤーの席は座っている人のデッキ、NPC の席は NPC のアバターに割り当てたデッキ。まだ選んでいなければ null）
+	"""
+	deck: RoomNamed
+	"""
+	見ている人がこの席のアバターとデッキを選び直せるか（changeRoomSeatChoice）。部屋の詳細（room）だけが返し、一覧（myRooms）では null
+	"""
+	choiceChangeable: Boolean
+}
+"""
+席に座るのがプレイヤーか NPC か。形式（個人戦／チーム戦）とチームは持たない
+"""
+enum RoomSeatKind {
+	"""
+	プレイヤーの席。今は 1 つで、作った人が座る
+	"""
+	PLAYER
+	"""
+	NPC の席
+	"""
+	NPC
+}
+"""
+席の並びがまだ決まっていない（公開と、席の選択はできない。操作は行われていない）
+"""
+type RoomSeatsNotDecidedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない）
+"""
+enum RoomStatus {
+	"""
+	公開前（マスタの「準備中」と分けて、公開前と呼ぶ）。席・対戦ルール・席の選択を何でも決められる
+	"""
+	DRAFT
+	"""
+	準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める
+	"""
+	PREPARING
+	"""
+	閉じた（作った人が閉じた）。一覧には出ない
+	"""
+	CLOSED
+}
+"""
+今の状態ではできない操作（席の並びと公開は公開前だけ、条件を選ぶのは公開前か準備中だけ、準備完了は準備中だけ。操作は行われていない）
+"""
+type RoomStatusNotAllowedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+自分の部屋の一覧の 1 ページ（新しい順。閉じた部屋は含まない）
+"""
+type RoomsConnection {
+	"""
+	このページの部屋
+	"""
+	edges: [RoomsEdge!]!
+	"""
+	ページの情報
+	"""
+	pageInfo: PageInfo!
+}
+"""
+自分の部屋の一覧の 1 件と、その位置
+"""
+type RoomsEdge {
+	"""
+	この 1 件の位置（次のページを取るときに after に渡す）
+	"""
+	cursor: String!
+	"""
+	部屋
+	"""
+	node: Room!
 }
 """
 聖堂（通る・止まると、属性ごとの品物を売り買いできる）。属性は持たない
