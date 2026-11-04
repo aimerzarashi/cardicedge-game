@@ -98,6 +98,13 @@ export type DeclareRoomReadyInput = {
   revision: number;
 };
 
+/** 参加者がプレイヤーか NPC か */
+export type MatchParticipantKind =
+  /** NPC */
+  | 'NPC'
+  /** プレイヤー */
+  | 'PLAYER';
+
 /** 部屋を公開する入力 */
 export type PublishRoomInput = {
   /** 部屋の公開用の ID */
@@ -228,6 +235,27 @@ export type PlayerDecksQuery = { me:
     | { __typename: 'PlayerNotRegisteredError' }
    };
 
+export type MatchDetailQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type MatchDetailQuery = { match:
+    | { __typename: 'Match', id: string, round: number, currentParticipant: number | null, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+          | { __typename: 'BaseTile', x: number, y: number }
+          | { __typename: 'BridgeTile', x: number, y: number }
+          | { __typename: 'CardShopTile', x: number, y: number }
+          | { __typename: 'CheckpointTile', x: number, y: number }
+          | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
+          | { __typename: 'ProphecyShopTile', x: number, y: number }
+          | { __typename: 'SanctuaryTile', x: number, y: number }
+          | { __typename: 'ShrineTile', x: number, y: number }
+          | { __typename: 'WarpTile', x: number, y: number }
+        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, magic: number, drawPileCount: number, turnOrder: number, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }> }> }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
 export type NpcAvatarQueryVariables = Exact<{
   id: string;
 }>;
@@ -254,7 +282,7 @@ export type RoomDetailQueryVariables = Exact<{
 
 export type RoomDetailQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
     | { __typename: 'RoomNotFoundError' }
   , me:
     | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
@@ -428,6 +456,17 @@ export type CloseRoomMutation = { closeRoom:
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type RoomMatchQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type RoomMatchQuery = { room:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'Room', match: { id: string } | null }
+    | { __typename: 'RoomNotFoundError' }
    };
 
 export type MyRoomsQueryVariables = Exact<{
@@ -634,6 +673,69 @@ export const PlayerDecksDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<PlayerDecksQuery, PlayerDecksQueryVariables>;
+export const MatchDetailDocument = new TypedDocumentString(`
+    query MatchDetail($id: UUID!) {
+  match(id: $id) {
+    __typename
+    ... on Match {
+      id
+      round
+      rules {
+        targetMagic
+        startingMagic
+        lapBonus
+        checkpointBonus
+        roundLimit
+        diceMin
+        diceMax
+        maxHandCards
+        startingHandCards
+      }
+      board {
+        width
+        height
+        tiles {
+          __typename
+          x
+          y
+          ... on LandTile {
+            attribute
+          }
+        }
+        pairs {
+          a {
+            x
+            y
+          }
+          b {
+            x
+            y
+          }
+        }
+      }
+      participants {
+        kind
+        avatar {
+          id
+          name
+        }
+        position {
+          x
+          y
+        }
+        magic
+        hand {
+          id
+          name
+        }
+        drawPileCount
+        turnOrder
+      }
+      currentParticipant
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<MatchDetailQuery, MatchDetailQueryVariables>;
 export const NpcAvatarDocument = new TypedDocumentString(`
     query NpcAvatar($id: UUID!) {
   npcAvatar(id: $id) {
@@ -684,6 +786,9 @@ export const RoomDetailDocument = new TypedDocumentString(`
       revision
       name
       status
+      match {
+        id
+      }
       capabilities {
         changeSeats
         changeMatchRules
@@ -904,6 +1009,18 @@ export const CloseRoomDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<CloseRoomMutation, CloseRoomMutationVariables>;
+export const RoomMatchDocument = new TypedDocumentString(`
+    query RoomMatch($id: UUID!) {
+  room(id: $id) {
+    __typename
+    ... on Room {
+      match {
+        id
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RoomMatchQuery, RoomMatchQueryVariables>;
 export const MyRoomsDocument = new TypedDocumentString(`
     query MyRooms($after: String) {
   myRooms(after: $after) {

@@ -806,7 +806,7 @@ type LandTile implements BoardTile {
 }
 """
 対戦。参加者は部屋の席の順で返す。
-順番は turnOrder（参加者ごと）と turnOrderRolls（決めたサイコロ）で見せる
+順番は参加者ごとの turnOrder で見せる（始めるときに無作為に決めたもの）
 """
 type Match {
 	"""
@@ -833,10 +833,6 @@ type Match {
 	参加者（部屋の席の順）
 	"""
 	participants: [MatchParticipant!]!
-	"""
-	順番を決めたサイコロ（振り直しも含め、振った順）
-	"""
-	turnOrderRolls: [MatchTurnOrderRoll!]!
 	"""
 	今の番の参加者（Match.participants の何番目か。順番が決まるまでは null）
 	"""
@@ -1006,23 +1002,6 @@ type MatchRules {
 	対戦の始めに配る手札の枚数
 	"""
 	startingHandCards: Int!
-}
-"""
-順番を決めたサイコロ 1 回。同じ目の人どうしで振り直すたびに attempt が増える
-"""
-type MatchTurnOrderRoll {
-	"""
-	振った参加者（Match.participants の何番目か。0 始まり）
-	"""
-	participant: Int!
-	"""
-	何回目か（1 が最初の 1 回）
-	"""
-	attempt: Int!
-	"""
-	出た目
-	"""
-	value: Int!
 }
 """
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError

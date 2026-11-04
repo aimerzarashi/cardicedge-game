@@ -25,6 +25,9 @@ const roomQuery = graphql(`
         revision
         name
         status
+        match {
+          id
+        }
         capabilities {
           changeSeats
           changeMatchRules
@@ -279,6 +282,12 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
         >
           部屋を閉じる
         </RoomActionButton>
+      )}
+      {room.match && (
+        // 準備完了のあと対戦の画面へ移るが、対戦の投影が追いついていなかったときの行き先
+        <p>
+          <Link href={`/matches/${room.match.id}`}>対戦の画面へ</Link>
+        </p>
       )}
       <p>
         <Link href="/rooms">部屋の一覧へ</Link>

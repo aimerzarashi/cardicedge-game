@@ -1,5 +1,5 @@
 import type { APIRequestContext, Locator, Page } from "@playwright/test";
-import { login, signUpAndVerify } from "./account";
+import { login, seedPlayer, signUpAndVerify } from "./account";
 import { expect, test } from "./fixtures";
 
 // 新しくサインアップしたプレイヤー（アバターを 1 体作る）で部屋を作り、詳細を開く。
@@ -109,19 +109,72 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   ).toHaveCount(0);
   await page.getByRole("button", { name: "準備完了" }).click();
 
-  // プレイヤーは自分だけなので、自分の準備完了で全員がそろい、対戦が始まる。対戦中は閉じられない
+  // プレイヤーは自分だけなので、自分の準備完了で全員がそろい、対戦が始まる。対戦の画面へ移る
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  const matchUrl = page.url();
+  await expect(page.getByTestId("match-round")).toHaveText("ラウンド 1 / 30");
+  // 順番は core が決めるため、今の番は 2 人のどちらか、順番の一覧は 2 人そろっていることだけを確かめる
+  await expect(
+    page.getByTestId("match-turn-order").getByRole("listitem"),
+  ).toHaveCount(2);
+  await expect(page.getByTestId("match-current")).toHaveText(/部屋用|炎の剣士/);
+  const participants = page.getByTestId("match-participant");
+  await expect(participants).toHaveCount(2);
+  await expect(participants.nth(0)).toContainText("プレイヤー・部屋用");
+  await expect(participants.nth(1)).toContainText("NPC・炎の剣士");
+  for (const index of [0, 1]) {
+    const participant = participants.nth(index);
+    await expect(participant.getByTestId("participant-magic")).toHaveText(
+      "600",
+    );
+    await expect(participant.getByTestId("participant-position")).toHaveText(
+      "(0, 0)",
+    );
+    await expect(
+      participant.getByTestId("participant-hand").getByRole("listitem"),
+    ).toHaveCount(5);
+  }
+  // 山札の残りは、デッキの枚数から配った 5 枚を引いた数（火のデッキは 7 枚、火の NPC デッキは 5 枚）
+  await expect(
+    participants.nth(0).getByTestId("participant-draw-pile"),
+  ).toHaveText("2");
+  await expect(
+    participants.nth(1).getByTestId("participant-draw-pile"),
+  ).toHaveText("0");
+  await expect(page.getByTestId("match-rules")).toContainText("目標の魔力9000");
+  await expect(page.getByTestId("match-rules")).toContainText("手札の上限6");
+  await expect(page.getByTestId("match-rules")).toContainText("配る枚数5");
+  // 2 人とも拠点にいるので、拠点のマスに両方の駒が出る
+  await expect(
+    page.getByRole("button", { name: "(0, 0) のマス 拠点 駒 1 駒 2" }),
+  ).toBeVisible();
+
+  // 部屋に戻ると対戦中で、対戦の画面へのリンクがある。対戦中は閉じられない
+  await page.goBack();
   await expect(page.getByTestId("room-status")).toHaveText("対戦中");
   await expect(page.getByTestId("participants")).toContainText("準備完了");
   await expect(page.getByRole("button", { name: "準備完了" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "部屋を閉じる" })).toHaveCount(
     0,
   );
+  await page.getByRole("link", { name: "対戦の画面へ" }).click();
+  await expect(page).toHaveURL(matchUrl);
 
-  await page.getByRole("link", { name: "部屋の一覧へ" }).click();
+  await page.getByRole("link", { name: "部屋の一覧へ" }).first().click();
   await expect(page.getByTestId("rooms").getByRole("listitem")).toHaveCount(1);
   await expect(page.getByTestId("rooms")).toContainText(
     "対戦中・席 2・公開中A",
   );
+
+  // 参加していないプレイヤーには、対戦の存在を明かさず「見つからない」になる。形の違う ID も同じ
+  await page.goto("/");
+  await page.getByRole("button", { name: "ログアウト" }).click();
+  await login(page, seedPlayer.email, seedPlayer.password);
+  await expect(page.getByTestId("player-email")).toHaveText(seedPlayer.email);
+  await page.goto(matchUrl);
+  await expect(page.getByText("この対戦は見つかりません")).toBeVisible();
+  await page.goto("/matches/not-a-uuid");
+  await expect(page.getByText("この対戦は見つかりません")).toBeVisible();
 });
 
 test("公開前に決めなかったものは準備中に決められ、決めるまで準備完了を押せない", async ({
@@ -141,8 +194,10 @@ test("公開前に決めなかったものは準備中に決められ、決め�
   await expect(page.getByRole("button", { name: "準備完了" })).toBeVisible();
   await page.getByRole("button", { name: "準備完了" }).click();
 
-  await expect(page.getByTestId("participants")).toContainText("準備完了");
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
   // 準備完了のあとは、決めたものを選び直せない
+  await page.goBack();
+  await expect(page.getByTestId("participants")).toContainText("準備完了");
   await expect(page.getByRole("button", { name: /を決める$/ })).toHaveCount(0);
 });
 
