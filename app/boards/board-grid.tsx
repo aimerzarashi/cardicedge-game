@@ -4,6 +4,7 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import {
   type Pair,
   type PairLabel,
+  type Piece,
   type Position,
   pairLabel,
   type Tile,
@@ -32,6 +33,7 @@ import {
 // 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
 // マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
+// 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に番号を出し、マスの名前にも「駒 1」と添える。位置は core が返したものをそのまま描く）。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -53,11 +55,13 @@ export function BoardGrid({
   height,
   tiles,
   pairs,
+  pieces = [],
 }: {
   width: number;
   height: number;
   tiles: Tile[];
   pairs: Pair[];
+  pieces?: Piece[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
@@ -179,6 +183,7 @@ export function BoardGrid({
               position={{ x, y }}
               tile={tile}
               pair={pairLabel({ tiles, pairs }, tile)}
+              pieces={pieces.filter((piece) => piece.x === x && piece.y === y)}
             />
           ) : (
             <span key={key} />
@@ -297,20 +302,24 @@ function TileButton({
   position,
   tile,
   pair,
+  pieces,
 }: {
   position: Position;
   tile: Tile;
   // 転送円・橋の対の番号（対になっていなければ無い）
   pair: PairLabel | undefined;
+  pieces: Piece[];
 }) {
   const text = tileText(tile, pair);
+  const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
   return (
     <button
       type="button"
-      aria-label={tileName(position, tile, pair)}
+      aria-label={`${tileName(position, tile, pair)}${pieceNames && ` ${pieceNames}`}`}
       disabled
       style={{
         ...paint(tile),
+        position: "relative",
         padding: 0,
         display: "flex",
         alignItems: "center",
@@ -332,6 +341,24 @@ function TileButton({
           }}
         >
           {text}
+        </span>
+      )}
+      {pieces.length > 0 && (
+        // 回転を打ち消して正面に向ける。マスの文字（text）と重ならないよう、下寄せにする
+        <span
+          aria-hidden
+          data-testid="piece"
+          style={{
+            position: "absolute",
+            transform: "rotate(-45deg) scaleY(2)",
+            color: "#ffff66",
+            fontSize: 14,
+            fontWeight: "bold",
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {pieces.map((piece) => piece.label).join(",")}
         </span>
       )}
     </button>

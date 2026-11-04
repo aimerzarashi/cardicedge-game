@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { callCore } from "@/lib/core";
 import {
   CORE_UNAVAILABLE_OPERATION,
@@ -20,6 +21,7 @@ import {
   publishRoomMutation,
   renameRoomMutation,
 } from "../operations";
+import { waitMatch } from "./wait-match";
 
 export type RoomActionState = { error?: string };
 
@@ -160,9 +162,19 @@ export async function declareRoomReady(
   const result = await callCore(declareRoomReadyMutation, {
     input: { id, revision },
   });
-  return result.ok
-    ? finish(result.data.declareRoomReady)
-    : { error: CORE_UNAVAILABLE_OPERATION };
+  if (!result.ok) {
+    return { error: CORE_UNAVAILABLE_OPERATION };
+  }
+  const state = finish(result.data.declareRoomReady);
+  if (state.error !== undefined) {
+    return state;
+  }
+  // 全員がそろうと対戦が始まる。始まっていれば対戦の画面へ移し、まだなら（ほかのプレイヤーの待ち）今の部屋を出し直す
+  const matchId = await waitMatch(id);
+  if (matchId) {
+    redirect(`/matches/${matchId}`);
+  }
+  return state;
 }
 
 export async function closeRoom(

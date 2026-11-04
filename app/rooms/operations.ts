@@ -145,3 +145,17 @@ export const closeRoomMutation = graphql(`
     }
   }
 `);
+
+// 準備完了のあと、対戦が始まっているかを確かめる
+export const roomMatchQuery = graphql(`
+  query RoomMatch($id: UUID!) {
+    room(id: $id) {
+      __typename
+      ... on Room {
+        match {
+          id
+        }
+      }
+    }
+  }
+`);
