@@ -8,12 +8,12 @@ INSERT INTO cards (card_id, card_type, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-00000000000c', 1, 'c', 'published', '{"id":"00000000-0000-4000-8000-00000000000c","name":"C","status":"published"}');
 
 INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 5, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}'),
+  ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3}]}'),
   ('00000000-0000-4000-8000-0000000000d2', '2', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d2","name":"水","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":2},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3},{"card_id":"00000000-0000-4000-8000-00000000000c","count":2}]}');
 
 -- 値は core の gamerules.Defaults()
 INSERT INTO game_rules (game_rules_id, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":40,"max_card_duplicates":4},"starter_deck":{"max_published":2},"match":{"min_players":2,"max_players":4,"max_hand_cards":6}}}');
+  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":7,"max_card_duplicates":4},"starter_deck":{"max_published":2},"match":{"min_players":2,"max_players":4,"max_hand_cards":6}}}');
 
 -- 公開中のボード 3 つ（名前の順に A・B・C）と、使用不可のボード 1 つ（一覧に出ないことを確かめる）。
 -- metadata は studio の read model（readmodel.BoardMetadata）が書く形で、kind・attribute は小文字、default_rules・tile_counts は snake_case。sort_name は並びを決めるだけの値。

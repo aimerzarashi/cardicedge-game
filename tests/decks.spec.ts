@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { login, signUpAndVerify } from "./account";
 import { expect, test } from "./fixtures";
 
-// マスタ（local/core-master/master.sql）のスターターデッキ: 火（A 4 枚・B 1 枚）・水（A 2 枚・B 3 枚・C 2 枚）。
+// マスタ（local/core-master/master.sql）のスターターデッキ: 火（A 4 枚・B 3 枚）・水（A 2 枚・B 3 枚・C 2 枚）。
 // A・B・C はすべてクリーチャー。登録すると両方を受け取る。受け取りもデッキの表示も遅れて届くため、再読み込みして待つ
 
 async function openDecks(
@@ -36,9 +36,9 @@ test("一覧に自分のスターターのデッキが、合計の枚数と種�
 
   const rows = page.locator("tbody tr");
   await expect(rows.nth(0)).toContainText("火");
-  await expect(rows.nth(0)).toContainText("5 枚");
+  await expect(rows.nth(0)).toContainText("7 枚");
   await expect(rows.nth(0)).toContainText(
-    "クリーチャー 5・アイテム 0・スペル 0",
+    "クリーチャー 7・アイテム 0・スペル 0",
   );
   await expect(rows.nth(1)).toContainText("水");
   await expect(rows.nth(1)).toContainText("7 枚");
