@@ -1,6 +1,6 @@
 // core は文言を返さず、理由の型と値だけを返すため、文言はここで作る
 
-import type { CardType } from "@/graphql/graphql";
+import type { CardType, RoomStatus } from "@/graphql/graphql";
 
 export function nameErrorMessage(
   errors: { __typename: string; max?: number }[],
@@ -59,11 +59,13 @@ export const CARD_TYPE_LABELS: Record<CardType, string> = {
   SPELL: "スペル",
 };
 
-export const ROOM_STATUS_LABELS = {
+// 状態を足し忘れると型検査で止まるよう、core の状態の型で持つ（CARD_TYPE_LABELS と同じ）
+export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
   DRAFT: "公開前",
   PREPARING: "準備中",
+  PLAYING: "対戦中",
   CLOSED: "閉じた",
-} as const;
+};
 
 export const SEAT_KIND_LABELS = {
   PLAYER: "プレイヤー",
@@ -103,8 +105,6 @@ export function fieldErrorMessage(error: FieldErrorValue): string {
       return `${label}は ${error.min} 以上にしてください`;
     case "FieldNotGreaterThan":
       return `${label}は「${than}」より大きくしてください`;
-    case "FieldLessThan":
-      return `${label}は「${than}」以上にしてください`;
     default:
       return `${label}を確かめてください`;
   }

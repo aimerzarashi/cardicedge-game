@@ -84,7 +84,7 @@ async function decideNpcSeat(page: Page) {
   await expect(seatItem(page, 1)).toContainText("デッキ: 火の NPC デッキ");
 }
 
-test("部屋を作り、席・対戦ルール・席の選択を決めて公開すると準備中になり、準備完了にできる", async ({
+test("部屋を作り、席・対戦ルール・席の選択を決めて公開すると準備中になり、準備完了にすると対戦中になる", async ({
   page,
   request,
 }) => {
@@ -109,13 +109,18 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   ).toHaveCount(0);
   await page.getByRole("button", { name: "準備完了" }).click();
 
+  // プレイヤーは自分だけなので、自分の準備完了で全員がそろい、対戦が始まる。対戦中は閉じられない
+  await expect(page.getByTestId("room-status")).toHaveText("対戦中");
   await expect(page.getByTestId("participants")).toContainText("準備完了");
   await expect(page.getByRole("button", { name: "準備完了" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "部屋を閉じる" })).toHaveCount(
+    0,
+  );
 
   await page.getByRole("link", { name: "部屋の一覧へ" }).click();
   await expect(page.getByTestId("rooms").getByRole("listitem")).toHaveCount(1);
   await expect(page.getByTestId("rooms")).toContainText(
-    "準備中・席 2・公開中A",
+    "対戦中・席 2・公開中A",
   );
 });
 
