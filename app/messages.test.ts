@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { RULE_LABELS, type RuleField, ruleStep } from "./messages.ts";
+import {
+  fieldErrorMessage,
+  RULE_LABELS,
+  type RuleField,
+  ruleStep,
+} from "./messages.ts";
 
 describe("ruleStep", () => {
   it("魔力は 100 刻み、ラウンドの上限とサイコロの目は 1 刻みにする", () => {
@@ -20,6 +25,19 @@ describe("ruleStep", () => {
         diceMin: 1,
         diceMax: 1,
       },
+    );
+  });
+});
+
+describe("fieldErrorMessage", () => {
+  it("サイコロの目の最大が最小以下のときは、比べる相手の項目名から文言を作る", () => {
+    assert.equal(
+      fieldErrorMessage({
+        __typename: "FieldNotGreaterThan",
+        field: "diceMax",
+        than: "diceMin",
+      }),
+      "サイコロの目（最大）は「サイコロの目（最小）」より大きくしてください",
     );
   });
 });

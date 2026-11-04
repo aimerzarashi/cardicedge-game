@@ -129,12 +129,14 @@ export type RoomSeatKind =
   /** プレイヤーの席。今は 1 つで、作った人が座る */
   | 'PLAYER';
 
-/** 部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない） */
+/** 部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない）。全員が準備完了を申告すると対戦中に進む */
 export type RoomStatus =
   /** 閉じた（作った人が閉じた）。一覧には出ない */
   | 'CLOSED'
   /** 公開前（マスタの「準備中」と分けて、公開前と呼ぶ）。席・対戦ルール・席の選択を何でも決められる */
   | 'DRAFT'
+  /** 対戦中（全員が準備完了を申告して、対戦が始まった）。対戦は Room.match。対戦が終わった後の部屋の動きは先の候補 */
+  | 'PLAYING'
   /** 準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める */
   | 'PREPARING';
 
@@ -158,7 +160,6 @@ export type RegisterAvatarMutation = { registerAvatar:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
-        | { __typename: 'FieldLessThan' }
         | { __typename: 'FieldNotFound' }
         | { __typename: 'FieldNotGreaterThan' }
         | { __typename: 'FieldOutOfRange' }
@@ -274,7 +275,6 @@ export type CreateRoomMutation = { createRoom:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
-        | { __typename: 'FieldLessThan' }
         | { __typename: 'FieldNotFound' }
         | { __typename: 'FieldNotGreaterThan' }
         | { __typename: 'FieldOutOfRange' }
@@ -299,7 +299,6 @@ export type RenameRoomMutation = { renameRoom:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
-        | { __typename: 'FieldLessThan', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
@@ -324,7 +323,6 @@ export type ChangeRoomSeatsMutation = { changeRoomSeats:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
-        | { __typename: 'FieldLessThan', than: string, field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
@@ -351,7 +349,6 @@ export type ChangeRoomMatchRulesMutation = { changeRoomMatchRules:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
-        | { __typename: 'FieldLessThan', than: string, field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
@@ -379,7 +376,6 @@ export type ChangeRoomSeatChoiceMutation = { changeRoomSeatChoice:
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
-        | { __typename: 'FieldLessThan', than: string, field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
@@ -431,6 +427,7 @@ export type CloseRoomMutation = { closeRoom:
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
    };
 
 export type MyRoomsQueryVariables = Exact<{
@@ -829,9 +826,6 @@ export const ChangeRoomSeatsDocument = new TypedDocumentString(`
         ... on FieldNotGreaterThan {
           than
         }
-        ... on FieldLessThan {
-          than
-        }
       }
     }
   }
@@ -858,9 +852,6 @@ export const ChangeRoomMatchRulesDocument = new TypedDocumentString(`
         ... on FieldNotGreaterThan {
           than
         }
-        ... on FieldLessThan {
-          than
-        }
       }
     }
   }
@@ -885,9 +876,6 @@ export const ChangeRoomSeatChoiceDocument = new TypedDocumentString(`
           expected
         }
         ... on FieldNotGreaterThan {
-          than
-        }
-        ... on FieldLessThan {
           than
         }
       }

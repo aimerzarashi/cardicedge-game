@@ -62,9 +62,6 @@ export const changeRoomSeatsMutation = graphql(`
           ... on FieldNotGreaterThan {
             than
           }
-          ... on FieldLessThan {
-            than
-          }
         }
       }
     }
@@ -92,9 +89,6 @@ export const changeRoomMatchRulesMutation = graphql(`
           ... on FieldNotGreaterThan {
             than
           }
-          ... on FieldLessThan {
-            than
-          }
         }
       }
     }
@@ -120,9 +114,6 @@ export const changeRoomSeatChoiceMutation = graphql(`
             expected
           }
           ... on FieldNotGreaterThan {
-            than
-          }
-          ... on FieldLessThan {
             than
           }
         }
