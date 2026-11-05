@@ -10,8 +10,8 @@ services:
       # pnpm のキャッシュ（メタデータ・パッケージ）。down しても残す
       - node-cache:/home/node/.cache
     # ホストには公開せず、game-envoy 経由でアクセスする
-    # 開発用プレイヤーの seed（冪等）を済ませてから開発サーバーを起動する。テーブルは game-migrate が先に作る
-    command: ["sh", "-c", "pnpm install --frozen-lockfile && pnpm db:seed && exec pnpm dev --hostname 0.0.0.0"]
+    # 起動の手順は local/game/dev.sh。テーブルは game-migrate が先に作る
+    command: ["sh", "local/game/dev.sh"]
     environment:
       DATABASE_URL: postgres://game_user:game_password@game-db:5432/game_auth
       # 開発用の固定値（本番では環境ごとに安全な値を渡す）
