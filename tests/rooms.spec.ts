@@ -38,17 +38,19 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
   const matchUrl = page.url();
   await expect(page.getByTestId("match-round")).toHaveText("ラウンド 1 / 30");
-  // 順番は core が決めるため、今の番は 2 人のどちらか、順番の一覧は 2 人そろっていることだけを確かめる
-  await expect(
-    page.getByTestId("match-turn-order").getByRole("listitem"),
-  ).toHaveCount(2);
+  // 順番は core が決めるため、今の番は 2 人のどちらか、参加者の一覧（順番に並ぶ）は 2 人そろい今の番の印が 1 つあることだけを確かめる
   await expect(page.getByTestId("match-current")).toHaveText(/部屋用|炎の剣士/);
   const participants = page.getByTestId("match-participant");
   await expect(participants).toHaveCount(2);
-  await expect(participants.nth(0)).toContainText("プレイヤー・部屋用");
-  await expect(participants.nth(1)).toContainText("NPC・炎の剣士");
+  await expect(page.getByTestId("match-current-mark")).toHaveCount(1);
+  await expect(
+    participants.filter({ hasText: "プレイヤー・部屋用" }),
+  ).toHaveCount(1);
+  await expect(participants.filter({ hasText: "NPC・炎の剣士" })).toHaveCount(
+    1,
+  );
   // NPC が先の順番なら、開いた時点で NPC の番が済んでいる。始めの状態を確かめられるのは、まだ番が来ていないプレイヤーだけ
-  const player = participants.nth(0);
+  const player = participants.filter({ hasText: "プレイヤー" });
   await expect(player.getByTestId("participant-magic")).toHaveText("600");
   await expect(player.getByTestId("participant-position")).toHaveText("(0, 0)");
   await expect(

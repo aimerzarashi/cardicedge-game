@@ -4,8 +4,8 @@ import {
   currentTurnText,
   isMyTurn,
   participantPieces,
+  participantRows,
   roundText,
-  turnOrderNames,
   winnerNames,
 } from "./match-view.ts";
 
@@ -20,9 +20,20 @@ describe("roundText", () => {
   });
 });
 
-describe("turnOrderNames", () => {
-  it("turnOrder の小さい順にアバター名を並べ、元の並びは変えない", () => {
-    assert.deepEqual(turnOrderNames(participants), ["い", "あ"]);
+describe("participantRows", () => {
+  it("turnOrder の小さい順に並べ、席の添字・コマの番号・今の番かを持たせる", () => {
+    assert.deepEqual(participantRows(participants, 1), [
+      { seat: 1, piece: 2, isCurrent: true },
+      { seat: 0, piece: 1, isCurrent: false },
+    ]);
+  });
+
+  it("順番が決まっていないと今の番の行は無い", () => {
+    assert.ok(participantRows(participants, null).every((r) => !r.isCurrent));
+  });
+
+  it("元の並びは変えない", () => {
+    participantRows(participants, 0);
     assert.equal(participants[0].avatar.name, "あ");
   });
 });

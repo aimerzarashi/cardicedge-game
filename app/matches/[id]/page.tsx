@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Fragment } from "react";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
@@ -15,8 +14,8 @@ import {
   currentTurnText,
   isMyTurn,
   participantPieces,
+  participantRows,
   roundText,
-  turnOrderNames,
   winnerNames,
 } from "../match-view";
 import {
@@ -113,6 +112,43 @@ const matchQuery = graphql(`
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// メディアクエリは inline style で書けないため、auto-fit だけで、広い画面は盤面と情報を横に並べ、狭い画面は縦に積む
+const COLUMNS_STYLE = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 36rem), 1fr))",
+  gap: "1rem",
+  alignItems: "start",
+} as const;
+const LIST_STYLE = { margin: 0, padding: 0, listStyle: "none" } as const;
+const STATS_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "0.25rem 1rem",
+  margin: 0,
+} as const;
+const RULES_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "0.25rem 1rem",
+  margin: 0,
+} as const;
+const ROW_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: "0.25rem 1rem",
+  margin: "0 0 0.5rem",
+} as const;
+const PAIR_STYLE = { display: "flex", gap: "0.25rem" } as const;
+const HAND_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "0.25rem 0.75rem",
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+} as const;
+
 const RULE_FIELDS = Object.keys(RULE_LABELS) as RuleField[];
 
 function Message({ children }: { children: string }) {
@@ -164,168 +200,203 @@ export default async function MatchPage({
   return (
     <main data-revision={match.revision}>
       <h1>対戦</h1>
-      <p data-testid="match-round">
-        {roundText(match.round, match.rules.roundLimit)}
-      </p>
-      <p>
-        今の番:{" "}
-        <span data-testid="match-current">
-          {currentTurnText(match.participants, match.currentParticipant)}
-        </span>
-      </p>
+      <div style={COLUMNS_STYLE}>
+        <BoardGrid
+          width={match.board.width}
+          height={match.board.height}
+          tiles={match.board.tiles}
+          pairs={match.board.pairs}
+          pieces={participantPieces(match.participants)}
+        />
 
-      <p>
-        段階:{" "}
-        <span data-testid="match-phase">{MATCH_PHASE_LABELS[match.phase]}</span>
-      </p>
-      <p>
-        サイコロの目:{" "}
-        <span data-testid="match-dice">
-          {match.dice ?? "まだ振っていません"}
-        </span>
-        ・残りの歩数:{" "}
-        <span data-testid="match-remaining-steps">{match.remainingSteps}</span>
-      </p>
-
-      {match.outcome ? (
-        <section aria-labelledby="outcome-heading" data-testid="match-outcome">
-          <h2 id="outcome-heading">対戦の結果</h2>
-          <p>
-            勝った人:{" "}
-            <span data-testid="match-winners">
-              {winnerNames(match.participants, match.outcome.winners)}
+        <div>
+          <div style={ROW_STYLE}>
+            <span data-testid="match-round">
+              {roundText(match.round, match.rules.roundLimit)}
             </span>
-          </p>
-          <p>理由: {MATCH_END_REASON_LABELS[match.outcome.reason]}</p>
-        </section>
-      ) : mine ? (
-        <section aria-labelledby="operations-heading">
-          <h2 id="operations-heading">あなたの番です</h2>
-          {match.phase === "DRAWING" && (
-            <MatchActionButton action={drawMatchCard} {...actionProps}>
-              カードを引く
-            </MatchActionButton>
-          )}
-          {match.phase === "DISCARDING" && (
-            <ul>
-              {(
-                match.participants[match.currentParticipant ?? 0]?.hand ?? []
-              ).map((card, handIndex) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、手札の番号で区別する
-                <li key={handIndex}>
+            <span>
+              今の番:{" "}
+              <span data-testid="match-current">
+                {currentTurnText(match.participants, match.currentParticipant)}
+              </span>
+            </span>
+            <span>
+              段階:{" "}
+              <span data-testid="match-phase">
+                {MATCH_PHASE_LABELS[match.phase]}
+              </span>
+            </span>
+            <span>
+              サイコロの目:{" "}
+              <span data-testid="match-dice">
+                {match.dice ?? "まだ振っていません"}
+              </span>
+            </span>
+            <span>
+              残りの歩数:{" "}
+              <span data-testid="match-remaining-steps">
+                {match.remainingSteps}
+              </span>
+            </span>
+          </div>
+
+          {match.outcome ? (
+            <div style={ROW_STYLE} data-testid="match-outcome">
+              <strong>対戦の結果</strong>
+              <span>
+                勝った人:{" "}
+                <span data-testid="match-winners">
+                  {winnerNames(match.participants, match.outcome.winners)}
+                </span>
+              </span>
+              <span>理由: {MATCH_END_REASON_LABELS[match.outcome.reason]}</span>
+            </div>
+          ) : mine ? (
+            <div style={ROW_STYLE}>
+              <strong>あなたの番です</strong>
+              {match.phase === "DRAWING" && (
+                <MatchActionButton action={drawMatchCard} {...actionProps}>
+                  カードを引く
+                </MatchActionButton>
+              )}
+              {match.phase === "DISCARDING" &&
+                (
+                  match.participants[match.currentParticipant ?? 0]?.hand ?? []
+                ).map((card, handIndex) => (
                   <MatchActionButton
+                    // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、手札の番号で区別する
+                    key={handIndex}
                     action={discardMatchCard}
                     values={{ handIndex }}
                     {...actionProps}
                   >
                     {card.name}を捨てる
                   </MatchActionButton>
-                </li>
-              ))}
-            </ul>
-          )}
-          {match.phase === "ROLLING" && (
-            <MatchActionButton action={rollMatchDice} {...actionProps}>
-              サイコロを振る
-            </MatchActionButton>
-          )}
-          {match.phase === "CHOOSING_PATH" && (
-            <ul>
-              {match.pathChoices.map((position) => (
-                <li key={`${position.x},${position.y}`}>
+                ))}
+              {match.phase === "ROLLING" && (
+                <MatchActionButton action={rollMatchDice} {...actionProps}>
+                  サイコロを振る
+                </MatchActionButton>
+              )}
+              {match.phase === "CHOOSING_PATH" &&
+                match.pathChoices.map((position) => (
                   <MatchActionButton
+                    key={`${position.x},${position.y}`}
                     action={chooseMatchPath}
                     values={{ x: position.x, y: position.y }}
                     {...actionProps}
                   >
                     ({position.x}, {position.y}) へ進む
                   </MatchActionButton>
-                </li>
-              ))}
-            </ul>
-          )}
-          {match.phase === "ENDING" && (
-            <MatchActionButton action={endMatchTurn} {...actionProps}>
-              ターンを終える
-            </MatchActionButton>
-          )}
-        </section>
-      ) : (
-        <p>
-          他の参加者（NPC）の番です。{" "}
-          {/* Link は同じ URL だと読み直さないことがあるため、普通のリンクで読み込み直す */}
-          <a href={`/matches/${match.id}`}>読み直す</a>
-        </p>
-      )}
-
-      <h2>順番</h2>
-      <ol data-testid="match-turn-order">
-        {turnOrderNames(match.participants).map((name, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: 順番の何番目かで区別する（同じ名前がありうる）
-          <li key={index}>{name}</li>
-        ))}
-      </ol>
-
-      <h2>参加者</h2>
-      <ol data-testid="match-participants">
-        {match.participants.map((participant, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: 席の順で区別する（同じ名前がありうる）
-          <li key={index} data-testid="match-participant">
-            <p>
-              {SEAT_KIND_LABELS[participant.kind]}・{participant.avatar.name}
+                ))}
+              {match.phase === "ENDING" && (
+                <MatchActionButton action={endMatchTurn} {...actionProps}>
+                  ターンを終える
+                </MatchActionButton>
+              )}
+            </div>
+          ) : (
+            <p style={{ margin: "0 0 0.5rem" }}>
+              他の参加者（NPC）の番です。{" "}
+              {/* Link は同じ URL だと読み直さないことがあるため、普通のリンクで読み込み直す */}
+              <a href={`/matches/${match.id}`}>読み直す</a>
             </p>
-            <dl>
-              <dt>魔力</dt>
-              <dd data-testid="participant-magic">{participant.magic}</dd>
-              <dt>位置</dt>
-              <dd data-testid="participant-position">
-                ({participant.position.x}, {participant.position.y})
-              </dd>
-              <dt>通ったチェックポイント</dt>
-              <dd data-testid="participant-checkpoints">
-                {participant.passedCheckpoints.length}
-              </dd>
-              <dt>山札の残り</dt>
-              <dd data-testid="participant-draw-pile">
-                {participant.drawPileCount}
-              </dd>
-              <dt>手札</dt>
-              <dd>
-                <ul data-testid="participant-hand">
-                  {participant.hand.map((card, cardIndex) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、引いた順で区別する
-                    <li key={cardIndex}>{card.name}</li>
-                  ))}
-                </ul>
-              </dd>
-            </dl>
-          </li>
-        ))}
-      </ol>
+          )}
 
-      <BoardGrid
-        width={match.board.width}
-        height={match.board.height}
-        tiles={match.board.tiles}
-        pairs={match.board.pairs}
-        pieces={participantPieces(match.participants)}
-      />
+          <h2>参加者</h2>
+          <ul data-testid="match-participants" style={LIST_STYLE}>
+            {participantRows(match.participants, match.currentParticipant).map(
+              (row) => {
+                const participant = match.participants[row.seat];
+                return (
+                  <li
+                    key={row.seat}
+                    data-testid="match-participant"
+                    style={{ marginBottom: "0.5rem" }}
+                  >
+                    <p style={{ margin: 0 }}>
+                      コマ {row.piece}・{SEAT_KIND_LABELS[participant.kind]}・
+                      {participant.avatar.name}
+                      {row.isCurrent && (
+                        <strong data-testid="match-current-mark">
+                          （今の番）
+                        </strong>
+                      )}
+                    </p>
+                    <dl style={STATS_STYLE}>
+                      <div style={PAIR_STYLE}>
+                        <dt>魔力</dt>
+                        <dd
+                          style={{ margin: 0 }}
+                          data-testid="participant-magic"
+                        >
+                          {participant.magic}
+                        </dd>
+                      </div>
+                      <div style={PAIR_STYLE}>
+                        <dt>位置</dt>
+                        <dd
+                          style={{ margin: 0 }}
+                          data-testid="participant-position"
+                        >
+                          ({participant.position.x}, {participant.position.y})
+                        </dd>
+                      </div>
+                      <div style={PAIR_STYLE}>
+                        <dt>通ったチェックポイント</dt>
+                        <dd
+                          style={{ margin: 0 }}
+                          data-testid="participant-checkpoints"
+                        >
+                          {participant.passedCheckpoints.length}
+                        </dd>
+                      </div>
+                      <div style={PAIR_STYLE}>
+                        <dt>山札の残り</dt>
+                        <dd
+                          style={{ margin: 0 }}
+                          data-testid="participant-draw-pile"
+                        >
+                          {participant.drawPileCount}
+                        </dd>
+                      </div>
+                      <div style={PAIR_STYLE}>
+                        <dt style={{ flexShrink: 0 }}>手札</dt>
+                        <dd style={{ margin: 0 }}>
+                          <ul data-testid="participant-hand" style={HAND_STYLE}>
+                            {participant.hand.map((card, cardIndex) => (
+                              // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、引いた順で区別する
+                              <li key={cardIndex}>{card.name}</li>
+                            ))}
+                          </ul>
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              },
+            )}
+          </ul>
 
-      <section aria-labelledby="rules-heading">
-        <h2 id="rules-heading">ルール</h2>
-        <dl data-testid="match-rules">
-          {RULE_FIELDS.map((field) => (
-            <Fragment key={field}>
-              <dt>{RULE_LABELS[field]}</dt>
-              <dd>{match.rules[field]}</dd>
-            </Fragment>
-          ))}
-          <dt>手札の上限</dt>
-          <dd>{match.rules.maxHandCards}</dd>
-          <dt>配る枚数</dt>
-          <dd>{match.rules.startingHandCards}</dd>
-        </dl>
-      </section>
+          <h2>ルール</h2>
+          <dl data-testid="match-rules" style={RULES_STYLE}>
+            {RULE_FIELDS.map((field) => (
+              <div key={field} style={PAIR_STYLE}>
+                <dt>{RULE_LABELS[field]}</dt>
+                <dd style={{ margin: 0 }}>{match.rules[field]}</dd>
+              </div>
+            ))}
+            <div style={PAIR_STYLE}>
+              <dt>手札の上限</dt>
+              <dd style={{ margin: 0 }}>{match.rules.maxHandCards}</dd>
+            </div>
+            <div style={PAIR_STYLE}>
+              <dt>配る枚数</dt>
+              <dd style={{ margin: 0 }}>{match.rules.startingHandCards}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
       <p>
         <Link href="/rooms">部屋の一覧へ</Link>
       </p>
