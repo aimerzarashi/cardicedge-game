@@ -1,6 +1,11 @@
 // core は文言を返さず、理由の型と値だけを返すため、文言はここで作る
 
-import type { CardType, RoomStatus } from "@/graphql/graphql";
+import type {
+  CardType,
+  MatchEndReason,
+  MatchPhase,
+  RoomStatus,
+} from "@/graphql/graphql";
 
 export function nameErrorMessage(
   errors: { __typename: string; max?: number }[],
@@ -80,6 +85,8 @@ const ROOM_FIELD_LABELS: Record<string, string> = {
   boardId: "ボード",
   avatarId: "アバター",
   deckId: "デッキ",
+  handIndex: "手札の番号",
+  to: "行き先",
 };
 
 export type FieldErrorValue = {
@@ -136,3 +143,37 @@ export function roomErrorMessage(typename: string): string {
 
 export const CORE_UNAVAILABLE_OPERATION =
   "core に接続できません。時間をおいてもう一度操作してください";
+
+// 段階を足し忘れると型検査で止まるよう、core の段階の型で持つ。今の番の人が何をする段階か
+export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
+  DRAWING: "カードを引く",
+  DISCARDING: "手札を捨てる",
+  ROLLING: "サイコロを振る",
+  CHOOSING_PATH: "行き先を選ぶ",
+  ENDING: "ターンを終える",
+  ENDED: "対戦は終わりました",
+};
+
+export const MATCH_END_REASON_LABELS: Record<MatchEndReason, string> = {
+  TARGET_MAGIC: "目標の魔力に届いて拠点に戻った",
+  ROUND_LIMIT: "ラウンドの上限に達した",
+};
+
+// ほかで進んだ・番や段階が違うときは、操作のあとに画面を読み直すので、今の状態を見てもらう
+const MATCH_ERROR_MESSAGES: Record<string, string> = {
+  RevisionConflictError:
+    "ほかで対戦が進んだので、読み直しました。今の状態を確かめてください",
+  MatchNotYourTurnError:
+    "自分の番ではないので、読み直しました。今の状態を確かめてください",
+  MatchPhaseNotAllowedError:
+    "今の段階ではできない操作なので、読み直しました。今の状態を確かめてください",
+  MatchNotFoundError: "この対戦は見つかりません",
+  PlayerNotRegisteredError: PLAYER_NOT_REGISTERED,
+};
+
+export function matchErrorMessage(typename: string): string {
+  return (
+    MATCH_ERROR_MESSAGES[typename] ??
+    "操作できませんでした。再読み込みしてからもう一度試してください"
+  );
+}

@@ -4,13 +4,29 @@ import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import { BoardGrid } from "../../boards/board-grid";
-import { RULE_LABELS, type RuleField, SEAT_KIND_LABELS } from "../../messages";
+import {
+  MATCH_END_REASON_LABELS,
+  MATCH_PHASE_LABELS,
+  RULE_LABELS,
+  type RuleField,
+  SEAT_KIND_LABELS,
+} from "../../messages";
 import {
   currentTurnText,
+  isMyTurn,
   participantPieces,
   roundText,
   turnOrderNames,
+  winnerNames,
 } from "../match-view";
+import {
+  chooseMatchPath,
+  discardMatchCard,
+  drawMatchCard,
+  endMatchTurn,
+  rollMatchDice,
+} from "./actions";
+import { MatchActionButton } from "./match-action-button";
 
 const matchQuery = graphql(`
   query MatchDetail($id: UUID!) {
@@ -18,7 +34,19 @@ const matchQuery = graphql(`
       __typename
       ... on Match {
         id
+        revision
         round
+        phase
+        dice
+        remainingSteps
+        pathChoices {
+          x
+          y
+        }
+        outcome {
+          winners
+          reason
+        }
         rules {
           targetMagic
           startingMagic
@@ -54,6 +82,7 @@ const matchQuery = graphql(`
         }
         participants {
           kind
+          playerId
           avatar {
             id
             name
@@ -69,6 +98,10 @@ const matchQuery = graphql(`
           }
           drawPileCount
           turnOrder
+          passedCheckpoints {
+            x
+            y
+          }
         }
         currentParticipant
       }
@@ -123,8 +156,13 @@ export default async function MatchPage({
       break;
   }
 
+  // currentPlayer は上で成功を確かめている（失敗なら core に接続できない表示で返している）
+  const playerId = player.ok ? player.data.id : "";
+  const mine = isMyTurn(match.participants, match.currentParticipant, playerId);
+  const actionProps = { id: match.id, revision: match.revision };
+
   return (
-    <main>
+    <main data-revision={match.revision}>
       <h1>対戦</h1>
       <p data-testid="match-round">
         {roundText(match.round, match.rules.roundLimit)}
@@ -135,6 +173,90 @@ export default async function MatchPage({
           {currentTurnText(match.participants, match.currentParticipant)}
         </span>
       </p>
+
+      <p>
+        段階:{" "}
+        <span data-testid="match-phase">{MATCH_PHASE_LABELS[match.phase]}</span>
+      </p>
+      <p>
+        サイコロの目:{" "}
+        <span data-testid="match-dice">
+          {match.dice ?? "まだ振っていません"}
+        </span>
+        ・残りの歩数:{" "}
+        <span data-testid="match-remaining-steps">{match.remainingSteps}</span>
+      </p>
+
+      {match.outcome ? (
+        <section aria-labelledby="outcome-heading" data-testid="match-outcome">
+          <h2 id="outcome-heading">対戦の結果</h2>
+          <p>
+            勝った人:{" "}
+            <span data-testid="match-winners">
+              {winnerNames(match.participants, match.outcome.winners)}
+            </span>
+          </p>
+          <p>理由: {MATCH_END_REASON_LABELS[match.outcome.reason]}</p>
+        </section>
+      ) : mine ? (
+        <section aria-labelledby="operations-heading">
+          <h2 id="operations-heading">あなたの番です</h2>
+          {match.phase === "DRAWING" && (
+            <MatchActionButton action={drawMatchCard} {...actionProps}>
+              カードを引く
+            </MatchActionButton>
+          )}
+          {match.phase === "DISCARDING" && (
+            <ul>
+              {(
+                match.participants[match.currentParticipant ?? 0]?.hand ?? []
+              ).map((card, handIndex) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、手札の番号で区別する
+                <li key={handIndex}>
+                  <MatchActionButton
+                    action={discardMatchCard}
+                    values={{ handIndex }}
+                    {...actionProps}
+                  >
+                    {card.name}を捨てる
+                  </MatchActionButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          {match.phase === "ROLLING" && (
+            <MatchActionButton action={rollMatchDice} {...actionProps}>
+              サイコロを振る
+            </MatchActionButton>
+          )}
+          {match.phase === "CHOOSING_PATH" && (
+            <ul>
+              {match.pathChoices.map((position) => (
+                <li key={`${position.x},${position.y}`}>
+                  <MatchActionButton
+                    action={chooseMatchPath}
+                    values={{ x: position.x, y: position.y }}
+                    {...actionProps}
+                  >
+                    ({position.x}, {position.y}) へ進む
+                  </MatchActionButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          {match.phase === "ENDING" && (
+            <MatchActionButton action={endMatchTurn} {...actionProps}>
+              ターンを終える
+            </MatchActionButton>
+          )}
+        </section>
+      ) : (
+        <p>
+          他の参加者（NPC）の番です。{" "}
+          {/* Link は同じ URL だと読み直さないことがあるため、普通のリンクで読み込み直す */}
+          <a href={`/matches/${match.id}`}>読み直す</a>
+        </p>
+      )}
 
       <h2>順番</h2>
       <ol data-testid="match-turn-order">
@@ -158,6 +280,10 @@ export default async function MatchPage({
               <dt>位置</dt>
               <dd data-testid="participant-position">
                 ({participant.position.x}, {participant.position.y})
+              </dd>
+              <dt>通ったチェックポイント</dt>
+              <dd data-testid="participant-checkpoints">
+                {participant.passedCheckpoints.length}
               </dd>
               <dt>山札の残り</dt>
               <dd data-testid="participant-draw-pile">
