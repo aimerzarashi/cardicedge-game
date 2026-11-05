@@ -157,6 +157,19 @@ type BoardPosition {
 	y: Int!
 }
 """
+格子の座標の入力。BoardPosition と同じ
+"""
+input BoardPositionInput {
+	"""
+	列（0 始まり）
+	"""
+	x: Int!
+	"""
+	行（0 始まり）
+	"""
+	y: Int!
+}
+"""
 ボードの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union BoardResult = Board | BoardNotFoundError | PlayerNotRegisteredError
@@ -499,6 +512,40 @@ type CheckpointTile implements BoardTile {
 	y: Int!
 }
 """
+分かれ道で行き先を選ぶ入力
+"""
+input ChooseMatchPathInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	行き先の位置（Match.pathChoices の中から選ぶ。選べないものは ValidationErrors の FieldNotFound）
+	"""
+	to: BoardPositionInput!
+}
+"""
+chooseMatchPath の結果（CHOOSING_PATH の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union ChooseMatchPathResult = ChooseMatchPathSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+分かれ道で行き先を選ぶ（成功したら対戦の revision が進む）
+"""
+type ChooseMatchPathSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
 部屋を閉じる入力
 """
 input CloseRoomInput {
@@ -670,6 +717,100 @@ type DeclareRoomReadySuccess {
 	revision: Int!
 }
 """
+手札を 1 枚捨てる入力
+"""
+input DiscardMatchCardInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	捨てる手札の番号（0 始まり。自分の手札の枚数の範囲。範囲の外は ValidationErrors の FieldOutOfRange）
+	"""
+	handIndex: Int!
+}
+"""
+discardMatchCard の結果（DISCARDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union DiscardMatchCardResult = DiscardMatchCardSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+手札を 1 枚捨てる（成功したら対戦の revision が進む）
+"""
+type DiscardMatchCardSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+カードを引く入力
+"""
+input DrawMatchCardInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+drawMatchCard の結果（DRAWING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union DrawMatchCardResult = DrawMatchCardSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+カードを引く（成功したら対戦の revision が進む）
+"""
+type DrawMatchCardSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+ターンを終える入力
+"""
+input EndMatchTurnInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+endMatchTurn の結果（ENDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union EndMatchTurnResult = EndMatchTurnSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+ターンを終える（成功したら対戦の revision が進む）
+"""
+type EndMatchTurnSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
 入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
 """
 type FieldCountMismatch implements FieldError {
@@ -837,6 +978,26 @@ type Match {
 	今の番の参加者（Match.participants の何番目か。順番が決まるまでは null）
 	"""
 	currentParticipant: Int
+	"""
+	対戦の段階。今の番の人が次にする操作を表す
+	"""
+	phase: MatchPhase!
+	"""
+	このターンに振ったサイコロの目（振る前は null）
+	"""
+	dice: Int
+	"""
+	このターンに残っている歩数
+	"""
+	remainingSteps: Int!
+	"""
+	今の番の人が選べる行き先（CHOOSING_PATH のときだけ中身がある。ほかの段階は空）
+	"""
+	pathChoices: [BoardPosition!]!
+	"""
+	対戦の結果（終わるまでは null）
+	"""
+	outcome: MatchOutcome
 }
 """
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
@@ -878,6 +1039,19 @@ type MatchBoard {
 	pairs: [BoardTilePair!]!
 }
 """
+対戦が終わった理由
+"""
+enum MatchEndReason {
+	"""
+	目標の魔力に届いて拠点に戻った
+	"""
+	TARGET_MAGIC
+	"""
+	ラウンドの上限に達した
+	"""
+	ROUND_LIMIT
+}
+"""
 自分が参加している対戦が無い（無い・参加していない対戦。存在を明かさないため区別しない）
 """
 type MatchNotFoundError {
@@ -885,6 +1059,28 @@ type MatchNotFoundError {
 	開発者向けの説明（画面にそのまま出す文言ではない）
 	"""
 	message: String!
+}
+"""
+今の番の参加者ではない（NPC の番も含む）
+"""
+type MatchNotYourTurnError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+対戦の結果。終わった対戦だけが持つ
+"""
+type MatchOutcome {
+	"""
+	勝った参加者（Match.participants の何番目か）。魔力が同じならすべて
+	"""
+	winners: [Int!]!
+	"""
+	終わった理由
+	"""
+	reason: MatchEndReason!
 }
 """
 参加者 1 人
@@ -922,6 +1118,10 @@ type MatchParticipant {
 	順番の何番目か（0 始まり）。順番が早い人ほど小さい
 	"""
 	turnOrder: Int!
+	"""
+	拠点を出てから印を付けたチェックポイントの位置（拠点に戻って周回を終えると空に戻る）
+	"""
+	passedCheckpoints: [BoardPosition!]!
 }
 """
 参加者がプレイヤーか NPC か
@@ -935,6 +1135,44 @@ enum MatchParticipantKind {
 	NPC
 	"""
 	NPC
+}
+"""
+対戦の段階。今の番の人が次にする操作を表す
+"""
+enum MatchPhase {
+	"""
+	カードを引く段階（drawMatchCard）
+	"""
+	DRAWING
+	"""
+	手札が上限を超えているので捨てる段階（discardMatchCard）
+	"""
+	DISCARDING
+	"""
+	サイコロを振る段階（rollMatchDice）
+	"""
+	ROLLING
+	"""
+	分かれ道で行き先を選ぶ段階（chooseMatchPath）
+	"""
+	CHOOSING_PATH
+	"""
+	ターンを終える段階（endMatchTurn）
+	"""
+	ENDING
+	"""
+	対戦が終わった
+	"""
+	ENDED
+}
+"""
+今の段階ではできない操作（終わった対戦への操作も含む）
+"""
+type MatchPhaseNotAllowedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
 }
 """
 対戦のルール。始めた時点の写し（部屋の対戦ルールの 7 つの値と、全体のルール MatchRules の手札の決まり）。
@@ -1012,6 +1250,26 @@ type Mutation {
 	ログイン中のプレイヤーのアバターを作る。上限の数は AvatarLimitReachedError の max で返す
 	"""
 	registerAvatar(input: RegisterAvatarInput!): RegisterAvatarResult!
+	"""
+	カードを引く
+	"""
+	drawMatchCard(input: DrawMatchCardInput!): DrawMatchCardResult!
+	"""
+	手札を 1 枚捨てる
+	"""
+	discardMatchCard(input: DiscardMatchCardInput!): DiscardMatchCardResult!
+	"""
+	サイコロを振る
+	"""
+	rollMatchDice(input: RollMatchDiceInput!): RollMatchDiceResult!
+	"""
+	分かれ道で行き先を選ぶ
+	"""
+	chooseMatchPath(input: ChooseMatchPathInput!): ChooseMatchPathResult!
+	"""
+	ターンを終える
+	"""
+	endMatchTurn(input: EndMatchTurnInput!): EndMatchTurnResult!
 	"""
 	JWT の (iss, sub) のプレイヤーを登録する。何度呼んでも、プレイヤーは 1 人だけで、登録済みでも同じ形（同じ id）で返す。game は me が PlayerNotRegisteredError のときに呼ぶ
 	"""
@@ -1396,6 +1654,36 @@ type RevisionConflictError {
 	開発者向けの説明（画面にそのまま出す文言ではない）
 	"""
 	message: String!
+}
+"""
+サイコロを振る入力
+"""
+input RollMatchDiceInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+rollMatchDice の結果（ROLLING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union RollMatchDiceResult = RollMatchDiceSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+サイコロを振る（成功したら対戦の revision が進む）
+"""
+type RollMatchDiceSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
 }
 """
 部屋。自分が入っている部屋だけが読める（入っていない人には RoomNotFoundError）。

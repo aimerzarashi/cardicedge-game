@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   currentTurnText,
+  isMyTurn,
   participantPieces,
   roundText,
   turnOrderNames,
+  winnerNames,
 } from "./match-view.ts";
 
 const participants = [
@@ -44,5 +46,33 @@ describe("participantPieces", () => {
       { x: 0, y: 0, label: "1" },
       { x: 2, y: 1, label: "2" },
     ]);
+  });
+});
+
+describe("isMyTurn", () => {
+  const seats = [{ playerId: "p1" }, { playerId: null }];
+
+  it("今の番の参加者がログイン中のプレイヤーなら自分の番", () => {
+    assert.equal(isMyTurn(seats, 0, "p1"), true);
+  });
+
+  it("NPC の番や別のプレイヤーの番は自分の番ではない", () => {
+    assert.equal(isMyTurn(seats, 1, "p1"), false);
+    assert.equal(isMyTurn(seats, 0, "p2"), false);
+  });
+
+  it("順番が決まっていなければ自分の番ではない", () => {
+    assert.equal(isMyTurn(seats, null, "p1"), false);
+  });
+});
+
+describe("winnerNames", () => {
+  it("勝った参加者のアバター名を、引き分けなら並べて出す", () => {
+    assert.equal(winnerNames(participants, [1]), "い");
+    assert.equal(winnerNames(participants, [0, 1]), "あ、い");
+  });
+
+  it("存在しない番号は飛ばす", () => {
+    assert.equal(winnerNames(participants, [5, 0]), "あ");
   });
 });

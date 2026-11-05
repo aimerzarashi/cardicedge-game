@@ -4,6 +4,14 @@ type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 /** Internal type. DO NOT USE DIRECTLY. */
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
+/** 格子の座標の入力。BoardPosition と同じ */
+export type BoardPositionInput = {
+  /** 列（0 始まり） */
+  x: number;
+  /** 行（0 始まり） */
+  y: number;
+};
+
 /**
  * 土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
  * 効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
@@ -76,6 +84,16 @@ export type ChangeRoomSeatsInput = {
   seats: Array<RoomSeatKind>;
 };
 
+/** 分かれ道で行き先を選ぶ入力 */
+export type ChooseMatchPathInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+  /** 行き先の位置（Match.pathChoices の中から選ぶ。選べないものは ValidationErrors の FieldNotFound） */
+  to: BoardPositionInput;
+};
+
 /** 部屋を閉じる入力 */
 export type CloseRoomInput = {
   /** 部屋の公開用の ID */
@@ -98,12 +116,60 @@ export type DeclareRoomReadyInput = {
   revision: number;
 };
 
+/** 手札を 1 枚捨てる入力 */
+export type DiscardMatchCardInput = {
+  /** 捨てる手札の番号（0 始まり。自分の手札の枚数の範囲。範囲の外は ValidationErrors の FieldOutOfRange） */
+  handIndex: number;
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
+/** カードを引く入力 */
+export type DrawMatchCardInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
+/** ターンを終える入力 */
+export type EndMatchTurnInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
+/** 対戦が終わった理由 */
+export type MatchEndReason =
+  /** ラウンドの上限に達した */
+  | 'ROUND_LIMIT'
+  /** 目標の魔力に届いて拠点に戻った */
+  | 'TARGET_MAGIC';
+
 /** 参加者がプレイヤーか NPC か */
 export type MatchParticipantKind =
   /** NPC */
   | 'NPC'
   /** プレイヤー */
   | 'PLAYER';
+
+/** 対戦の段階。今の番の人が次にする操作を表す */
+export type MatchPhase =
+  /** 分かれ道で行き先を選ぶ段階（chooseMatchPath） */
+  | 'CHOOSING_PATH'
+  /** 手札が上限を超えているので捨てる段階（discardMatchCard） */
+  | 'DISCARDING'
+  /** カードを引く段階（drawMatchCard） */
+  | 'DRAWING'
+  /** 対戦が終わった */
+  | 'ENDED'
+  /** ターンを終える段階（endMatchTurn） */
+  | 'ENDING'
+  /** サイコロを振る段階（rollMatchDice） */
+  | 'ROLLING';
 
 /** 部屋を公開する入力 */
 export type PublishRoomInput = {
@@ -126,6 +192,14 @@ export type RenameRoomInput = {
   /** 新しい名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max） */
   name: string;
   /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
+/** サイコロを振る入力 */
+export type RollMatchDiceInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
   revision: number;
 };
 
@@ -241,7 +315,7 @@ export type MatchDetailQueryVariables = Exact<{
 
 
 export type MatchDetailQuery = { match:
-    | { __typename: 'Match', id: string, round: number, currentParticipant: number | null, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason } | null, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -251,9 +325,99 @@ export type MatchDetailQuery = { match:
           | { __typename: 'SanctuaryTile', x: number, y: number }
           | { __typename: 'ShrineTile', x: number, y: number }
           | { __typename: 'WarpTile', x: number, y: number }
-        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, magic: number, drawPileCount: number, turnOrder: number, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }> }> }
+        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }>, passedCheckpoints: Array<{ x: number, y: number }> }> }
     | { __typename: 'MatchNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
+   };
+
+export type DrawMatchCardMutationVariables = Exact<{
+  input: DrawMatchCardInput;
+}>;
+
+
+export type DrawMatchCardMutation = { drawMatchCard:
+    | { __typename: 'DrawMatchCardSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+   };
+
+export type DiscardMatchCardMutationVariables = Exact<{
+  input: DiscardMatchCardInput;
+}>;
+
+
+export type DiscardMatchCardMutation = { discardMatchCard:
+    | { __typename: 'DiscardMatchCardSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type RollMatchDiceMutationVariables = Exact<{
+  input: RollMatchDiceInput;
+}>;
+
+
+export type RollMatchDiceMutation = { rollMatchDice:
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RollMatchDiceSuccess' }
+   };
+
+export type ChooseMatchPathMutationVariables = Exact<{
+  input: ChooseMatchPathInput;
+}>;
+
+
+export type ChooseMatchPathMutation = { chooseMatchPath:
+    | { __typename: 'ChooseMatchPathSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type EndMatchTurnMutationVariables = Exact<{
+  input: EndMatchTurnInput;
+}>;
+
+
+export type EndMatchTurnMutation = { endMatchTurn:
+    | { __typename: 'EndMatchTurnSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
    };
 
 export type NpcAvatarQueryVariables = Exact<{
@@ -679,7 +843,19 @@ export const MatchDetailDocument = new TypedDocumentString(`
     __typename
     ... on Match {
       id
+      revision
       round
+      phase
+      dice
+      remainingSteps
+      pathChoices {
+        x
+        y
+      }
+      outcome {
+        winners
+        reason
+      }
       rules {
         targetMagic
         startingMagic
@@ -715,6 +891,7 @@ export const MatchDetailDocument = new TypedDocumentString(`
       }
       participants {
         kind
+        playerId
         avatar {
           id
           name
@@ -730,12 +907,71 @@ export const MatchDetailDocument = new TypedDocumentString(`
         }
         drawPileCount
         turnOrder
+        passedCheckpoints {
+          x
+          y
+        }
       }
       currentParticipant
     }
   }
 }
     `) as unknown as TypedDocumentString<MatchDetailQuery, MatchDetailQueryVariables>;
+export const DrawMatchCardDocument = new TypedDocumentString(`
+    mutation DrawMatchCard($input: DrawMatchCardInput!) {
+  drawMatchCard(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<DrawMatchCardMutation, DrawMatchCardMutationVariables>;
+export const DiscardMatchCardDocument = new TypedDocumentString(`
+    mutation DiscardMatchCard($input: DiscardMatchCardInput!) {
+  discardMatchCard(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<DiscardMatchCardMutation, DiscardMatchCardMutationVariables>;
+export const RollMatchDiceDocument = new TypedDocumentString(`
+    mutation RollMatchDice($input: RollMatchDiceInput!) {
+  rollMatchDice(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<RollMatchDiceMutation, RollMatchDiceMutationVariables>;
+export const ChooseMatchPathDocument = new TypedDocumentString(`
+    mutation ChooseMatchPath($input: ChooseMatchPathInput!) {
+  chooseMatchPath(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChooseMatchPathMutation, ChooseMatchPathMutationVariables>;
+export const EndMatchTurnDocument = new TypedDocumentString(`
+    mutation EndMatchTurn($input: EndMatchTurnInput!) {
+  endMatchTurn(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<EndMatchTurnMutation, EndMatchTurnMutationVariables>;
 export const NpcAvatarDocument = new TypedDocumentString(`
     query NpcAvatar($id: UUID!) {
   npcAvatar(id: $id) {

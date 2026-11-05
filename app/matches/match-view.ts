@@ -35,3 +35,25 @@ export function participantPieces(participants: Participant[]): Piece[] {
     label: String(index + 1),
   }));
 }
+
+// 自分の番か。currentParticipant の参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
+export function isMyTurn(
+  participants: { playerId?: string | null }[],
+  currentParticipant: number | null | undefined,
+  playerId: string,
+): boolean {
+  if (currentParticipant === null || currentParticipant === undefined) {
+    return false;
+  }
+  return participants[currentParticipant]?.playerId === playerId;
+}
+
+// winners は participants の何番目か（複数ありうる）。存在しない番号は飛ばす
+export function winnerNames(
+  participants: { avatar: { name: string } }[],
+  winners: number[],
+): string {
+  return winners
+    .flatMap((index) => participants[index]?.avatar.name ?? [])
+    .join("、");
+}
