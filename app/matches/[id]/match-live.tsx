@@ -176,9 +176,11 @@ export function MatchLive({
     const goal = Math.max(target, revision);
     if (loading || goal <= fetched) return;
     setLoading(true);
+    // 呼び出しそのものが失敗したとき（例外）も読み直す。受けないと読み込み中のまま止まり、以後の差分を二度と読まないため
+    const retry = () => setTimeout(() => setLoading(false), LOAD_RETRY_MS);
     loadMatchEvents(id, fetched).then((result) => {
       if (!result.ok) {
-        setTimeout(() => setLoading(false), LOAD_RETRY_MS);
+        retry();
         return;
       }
       const events = result.events.filter((event) => event.revision > fetched);
@@ -187,7 +189,7 @@ export function MatchLive({
       setQueue((current) => appendNew(current, play));
       setFetched(events.at(-1)?.revision ?? goal);
       setLoading(false);
-    });
+    }, retry);
   }, [id, target, revision, fetched, loading]);
 
   useEffect(() => {

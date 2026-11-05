@@ -17,7 +17,7 @@ export function MatchActionButton({
   ) => Promise<MatchActionState>;
   id: string;
   revision: number;
-  values?: Record<string, number>;
+  values?: Record<string, number | string>;
   children: ReactNode;
 }) {
   const [state, formAction, isPending] = useActionState(action, {});

@@ -5,6 +5,7 @@ import { currentPlayer } from "@/lib/player";
 import {
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
+  MATCH_REVIEW_MESSAGES,
   RULE_LABELS,
   type RuleField,
   SEAT_KIND_LABELS,
@@ -14,11 +15,13 @@ import {
   isMyTurn,
   participantPieces,
   participantRows,
+  reviewRows,
   roundText,
   winnerNames,
 } from "../match-view";
 import {
   chooseMatchPath,
+  chooseMatchRewardPack,
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
@@ -45,6 +48,11 @@ const matchQuery = graphql(`
         outcome {
           winners
           reason
+          ranks
+        }
+        rewardPacks {
+          key
+          name
         }
         rules {
           targetMagic
@@ -100,6 +108,10 @@ const matchQuery = graphql(`
           passedCheckpoints {
             x
             y
+          }
+          rewardReceived
+          rewardCards {
+            name
           }
         }
         currentParticipant
@@ -237,15 +249,68 @@ export default async function MatchPage({
           </div>
 
           {match.outcome ? (
-            <div style={ROW_STYLE} data-testid="match-outcome">
-              <strong>対戦の結果</strong>
-              <span>
-                勝った人:{" "}
-                <span data-testid="match-winners">
-                  {winnerNames(match.participants, match.outcome.winners)}
+            <div data-testid="match-outcome">
+              <div style={ROW_STYLE}>
+                <strong>対戦の結果</strong>
+                <span>
+                  勝った人:{" "}
+                  <span data-testid="match-winners">
+                    {winnerNames(match.participants, match.outcome.winners)}
+                  </span>
                 </span>
-              </span>
-              <span>理由: {MATCH_END_REASON_LABELS[match.outcome.reason]}</span>
+                <span>
+                  理由: {MATCH_END_REASON_LABELS[match.outcome.reason]}
+                </span>
+                <span data-testid="match-rounds">
+                  {MATCH_REVIEW_MESSAGES.rounds(match.round)}
+                </span>
+              </div>
+              <ol data-testid="match-review" style={LIST_STYLE}>
+                {reviewRows(match.participants, match.outcome.ranks).map(
+                  (row) => (
+                    <li
+                      key={row.seat}
+                      data-testid="match-review-row"
+                      style={{ marginBottom: "0.5rem" }}
+                    >
+                      <span data-testid="review-rank">
+                        {MATCH_REVIEW_MESSAGES.rank(row.rank)}
+                      </span>{" "}
+                      コマ {row.seat + 1}・{row.name}・魔力 {row.magic}
+                      {" ・ "}
+                      {!row.isPlayer ? (
+                        MATCH_REVIEW_MESSAGES.rewardNone
+                      ) : row.rewardReceived ? (
+                        <span data-testid="review-reward-cards">
+                          {MATCH_REVIEW_MESSAGES.rewardCards(
+                            row.rewardCards.join("、"),
+                          )}
+                        </span>
+                      ) : (
+                        MATCH_REVIEW_MESSAGES.rewardPending
+                      )}
+                    </li>
+                  ),
+                )}
+              </ol>
+              {match.rewardPacks.length > 0 && (
+                <div style={ROW_STYLE}>
+                  {match.rewardPacks.map((pack) => (
+                    <MatchActionButton
+                      key={pack.key}
+                      action={chooseMatchRewardPack}
+                      values={{ pack: pack.key }}
+                      {...actionProps}
+                    >
+                      {MATCH_REVIEW_MESSAGES.chooseRewardPack(pack.name)}
+                    </MatchActionButton>
+                  ))}
+                </div>
+              )}
+              {/* 対戦から部屋を引けない（Match に部屋の ID が無い）ため、部屋の一覧へ戻す */}
+              <p>
+                <Link href="/rooms">{MATCH_REVIEW_MESSAGES.backToRoom}</Link>
+              </p>
             </div>
           ) : mine ? (
             <div style={ROW_STYLE}>

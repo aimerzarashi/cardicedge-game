@@ -94,6 +94,16 @@ export type ChooseMatchPathInput = {
   to: BoardPositionInput;
 };
 
+/** 戦利品のパックを選ぶ入力 */
+export type ChooseMatchRewardPackInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 選ぶパックのキー（Match.rewardPacks の中から選ぶ。選べないものは ValidationErrors の FieldNotFound） */
+  pack: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
 /** 部屋を閉じる入力 */
 export type CloseRoomInput = {
   /** 部屋の公開用の ID */
@@ -164,7 +174,7 @@ export type MatchPhase =
   | 'DISCARDING'
   /** カードを引く段階（drawMatchCard） */
   | 'DRAWING'
-  /** 対戦が終わった */
+  /** 対戦が終わった（戦利品のパックを選ぶ段階も、全員が受け取るまでこのまま。chooseMatchRewardPack） */
   | 'ENDED'
   /** ターンを終える段階（endMatchTurn） */
   | 'ENDING'
@@ -315,7 +325,7 @@ export type MatchDetailQueryVariables = Exact<{
 
 
 export type MatchDetailQuery = { match:
-    | { __typename: 'Match', id: string, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason } | null, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -325,7 +335,7 @@ export type MatchDetailQuery = { match:
           | { __typename: 'SanctuaryTile', x: number, y: number }
           | { __typename: 'ShrineTile', x: number, y: number }
           | { __typename: 'WarpTile', x: number, y: number }
-        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }>, passedCheckpoints: Array<{ x: number, y: number }> }> }
+        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }>, passedCheckpoints: Array<{ x: number, y: number }>, rewardCards: Array<{ name: string }> }> }
     | { __typename: 'MatchNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -420,6 +430,30 @@ export type EndMatchTurnMutation = { endMatchTurn:
     | { __typename: 'RevisionConflictError' }
    };
 
+export type ChooseMatchRewardPackMutationVariables = Exact<{
+  input: ChooseMatchRewardPackInput;
+}>;
+
+
+export type ChooseMatchRewardPackMutation = { chooseMatchRewardPack:
+    | { __typename: 'ChooseMatchRewardPackSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'MatchRewardAlreadyReceivedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
 export type MatchEventsQueryVariables = Exact<{
   id: string;
   after: number;
@@ -438,6 +472,8 @@ export type MatchEventsQuery = { matchEvents:
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number }
         | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number } }
+        | { __typename: 'MatchRewardDrawnEvent', participant: number, revision: number, rewardCards: Array<{ name: string }> }
+        | { __typename: 'MatchRewardsCompletedEvent', revision: number }
         | { __typename: 'MatchTurnEndedEvent', participant: number, revision: number }
         | { __typename: 'MatchTurnOrderDecidedEvent', order: Array<number>, revision: number }
       > }
@@ -880,6 +916,11 @@ export const MatchDetailDocument = new TypedDocumentString(`
       outcome {
         winners
         reason
+        ranks
+      }
+      rewardPacks {
+        key
+        name
       }
       rules {
         targetMagic
@@ -935,6 +976,10 @@ export const MatchDetailDocument = new TypedDocumentString(`
         passedCheckpoints {
           x
           y
+        }
+        rewardReceived
+        rewardCards {
+          name
         }
       }
       currentParticipant
@@ -997,6 +1042,19 @@ export const EndMatchTurnDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<EndMatchTurnMutation, EndMatchTurnMutationVariables>;
+export const ChooseMatchRewardPackDocument = new TypedDocumentString(`
+    mutation ChooseMatchRewardPack($input: ChooseMatchRewardPackInput!) {
+  chooseMatchRewardPack(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChooseMatchRewardPackMutation, ChooseMatchRewardPackMutationVariables>;
 export const MatchEventsDocument = new TypedDocumentString(`
     query MatchEvents($id: UUID!, $after: Int!) {
   matchEvents(id: $id, after: $after) {
@@ -1052,6 +1110,12 @@ export const MatchEventsDocument = new TypedDocumentString(`
         ... on MatchEndedEvent {
           winners
           reason
+        }
+        ... on MatchRewardDrawnEvent {
+          participant
+          rewardCards {
+            name
+          }
         }
       }
     }

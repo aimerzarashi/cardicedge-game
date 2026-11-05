@@ -62,6 +62,20 @@ export const endMatchTurnMutation = graphql(`
   }
 `);
 
+export const chooseMatchRewardPackMutation = graphql(`
+  mutation ChooseMatchRewardPack($input: ChooseMatchRewardPackInput!) {
+    chooseMatchRewardPack(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
 // 差分の読み込み。種類ごとに持つ項目が違うため、画面が使うものだけをインラインフラグメントで読む
 export const matchEventsQuery = graphql(`
   query MatchEvents($id: UUID!, $after: Int!) {
@@ -118,6 +132,12 @@ export const matchEventsQuery = graphql(`
           ... on MatchEndedEvent {
             winners
             reason
+          }
+          ... on MatchRewardDrawnEvent {
+            participant
+            rewardCards {
+              name
+            }
           }
         }
       }

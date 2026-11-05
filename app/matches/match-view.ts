@@ -72,3 +72,37 @@ export function winnerNames(
     .flatMap((index) => participants[index]?.avatar.name ?? [])
     .join("、");
 }
+
+export type ReviewRow = {
+  seat: number;
+  rank: number;
+  name: string;
+  isPlayer: boolean;
+  magic: number;
+  rewardReceived: boolean;
+  rewardCards: string[];
+};
+
+// 順位は core が ranks（席の順）で返す。画面は決めず、その値の小さい順（同じ順位は席の順）に並べるだけ
+export function reviewRows(
+  participants: {
+    kind: string;
+    avatar: { name: string };
+    magic: number;
+    rewardReceived: boolean;
+    rewardCards: { name: string }[];
+  }[],
+  ranks: number[],
+): ReviewRow[] {
+  return participants
+    .map((participant, seat) => ({
+      seat,
+      rank: ranks[seat] ?? 0,
+      name: participant.avatar.name,
+      isPlayer: participant.kind === "PLAYER",
+      magic: participant.magic,
+      rewardReceived: participant.rewardReceived,
+      rewardCards: participant.rewardCards.map((card) => card.name),
+    }))
+    .sort((a, b) => a.rank - b.rank || a.seat - b.seat);
+}

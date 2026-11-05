@@ -168,6 +168,8 @@ const MATCH_ERROR_MESSAGES: Record<string, string> = {
   MatchPhaseNotAllowedError:
     "今の段階ではできない操作なので、読み直しました。今の状態を確かめてください",
   MatchNotFoundError: "この対戦は見つかりません",
+  MatchRewardAlreadyReceivedError:
+    "戦利品はもう受け取っています。読み直しました",
   PlayerNotRegisteredError: PLAYER_NOT_REGISTERED,
 };
 
@@ -194,9 +196,22 @@ export const MATCH_EVENT_MESSAGES = {
   turnEnded: "ターンを終えた",
   ended: (winners: string, reason: string) =>
     `対戦が終わった（勝った人: ${winners}。${reason}）`,
+  rewardDrawn: (cards: string) => `戦利品を引いた（${cards}）`,
+  rewardsCompleted: "全員が戦利品を受け取った",
   unknown: "（知らない種類のイベント）",
   eventLine: (revision: number, actor: string | undefined, text: string) =>
     actor === undefined
       ? `版 ${revision} ${text}`
       : `版 ${revision} ${actor}: ${text}`,
+};
+
+// 対戦の振り返りと戦利品の欄の文言
+export const MATCH_REVIEW_MESSAGES = {
+  rank: (rank: number) => `${rank} 位`,
+  rounds: (round: number) => `ラウンドの数: ${round}`,
+  chooseRewardPack: (pack: string) => `${pack}を選ぶ`,
+  rewardPending: "戦利品はまだ受け取っていません",
+  rewardNone: "戦利品は配られません",
+  rewardCards: (cards: string) => `戦利品: ${cards}`,
+  backToRoom: "部屋に戻る",
 };

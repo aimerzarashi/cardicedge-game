@@ -84,6 +84,24 @@ describe("eventLine", () => {
     );
   });
 
+  it("戦利品のイベントは、引いたカードの名前と、全員が受け取ったことを出す", () => {
+    assert.equal(
+      eventLine(
+        event(41, {
+          __typename: "MatchRewardDrawnEvent",
+          participant: 0,
+          rewardCards: [{ name: "A" }, { name: "B" }],
+        }),
+        names,
+      ),
+      "版 41 部屋用: 戦利品を引いた（A、B）",
+    );
+    assert.equal(
+      eventLine(event(42, { __typename: "MatchRewardsCompletedEvent" }), names),
+      "版 42 全員が戦利品を受け取った",
+    );
+  });
+
   it("知らない種類でも落とさずに 1 行を出す", () => {
     assert.match(
       eventLine(event(3, { __typename: "MatchFutureEvent" }), names),
