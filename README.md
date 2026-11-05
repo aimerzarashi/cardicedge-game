@@ -166,7 +166,7 @@ better-auth のレート制限は本番モード（`NODE_ENV=production`）で�
 | 入口 | 利用者の IP | 置く環境 |
 |---|---|---|
 | 公開の入口（envoy の 10000） | 接続元の IP | すべて |
-| 中継役用の入口（10001。`local/envoy/relay-listener.yaml`） | `X-Forwarded-For` の最後の 1 段 | **テスト用の環境（compose.test.yaml）だけ**。Playwright がテストごとに別の IP を名乗るために使う |
+| 中継役用の入口（10001。`local/envoy/relay-listener.yaml`） | `X-Forwarded-For` の最後の 1 段 | **テスト用の環境（compose.test.yaml）だけ**。Playwright がテストごとに別の IP を名乗るために使う。ブラウザの Subscription（`/game/graphql`）も同じ入口から core へ届くよう、その経路だけ置く |
 
 - **game には envoy を経由してしか届かないようにする**（game の 3000 番を公開しない）。直接届くと `x-client-ip` を偽装できる
 - **中継役用の入口は、開発用・リリース版の環境に置かず、ポートも公開しない**。届いた `X-Forwarded-For` を信じるので、公開するとそのまま偽装の穴になる

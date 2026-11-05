@@ -5,7 +5,6 @@ import {
   decideRules,
   decideSeats,
   openNewRoom,
-  reloadUntilVisible,
 } from "./room-flow";
 
 test("対戦の画面の操作だけでラウンドの上限まで進めると、操作が消えて勝った人と理由が出る", async ({
@@ -33,9 +32,9 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
 
   // 段階に応じて、出ている操作を 1 つ押す。終わるまで繰り返す（上限 1 ラウンドなので数回で終わる）
   for (let step = 0; step < 30; step++) {
-    // NPC の番は core のポリシーが進めるが、読み直しより後に済むことがある（画面は進みを受け取らない。game#40）。
-    // 自分の番の操作か結果が出るまで読み直して待つ
-    await reloadUntilVisible(page, operations.or(outcome).first());
+    // NPC の番は core のポリシーが進め、画面は Subscription で進みを受け取って順に描画する（読み直さない。game#40）。
+    // 自分の番の操作か結果が出るまで待つ
+    await expect(operations.or(outcome).first()).toBeVisible();
     if (await outcome.isVisible()) {
       break;
     }
@@ -55,4 +54,16 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await expect(page.getByTestId("match-winners")).toHaveText(/部屋用|炎の剣士/);
   await expect(outcome).toContainText("ラウンドの上限に達した");
   await expect(operations).toHaveCount(0);
+
+  // NPC（炎の剣士）の番が描画され、欄に版の番号・誰が・何をしたかが出る
+  const events = page.getByTestId("match-events").getByRole("listitem");
+  await expect(
+    events.filter({ hasText: /^版 \d+ 炎の剣士: サイコロ \d/ }).first(),
+  ).toBeVisible();
+  await expect(
+    events
+      .filter({ hasText: /^版 \d+ 炎の剣士: \(\d+, \d+\) へ進んだ/ })
+      .first(),
+  ).toBeVisible();
+  await expect(events.filter({ hasText: /対戦が終わった/ })).toHaveCount(1);
 });

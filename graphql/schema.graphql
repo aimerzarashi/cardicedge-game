@@ -602,6 +602,10 @@ type CreateRoomSuccess {
 	revision: Int!
 }
 """
+日時（RFC 3339 の文字列。例: 2026-10-17T09:00:00Z）
+"""
+scalar DateTime
+"""
 プレイヤーのデッキ。持ち主のプレイヤーだけが読む（ほかのプレイヤーのデッキは、me.decks にも deck(id) にも出ない）
 """
 type Deck {
@@ -1039,6 +1043,124 @@ type MatchBoard {
 	pairs: [BoardTilePair!]!
 }
 """
+手札を 1 枚捨てた
+"""
+type MatchCardDiscardedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	捨てた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	捨てた手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	捨てたカード
+	"""
+	card: DeckCardInfo!
+}
+"""
+カードを引いた
+"""
+type MatchCardDrawnEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	引いた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	引いたカード
+	"""
+	card: DeckCardInfo!
+}
+"""
+まだ印の無いチェックポイントに入り、印を付けて魔力が増えた
+"""
+type MatchCheckpointPassedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	通った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	印を付けたチェックポイントの位置
+	"""
+	checkpoint: BoardPosition!
+	"""
+	増えた魔力
+	"""
+	magic: Int!
+}
+"""
+対戦が始まった（参加者・盤面・ルールは match で読む）
+"""
+type MatchCreatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+山札が混ざった（並びは見せないので、項目を持たない）
+"""
+type MatchDecksShuffledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+サイコロを振った
+"""
+type MatchDiceRolledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	振った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	出た目
+	"""
+	value: Int!
+}
+"""
 対戦が終わった理由
 """
 enum MatchEndReason {
@@ -1050,6 +1172,113 @@ enum MatchEndReason {
 	ラウンドの上限に達した
 	"""
 	ROUND_LIMIT
+}
+"""
+対戦が終わった
+"""
+type MatchEndedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	勝った参加者（Match.participants の何番目か）。魔力が同じならすべて
+	"""
+	winners: [Int!]!
+	"""
+	終わった理由
+	"""
+	reason: MatchEndReason!
+}
+"""
+対戦のイベント。種類ごとの型で見せ、見せないもの（山札の並び）は項目を持たない。
+誰が（participant）は Match.participants の何番目か
+"""
+interface MatchEvent {
+	"""
+	対戦の版（このイベントまで進んだ版。抜けなく 1 から続く）
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+指した版より後の対戦のイベント
+"""
+type MatchEventList {
+	"""
+	古い順にすべて（対戦の長さはラウンドの上限で決まるので、ページ分けしない）
+	"""
+	events: [MatchEvent!]!
+}
+"""
+対戦のイベントの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MatchEventsResult = MatchEventList | MatchNotFoundError | PlayerNotRegisteredError
+"""
+全員に手札が配られた
+"""
+type MatchHandsDealtEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	全員に配った枚数（山札が足りなければ、ある分だけ）
+	"""
+	cards: Int!
+}
+"""
+全チェックポイントに印を付けて拠点に入り、周回を終えて魔力が増えた
+"""
+type MatchLapCompletedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	周回を終えた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	増えた魔力
+	"""
+	magic: Int!
+}
+"""
+1 マス進んだ
+"""
+type MatchMovedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	進んだ参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	入ったマスの位置
+	"""
+	to: BoardPosition!
 }
 """
 自分が参加している対戦が無い（無い・参加していない対戦。存在を明かさないため区別しない）
@@ -1217,6 +1446,28 @@ type MatchPlayRules {
 	startingHandCards: Int!
 }
 """
+対戦の進み。画面は手元の版（revision）と比べ、進んでいれば matchEvents で差分を、match で今の状態を読む。
+版だけを送るのは、見せてよいものの絞り込みを query の側だけで行うため
+"""
+type MatchProgress {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	対戦の最新の版（Match.revision と同じ。抜けなく 1 から続く）
+	"""
+	revision: Int!
+	"""
+	その版のイベントの起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+対戦の進みの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MatchProgressResult = MatchProgress | MatchNotFoundError | PlayerNotRegisteredError
+"""
 対戦の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union MatchResult = Match | MatchNotFoundError | PlayerNotRegisteredError
@@ -1240,6 +1491,40 @@ type MatchRules {
 	対戦の始めに配る手札の枚数
 	"""
 	startingHandCards: Int!
+}
+"""
+ターンを終えた
+"""
+type MatchTurnEndedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	ターンを終えた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+}
+"""
+順番が決まった
+"""
+type MatchTurnOrderDecidedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	参加者の番号（Match.participants の何番目か）を、順番の早い順に並べたもの
+	"""
+	order: [Int!]!
 }
 """
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError
@@ -1540,6 +1825,20 @@ type Query {
 		"""
 		id: UUID!
 	): MatchResult!
+	"""
+	自分が参加している対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	"""
+	matchEvents(
+		"""
+		対戦の公開用の ID
+		"""
+		id: UUID!
+
+		"""
+		手元の版。これより後のイベントを返す（0 なら始めから）
+		"""
+		after: Int!
+	): MatchEventsResult!
 	"""
 	解放した公開中の NPC のアバターの詳細（登録済みのプレイヤーだけ）。解放していない・公開中でなければ NpcAvatarNotFoundError
 	"""
@@ -2015,6 +2314,19 @@ enum StarterGrantStatus {
 	所持カード・デッキ・解放がそろった
 	"""
 	COMPLETED
+}
+type Subscription {
+	"""
+	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
+	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。対戦が終わったら、終わった版を送ってから閉じる。
+	無い・参加していない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
+	"""
+	matchProgress(
+		"""
+		対戦の公開用の ID
+		"""
+		id: UUID!
+	): MatchProgressResult!
 }
 """
 公開用の ID（UUID の文字列）。core の内部の ID は返さない
