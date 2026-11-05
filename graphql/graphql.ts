@@ -420,6 +420,31 @@ export type EndMatchTurnMutation = { endMatchTurn:
     | { __typename: 'RevisionConflictError' }
    };
 
+export type MatchEventsQueryVariables = Exact<{
+  id: string;
+  after: number;
+}>;
+
+
+export type MatchEventsQuery = { matchEvents:
+    | { __typename: 'MatchEventList', events: Array<
+        | { __typename: 'MatchCardDiscardedEvent', participant: number, revision: number, card: { name: string } }
+        | { __typename: 'MatchCardDrawnEvent', participant: number, revision: number, card: { name: string } }
+        | { __typename: 'MatchCheckpointPassedEvent', participant: number, magic: number, revision: number, checkpoint: { x: number, y: number } }
+        | { __typename: 'MatchCreatedEvent', revision: number }
+        | { __typename: 'MatchDecksShuffledEvent', revision: number }
+        | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, revision: number }
+        | { __typename: 'MatchEndedEvent', winners: Array<number>, reason: MatchEndReason, revision: number }
+        | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number }
+        | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number }
+        | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number } }
+        | { __typename: 'MatchTurnEndedEvent', participant: number, revision: number }
+        | { __typename: 'MatchTurnOrderDecidedEvent', order: Array<number>, revision: number }
+      > }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
 export type NpcAvatarQueryVariables = Exact<{
   id: string;
 }>;
@@ -972,6 +997,67 @@ export const EndMatchTurnDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<EndMatchTurnMutation, EndMatchTurnMutationVariables>;
+export const MatchEventsDocument = new TypedDocumentString(`
+    query MatchEvents($id: UUID!, $after: Int!) {
+  matchEvents(id: $id, after: $after) {
+    __typename
+    ... on MatchEventList {
+      events {
+        __typename
+        revision
+        ... on MatchHandsDealtEvent {
+          cards
+        }
+        ... on MatchTurnOrderDecidedEvent {
+          order
+        }
+        ... on MatchCardDrawnEvent {
+          participant
+          card {
+            name
+          }
+        }
+        ... on MatchCardDiscardedEvent {
+          participant
+          card {
+            name
+          }
+        }
+        ... on MatchDiceRolledEvent {
+          participant
+          value
+        }
+        ... on MatchMovedEvent {
+          participant
+          to {
+            x
+            y
+          }
+        }
+        ... on MatchCheckpointPassedEvent {
+          participant
+          checkpoint {
+            x
+            y
+          }
+          magic
+        }
+        ... on MatchLapCompletedEvent {
+          participant
+          magic
+        }
+        ... on MatchTurnEndedEvent {
+          participant
+        }
+        ... on MatchEndedEvent {
+          winners
+          reason
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<MatchEventsQuery, MatchEventsQueryVariables>;
 export const NpcAvatarDocument = new TypedDocumentString(`
     query NpcAvatar($id: UUID!) {
   npcAvatar(id: $id) {

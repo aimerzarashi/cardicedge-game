@@ -2,7 +2,6 @@ import Link from "next/link";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
-import { BoardGrid } from "../../boards/board-grid";
 import {
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
@@ -26,6 +25,7 @@ import {
   rollMatchDice,
 } from "./actions";
 import { MatchActionButton } from "./match-action-button";
+import { MatchLive, NpcTurnNotice } from "./match-live";
 
 const matchQuery = graphql(`
   query MatchDetail($id: UUID!) {
@@ -112,13 +112,6 @@ const matchQuery = graphql(`
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// メディアクエリは inline style で書けないため、auto-fit だけで、広い画面は盤面と情報を横に並べ、狭い画面は縦に積む
-const COLUMNS_STYLE = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 36rem), 1fr))",
-  gap: "1rem",
-  alignItems: "start",
-} as const;
 const LIST_STYLE = { margin: 0, padding: 0, listStyle: "none" } as const;
 const STATS_STYLE = {
   display: "flex",
@@ -200,15 +193,18 @@ export default async function MatchPage({
   return (
     <main data-revision={match.revision}>
       <h1>対戦</h1>
-      <div style={COLUMNS_STYLE}>
-        <BoardGrid
-          width={match.board.width}
-          height={match.board.height}
-          tiles={match.board.tiles}
-          pairs={match.board.pairs}
-          pieces={participantPieces(match.participants)}
-        />
-
+      <MatchLive
+        id={match.id}
+        revision={match.revision}
+        names={match.participants.map((participant) => participant.avatar.name)}
+        board={{
+          width: match.board.width,
+          height: match.board.height,
+          tiles: match.board.tiles,
+          pairs: match.board.pairs,
+        }}
+        pieces={participantPieces(match.participants)}
+      >
         <div>
           <div style={ROW_STYLE}>
             <span data-testid="match-round">
@@ -296,11 +292,7 @@ export default async function MatchPage({
               )}
             </div>
           ) : (
-            <p style={{ margin: "0 0 0.5rem" }}>
-              他の参加者（NPC）の番です。{" "}
-              {/* Link は同じ URL だと読み直さないことがあるため、普通のリンクで読み込み直す */}
-              <a href={`/matches/${match.id}`}>読み直す</a>
-            </p>
+            <NpcTurnNotice id={match.id} />
           )}
 
           <h2>参加者</h2>
@@ -396,7 +388,7 @@ export default async function MatchPage({
             </div>
           </dl>
         </div>
-      </div>
+      </MatchLive>
       <p>
         <Link href="/rooms">部屋の一覧へ</Link>
       </p>

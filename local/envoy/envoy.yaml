@@ -28,10 +28,13 @@ static_resources:
                     - name: backend
                       domains: ["*"]
                       routes:
-                        # core の GraphQL（Subscription の websocket を含む）。core が起動していなければ 503 になる
+                        # core の GraphQL（Subscription の websocket を含む）。core が起動していなければ 503 になる。
+                        # timeout: 0s は応答全体の長さの上限（既定 15 秒）を外す。Subscription（SSE）が 15 秒で切れるため。
+                        # 何も流れない時間の上限（stream_idle_timeout の既定 5 分）は、core が 5 秒ごとに送るので変えない
                         - match: { prefix: "/game/graphql" }
                           route:
                             cluster: core
+                            timeout: 0s
                             upgrade_configs:
                               - upgrade_type: websocket
                         - match: { prefix: "/" }

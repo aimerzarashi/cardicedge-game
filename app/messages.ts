@@ -177,3 +177,26 @@ export function matchErrorMessage(typename: string): string {
     "操作できませんでした。再読み込みしてからもう一度試してください"
   );
 }
+
+// 描画したイベントの欄の 1 行。種類ごとの文言は、イベントが持つ値（core が返した事実）を並べるだけにする
+export const MATCH_EVENT_MESSAGES = {
+  created: "対戦が始まった",
+  decksShuffled: "山札が混ざった",
+  handsDealt: (cards: number) => `手札が ${cards} 枚ずつ配られた`,
+  turnOrderDecided: (names: string) => `順番が決まった: ${names}`,
+  cardDrawn: (card: string) => `カード「${card}」を引いた`,
+  cardDiscarded: (card: string) => `カード「${card}」を捨てた`,
+  diceRolled: (value: number) => `サイコロ ${value}`,
+  moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
+  checkpointPassed: (x: number, y: number, magic: number) =>
+    `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,
+  lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
+  turnEnded: "ターンを終えた",
+  ended: (winners: string, reason: string) =>
+    `対戦が終わった（勝った人: ${winners}。${reason}）`,
+  unknown: "（知らない種類のイベント）",
+  eventLine: (revision: number, actor: string | undefined, text: string) =>
+    actor === undefined
+      ? `版 ${revision} ${text}`
+      : `版 ${revision} ${actor}: ${text}`,
+};

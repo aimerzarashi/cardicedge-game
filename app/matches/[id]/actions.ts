@@ -8,11 +8,13 @@ import {
   fieldErrorMessage,
   matchErrorMessage,
 } from "../../messages";
+import type { MatchEventView } from "../match-events";
 import {
   chooseMatchPathMutation,
   discardMatchCardMutation,
   drawMatchCardMutation,
   endMatchTurnMutation,
+  matchEventsQuery,
   rollMatchDiceMutation,
 } from "../operations";
 
@@ -139,4 +141,24 @@ export async function endMatchTurn(
   return result.ok
     ? finish(result.data.endMatchTurn)
     : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export type MatchEventsResult =
+  | { ok: true; events: MatchEventView[] }
+  | { ok: false };
+
+// ブラウザは core を直接呼ばない決まりなので、差分は game のサーバーから読む（Subscription だけが例外）。
+// 画面が呼ぶのは版が進んだときだけで、読み直しのたびに全部は読まない
+export async function loadMatchEvents(
+  id: string,
+  after: number,
+): Promise<MatchEventsResult> {
+  if (typeof id !== "string" || !Number.isInteger(after) || after < 0) {
+    return { ok: false };
+  }
+  const result = await callCore(matchEventsQuery, { id, after });
+  if (!result.ok || result.data.matchEvents.__typename !== "MatchEventList") {
+    return { ok: false };
+  }
+  return { ok: true, events: result.data.matchEvents.events };
 }

@@ -61,3 +61,66 @@ export const endMatchTurnMutation = graphql(`
     }
   }
 `);
+
+// 差分の読み込み。種類ごとに持つ項目が違うため、画面が使うものだけをインラインフラグメントで読む
+export const matchEventsQuery = graphql(`
+  query MatchEvents($id: UUID!, $after: Int!) {
+    matchEvents(id: $id, after: $after) {
+      __typename
+      ... on MatchEventList {
+        events {
+          __typename
+          revision
+          ... on MatchHandsDealtEvent {
+            cards
+          }
+          ... on MatchTurnOrderDecidedEvent {
+            order
+          }
+          ... on MatchCardDrawnEvent {
+            participant
+            card {
+              name
+            }
+          }
+          ... on MatchCardDiscardedEvent {
+            participant
+            card {
+              name
+            }
+          }
+          ... on MatchDiceRolledEvent {
+            participant
+            value
+          }
+          ... on MatchMovedEvent {
+            participant
+            to {
+              x
+              y
+            }
+          }
+          ... on MatchCheckpointPassedEvent {
+            participant
+            checkpoint {
+              x
+              y
+            }
+            magic
+          }
+          ... on MatchLapCompletedEvent {
+            participant
+            magic
+          }
+          ... on MatchTurnEndedEvent {
+            participant
+          }
+          ... on MatchEndedEvent {
+            winners
+            reason
+          }
+        }
+      }
+    }
+  }
+`);

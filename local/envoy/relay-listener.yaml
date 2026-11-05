@@ -23,8 +23,13 @@ static_resources:
                   virtual_hosts:
                     - name: backend
                       domains: ["*"]
-                      # テストは game だけを使うため、core（/game/graphql）への経路は置かない
+                      # ブラウザの Subscription（SSE）が同じ入口から /game/graphql へつなぐため、core への経路を置く。
+                      # cluster の core は envoy.yaml にある。timeout: 0s の理由は envoy.yaml に書いた
                       routes:
+                        - match: { prefix: "/game/graphql" }
+                          route:
+                            cluster: core
+                            timeout: 0s
                         - match: { prefix: "/" }
                           route: { cluster: game }
                 http_filters:
