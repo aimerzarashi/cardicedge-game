@@ -5,6 +5,7 @@ import {
   isMyTurn,
   participantPieces,
   participantRows,
+  reviewRows,
   roundText,
   winnerNames,
 } from "./match-view.ts";
@@ -85,5 +86,56 @@ describe("winnerNames", () => {
 
   it("存在しない番号は飛ばす", () => {
     assert.equal(winnerNames(participants, [5, 0]), "あ");
+  });
+});
+
+describe("reviewRows", () => {
+  const reviewers = [
+    {
+      kind: "PLAYER",
+      avatar: { name: "あ" },
+      magic: 100,
+      rewardReceived: true,
+      rewardCards: [{ name: "A" }, { name: "B" }],
+    },
+    {
+      kind: "NPC",
+      avatar: { name: "い" },
+      magic: 300,
+      rewardReceived: false,
+      rewardCards: [],
+    },
+    {
+      kind: "PLAYER",
+      avatar: { name: "う" },
+      magic: 300,
+      rewardReceived: false,
+      rewardCards: [],
+    },
+  ];
+
+  it("core が返した順位の小さい順に並べ、同じ順位は席の順にして、順位は書き換えない", () => {
+    const rows = reviewRows(reviewers, [3, 1, 1]);
+    assert.deepEqual(
+      rows.map((row) => [row.seat, row.rank]),
+      [
+        [1, 1],
+        [2, 1],
+        [0, 3],
+      ],
+    );
+  });
+
+  it("名前・魔力・プレイヤーか・受け取ったカードの名前を持たせる", () => {
+    const [, , first] = reviewRows(reviewers, [3, 1, 1]);
+    assert.deepEqual(first, {
+      seat: 0,
+      rank: 3,
+      name: "あ",
+      isPlayer: true,
+      magic: 100,
+      rewardReceived: true,
+      rewardCards: ["A", "B"],
+    });
   });
 });

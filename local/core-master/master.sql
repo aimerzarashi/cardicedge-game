@@ -13,7 +13,7 @@ INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata
 
 -- 値は core の gamerules.Defaults()
 INSERT INTO game_rules (game_rules_id, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":7,"max_card_duplicates":4},"starter_deck":{"max_published":2},"match":{"min_players":2,"max_players":4,"max_hand_cards":6,"starting_hand_cards":5}}}');
+  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":7,"max_card_duplicates":4},"starter_deck":{"max_published":2},"match":{"min_players":2,"max_players":4,"max_hand_cards":6,"starting_hand_cards":5,"reward_cards_by_rank":[3,2,1,1]}}}');
 
 -- 公開中のボード 3 つ（名前の順に A・B・C）と、使用不可のボード 1 つ（一覧に出ないことを確かめる）。
 -- metadata は studio の read model（readmodel.BoardMetadata）が書く形で、kind・attribute は小文字、default_rules・tile_counts は snake_case。sort_name は並びを決めるだけの値。

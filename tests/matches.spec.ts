@@ -55,6 +55,28 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await expect(outcome).toContainText("ラウンドの上限に達した");
   await expect(operations).toHaveCount(0);
 
+  // 振り返り: 順位は core が決めたものをそのまま出す。受け取る前は戦利品のパックを選べる
+  const ranks = page.getByTestId("review-rank");
+  await expect(ranks).toHaveCount(2);
+  await expect(ranks.first()).toHaveText("1 位");
+  await expect(page.getByTestId("match-rounds")).toHaveText("ラウンドの数: 1");
+  await expect(page.getByRole("link", { name: "部屋に戻る" })).toBeVisible();
+
+  // パックを選ぶと、引いたカード（テスト用のマスタの公開中のカード）が出て、選ぶボタンが消える
+  const packButton = page.getByRole("button", { name: /を選ぶ$/ });
+  await packButton.click();
+  await expect(page.getByTestId("review-reward-cards")).toHaveText(
+    /戦利品: (A|B|C)(、(A|B|C))*$/,
+  );
+  await expect(packButton).toHaveCount(0);
+  await expect(
+    page
+      .getByTestId("match-events")
+      .getByRole("listitem")
+      .filter({ hasText: /戦利品を引いた（/ }),
+    // 描画は 1 イベントずつ間を置くため、対戦の最初からのイベントを見せ終えるのを待つ
+  ).toHaveCount(1, { timeout: 20_000 });
+
   // NPC（炎の剣士）の番が描画され、欄に版の番号・誰が・何をしたかが出る
   const events = page.getByTestId("match-events").getByRole("listitem");
   await expect(

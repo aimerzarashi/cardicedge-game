@@ -546,6 +546,40 @@ type ChooseMatchPathSuccess {
 	revision: Int!
 }
 """
+戦利品のパックを選ぶ入力
+"""
+input ChooseMatchRewardPackInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	選ぶパックのキー（Match.rewardPacks の中から選ぶ。選べないものは ValidationErrors の FieldNotFound）
+	"""
+	pack: String!
+}
+"""
+chooseMatchRewardPack の結果（ENDED の段階の、まだ受け取っていないプレイヤーだけ。番は問わない。終わっていなければ MatchPhaseNotAllowedError、受け取り済みなら MatchRewardAlreadyReceivedError。参加していない対戦は MatchNotFoundError）
+"""
+union ChooseMatchRewardPackResult = ChooseMatchRewardPackSuccess | ValidationErrors | MatchNotFoundError | MatchPhaseNotAllowedError | MatchRewardAlreadyReceivedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+戦利品のパックを選んでカードを引いた（成功したら対戦の revision が進む。カードは Match.participants の rewardCards で読み、所持品へはポリシーが足す）
+"""
+type ChooseMatchRewardPackSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
 部屋を閉じる入力
 """
 input CloseRoomInput {
@@ -1002,6 +1036,10 @@ type Match {
 	対戦の結果（終わるまでは null）
 	"""
 	outcome: MatchOutcome
+	"""
+	自分が今選べる戦利品のパック（終わった後で、まだ受け取っていないときだけ中身がある。ほかは空）
+	"""
+	rewardPacks: [MatchRewardPack!]!
 }
 """
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
@@ -1190,6 +1228,10 @@ type MatchEndedEvent implements MatchEvent {
 	"""
 	winners: [Int!]!
 	"""
+	参加者ごとの順位（Match.participants の何番目かの順。1 が最上位）。魔力が同じなら同じ順位で、core が決める。目標の魔力で終わったときは勝った人が 1 位で、ほかの人は 2 位以下
+	"""
+	ranks: [Int!]!
+	"""
 	終わった理由
 	"""
 	reason: MatchEndReason!
@@ -1307,6 +1349,10 @@ type MatchOutcome {
 	"""
 	winners: [Int!]!
 	"""
+	参加者ごとの順位（Match.participants の何番目かの順。1 が最上位）。魔力が同じなら同じ順位で、core が決める。目標の魔力で終わったときは勝った人が 1 位で、ほかの人は 2 位以下
+	"""
+	ranks: [Int!]!
+	"""
 	終わった理由
 	"""
 	reason: MatchEndReason!
@@ -1351,6 +1397,14 @@ type MatchParticipant {
 	拠点を出てから印を付けたチェックポイントの位置（拠点に戻って周回を終えると空に戻る）
 	"""
 	passedCheckpoints: [BoardPosition!]!
+	"""
+	戦利品を受け取ったか（プレイヤーだけ。NPC には配らないので、いつも false）
+	"""
+	rewardReceived: Boolean!
+	"""
+	受け取った戦利品のカード（受け取るまでは空）。引いた順で、同じカードは重ならない
+	"""
+	rewardCards: [DeckCardInfo!]!
 }
 """
 参加者がプレイヤーか NPC か
@@ -1390,7 +1444,7 @@ enum MatchPhase {
 	"""
 	ENDING
 	"""
-	対戦が終わった
+	対戦が終わった（戦利品のパックを選ぶ段階も、全員が受け取るまでこのまま。chooseMatchRewardPack）
 	"""
 	ENDED
 }
@@ -1471,6 +1525,66 @@ union MatchProgressResult = MatchProgress | MatchNotFoundError | PlayerNotRegist
 対戦の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union MatchResult = Match | MatchNotFoundError | PlayerNotRegisteredError
+"""
+戦利品はもう受け取った
+"""
+type MatchRewardAlreadyReceivedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+戦利品のパックから引いた
+"""
+type MatchRewardDrawnEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	引いた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	選んだパックのキー
+	"""
+	pack: String!
+	"""
+	引いたカード（重ならない。候補が足りなければ順位の枚数より少ない）。cards にしないのは、MatchHandsDealtEvent.cards（Int）と同じ名前で型が食い違い、問い合わせを検証で断られるため
+	"""
+	rewardCards: [DeckCardInfo!]!
+}
+"""
+戦利品に選べるパック
+"""
+type MatchRewardPack {
+	"""
+	選ぶときに渡すキー（chooseMatchRewardPack の pack）
+	"""
+	key: String!
+	"""
+	名前
+	"""
+	name: String!
+}
+"""
+プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）
+"""
+type MatchRewardsCompletedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
 """
 対戦の決まり（盤面や部屋によらず、ゲーム全体で同じ値）
 """
@@ -1555,6 +1669,10 @@ type Mutation {
 	ターンを終える
 	"""
 	endMatchTurn(input: EndMatchTurnInput!): EndMatchTurnResult!
+	"""
+	終わった後に、戦利品のパックを選ぶ（順位の枚数のカードを引く）
+	"""
+	chooseMatchRewardPack(input: ChooseMatchRewardPackInput!): ChooseMatchRewardPackResult!
 	"""
 	JWT の (iss, sub) のプレイヤーを登録する。何度呼んでも、プレイヤーは 1 人だけで、登録済みでも同じ形（同じ id）で返す。game は me が PlayerNotRegisteredError のときに呼ぶ
 	"""
@@ -2318,7 +2436,8 @@ enum StarterGrantStatus {
 type Subscription {
 	"""
 	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
-	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。対戦が終わったら、終わった版を送ってから閉じる。
+	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。全員が戦利品を受け取り終えたら、その版を送ってから閉じる
+	（対戦が終わっただけでは閉じない。受け取らないまま離れた人がいると閉じない）。
 	無い・参加していない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
 	"""
 	matchProgress(
