@@ -33,10 +33,10 @@ function NotFound() {
   return (
     <main>
       <h1>デッキ</h1>
-      <p role="alert">このデッキは見つかりません</p>
       <p>
         <Link href="/decks">デッキの一覧へ</Link>
       </p>
+      <p role="alert">このデッキは見つかりません</p>
     </main>
   );
 }
@@ -75,6 +75,9 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
   return (
     <main>
       <h1>{deck.name}</h1>
+      <p>
+        <Link href="/decks">デッキの一覧へ</Link>
+      </p>
       <p>合計 {deck.totalCount} 枚</p>
       <table>
         <thead>
@@ -94,9 +97,6 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
           ))}
         </tbody>
       </table>
-      <p>
-        <Link href="/decks">デッキの一覧へ</Link>
-      </p>
     </main>
   );
 }

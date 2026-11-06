@@ -37,10 +37,10 @@ function NotFound() {
   return (
     <main>
       <h1>NPC</h1>
-      <p role="alert">この NPC は見つかりません</p>
       <p>
         <Link href="/npc-avatars">NPC の一覧へ</Link>
       </p>
+      <p role="alert">この NPC は見つかりません</p>
     </main>
   );
 }
@@ -81,6 +81,9 @@ export default async function NpcAvatarPage({
   return (
     <main>
       <h1>{avatar.name}</h1>
+      <p>
+        <Link href="/npc-avatars">NPC の一覧へ</Link>
+      </p>
       {avatar.decks.length === 0 && <p>使うデッキがありません</p>}
       {avatar.decks.map((deck) => (
         <section key={deck.id} aria-labelledby={`deck-${deck.id}`}>
@@ -106,9 +109,6 @@ export default async function NpcAvatarPage({
           </table>
         </section>
       ))}
-      <p>
-        <Link href="/npc-avatars">NPC の一覧へ</Link>
-      </p>
     </main>
   );
 }

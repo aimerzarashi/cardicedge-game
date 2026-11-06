@@ -32,6 +32,9 @@ export default async function NpcAvatarsPage() {
   return (
     <main>
       <h1>NPC の一覧</h1>
+      <p>
+        <Link href="/">トップへ</Link>
+      </p>
       {result.ok ? (
         <NpcAvatars me={result.data.me} />
       ) : (
@@ -40,9 +43,6 @@ export default async function NpcAvatarsPage() {
           <Link href="/npc-avatars">再読み込み</Link>
         </p>
       )}
-      <p>
-        <Link href="/">トップへ</Link>
-      </p>
     </main>
   );
 }

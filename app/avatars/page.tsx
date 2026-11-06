@@ -8,6 +8,9 @@ export default async function AvatarsPage() {
   return (
     <main>
       <h1>アバター</h1>
+      <p>
+        <Link href="/">トップへ</Link>
+      </p>
       {player.ok ? (
         player.data.avatars.length === 0 ? (
           <p>まだアバターがありません</p>
@@ -25,9 +28,6 @@ export default async function AvatarsPage() {
       )}
       <h2>アバターを作る</h2>
       <RegisterAvatarForm />
-      <p>
-        <Link href="/">トップへ</Link>
-      </p>
     </main>
   );
 }
