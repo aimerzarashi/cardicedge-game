@@ -157,6 +157,19 @@ type BoardPosition {
 	y: Int!
 }
 """
+格子の座標の入力。BoardPosition と同じ
+"""
+input BoardPositionInput {
+	"""
+	列（0 始まり）
+	"""
+	x: Int!
+	"""
+	行（0 始まり）
+	"""
+	y: Int!
+}
+"""
 ボードの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union BoardResult = Board | BoardNotFoundError | PlayerNotRegisteredError
@@ -338,6 +351,154 @@ type CardShopTile implements BoardTile {
 	y: Int!
 }
 """
+カードの種類
+"""
+enum CardType {
+	CREATURE
+	ITEM
+	SPELL
+}
+"""
+対戦ルールを決める入力。7 つの値の名前と決まりは、ボードの既定のルールと同じ
+"""
+input ChangeRoomMatchRulesInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	ボードの公開用の ID（作った人が解放した公開中のもの。Player.boards に出るもの）
+	"""
+	boardId: UUID!
+	"""
+	目標の魔力（1 以上、開始時の魔力より大きい）
+	"""
+	targetMagic: Int!
+	"""
+	開始時の魔力（0 以上）
+	"""
+	startingMagic: Int!
+	"""
+	周回のボーナス（0 以上）
+	"""
+	lapBonus: Int!
+	"""
+	チェックポイントのボーナス（0 以上）
+	"""
+	checkpointBonus: Int!
+	"""
+	ラウンドの上限（1 以上）
+	"""
+	roundLimit: Int!
+	"""
+	サイコロの目の最小（1 以上）
+	"""
+	diceMin: Int!
+	"""
+	サイコロの目の最大（最小以上）
+	"""
+	diceMax: Int!
+}
+"""
+changeRoomMatchRules の結果（公開前、または公開前に決めていなければ準備中。決めるのは作った人）。
+入力の誤りは ValidationErrors（段階ごと。7 つの値は targetMagic 等の項目名、ボードが選べなければ boardId の FieldNotFound）
+"""
+union ChangeRoomMatchRulesResult = ChangeRoomMatchRulesSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomConditionLockedError | RoomNotResponsibleError | RoomAlreadyReadyError | PlayerNotRegisteredError
+"""
+対戦ルールを決めた（同じ値なら何も変えず、revision も進まない）
+"""
+type ChangeRoomMatchRulesSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+席のアバターとデッキを選ぶ入力。席の種類で、選ぶものが変わる
+"""
+input ChangeRoomSeatChoiceInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	席の番号（席の並びの何番目か。0 始まり）
+	"""
+	seat: Int!
+	"""
+	アバターの公開用の ID（プレイヤーの席は座っている人のアバター（Player.avatars に出るもの）、NPC の席は作った人が解放した公開中の NPC のアバター（Player.npcAvatars に出るもの））
+	"""
+	avatarId: UUID!
+	"""
+	デッキの公開用の ID（プレイヤーの席は座っている人のデッキ（Player.decks に出るもの）、NPC の席は選んだ NPC のアバターに割り当てた公開中のデッキ（Player.npcAvatars の decks に出るもの））
+	"""
+	deckId: UUID!
+}
+"""
+changeRoomSeatChoice の結果（公開前、または公開前に決めていなければ準備中）。選んだ時の 1 回だけ、選べるものかを確かめる（準備完了の時には確かめ直さない）。
+入力の誤りは ValidationErrors（段階ごと。席が範囲の外なら seat の FieldOutOfRange、次に avatarId・deckId の FieldNotFound。NPC の席は、アバターが選べるときだけデッキを確かめる）
+"""
+union ChangeRoomSeatChoiceResult = ChangeRoomSeatChoiceSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomSeatsNotDecidedError | RoomConditionLockedError | RoomNotResponsibleError | RoomAlreadyReadyError | PlayerNotRegisteredError
+"""
+席のアバターとデッキを選んだ（同じ選択なら何も変えず、revision も進まない）
+"""
+type ChangeRoomSeatChoiceSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+席の並びを決める入力
+"""
+input ChangeRoomSeatsInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる
+	"""
+	seats: [RoomSeatKind!]!
+}
+"""
+changeRoomSeats の結果（公開前だけ。作った人だけ）
+"""
+union ChangeRoomSeatsResult = ChangeRoomSeatsSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+席の並びを決めた（同じ並びなら何も変えず、revision も進まない）
+"""
+type ChangeRoomSeatsSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
 チェックポイント
 """
 type CheckpointTile implements BoardTile {
@@ -349,6 +510,391 @@ type CheckpointTile implements BoardTile {
 	行
 	"""
 	y: Int!
+}
+"""
+分かれ道で行き先を選ぶ入力
+"""
+input ChooseMatchPathInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	行き先の位置（Match.pathChoices の中から選ぶ。選べないものは ValidationErrors の FieldNotFound）
+	"""
+	to: BoardPositionInput!
+}
+"""
+chooseMatchPath の結果（CHOOSING_PATH の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union ChooseMatchPathResult = ChooseMatchPathSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+分かれ道で行き先を選ぶ（成功したら対戦の revision が進む）
+"""
+type ChooseMatchPathSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+戦利品のパックを選ぶ入力
+"""
+input ChooseMatchRewardPackInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	選ぶパックのキー（Match.rewardPacks の中から選ぶ。選べないものは ValidationErrors の FieldNotFound）
+	"""
+	pack: String!
+}
+"""
+chooseMatchRewardPack の結果（ENDED の段階の、まだ受け取っていないプレイヤーだけ。番は問わない。終わっていなければ MatchPhaseNotAllowedError、受け取り済みなら MatchRewardAlreadyReceivedError。参加していない対戦は MatchNotFoundError）
+"""
+union ChooseMatchRewardPackResult = ChooseMatchRewardPackSuccess | ValidationErrors | MatchNotFoundError | MatchPhaseNotAllowedError | MatchRewardAlreadyReceivedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+戦利品のパックを選んでカードを引いた（成功したら対戦の revision が進む。カードは Match.participants の rewardCards で読み、所持品へはポリシーが足す）
+"""
+type ChooseMatchRewardPackSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+部屋を閉じる入力
+"""
+input CloseRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+closeRoom の結果（作った人だけ。対戦中は閉じられないので RoomStatusNotAllowedError)
+"""
+union CloseRoomResult = CloseRoomSuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋を閉じた（閉じた部屋をもう一度閉じても、何も変えず成功する）
+"""
+type CloseRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	閉じた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+部屋を作る入力
+"""
+input CreateRoomInput {
+	"""
+	部屋の名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max。ほかの部屋と同じでもよい）
+	"""
+	name: String!
+}
+"""
+createRoom の結果。名前の誤りは ValidationErrors（項目名 name）。アバターかデッキが無ければ RoomRequirementsNotMetError（足りないものの一覧）。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union CreateRoomResult = CreateRoomSuccess | ValidationErrors | RoomRequirementsNotMetError | PlayerNotRegisteredError
+"""
+部屋を作った（公開前。席は 0）
+"""
+type CreateRoomSuccess {
+	"""
+	作った部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	作った部屋の revision
+	"""
+	revision: Int!
+}
+"""
+日時（RFC 3339 の文字列。例: 2026-10-17T09:00:00Z）
+"""
+scalar DateTime
+"""
+プレイヤーのデッキ。持ち主のプレイヤーだけが読む（ほかのプレイヤーのデッキは、me.decks にも deck(id) にも出ない）
+"""
+type Deck {
+	"""
+	デッキの公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	入っているカードと枚数（種類 → 名前の順。種類は Creature → Item → Spell）。枚数が 0 のカードは含まない
+	"""
+	cards: [DeckCard!]!
+	"""
+	カードの枚数の合計
+	"""
+	totalCount: Int!
+	"""
+	カードの種類ごとの枚数の合計（種類の数ではなく、枚数の和。入っていない種類は 0）
+	"""
+	typeCounts: DeckTypeCounts!
+}
+"""
+デッキに入っているカードと、その枚数
+"""
+type DeckCard {
+	"""
+	カード
+	"""
+	card: DeckCardInfo!
+	"""
+	枚数
+	"""
+	count: Int!
+}
+"""
+デッキに入っているカードの、見せるのに要る項目
+"""
+type DeckCardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	種類
+	"""
+	type: CardType!
+}
+"""
+自分のものとしてデッキが無い（無い・ほかのプレイヤーのもの。存在を明かさないため区別しない）
+"""
+type DeckNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+デッキの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union DeckResult = Deck | DeckNotFoundError | PlayerNotRegisteredError
+"""
+デッキに入っているカードの、種類ごとの枚数の合計（デッキの read model から返すときに数える）
+"""
+type DeckTypeCounts {
+	"""
+	Creature の枚数
+	"""
+	creature: Int!
+	"""
+	Item の枚数
+	"""
+	item: Int!
+	"""
+	Spell の枚数
+	"""
+	spell: Int!
+}
+"""
+対戦の後の意思表示の入力
+"""
+input DeclareRoomNextInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	続けるなら true、終えるなら false
+	"""
+	continue: Boolean!
+}
+"""
+declareRoomNext の結果（次を決める間だけ。部屋に入っている人が 1 人 1 回。変え直しは無い）
+"""
+union DeclareRoomNextResult = DeclareRoomNextSuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomAlreadyDeclaredNextError | PlayerNotRegisteredError
+"""
+対戦の後の意思表示をした。終えるなら部屋は休止中になり、全員が続けるなら準備中に戻る（準備完了と、公開前に決めた印が外れ、
+ボード・対戦ルール・席の選びを今の担当の決まりで変え直せる）。ほかの人がまだなら、次を決める状態のまま
+"""
+type DeclareRoomNextSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	意思表示をした部屋の revision
+	"""
+	revision: Int!
+}
+"""
+準備完了を申告する入力
+"""
+input DeclareRoomReadyInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+declareRoomReady の結果（準備中だけ。自分の担当の分がすべて決まっているときだけ）
+"""
+union DeclareRoomReadyResult = DeclareRoomReadySuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomConditionsNotDecidedError | RoomAlreadyReadyError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+準備完了を申告した（以後、自分の担当の分を選び直せない。取り消す操作は無い）
+"""
+type DeclareRoomReadySuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	申告した部屋の revision
+	"""
+	revision: Int!
+}
+"""
+手札を 1 枚捨てる入力
+"""
+input DiscardMatchCardInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	捨てる手札の番号（0 始まり。自分の手札の枚数の範囲。範囲の外は ValidationErrors の FieldOutOfRange）
+	"""
+	handIndex: Int!
+}
+"""
+discardMatchCard の結果（DISCARDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union DiscardMatchCardResult = DiscardMatchCardSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+手札を 1 枚捨てる（成功したら対戦の revision が進む）
+"""
+type DiscardMatchCardSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+カードを引く入力
+"""
+input DrawMatchCardInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+drawMatchCard の結果（DRAWING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union DrawMatchCardResult = DrawMatchCardSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+カードを引く（成功したら対戦の revision が進む）
+"""
+type DrawMatchCardSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+ターンを終える入力
+"""
+input EndMatchTurnInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+endMatchTurn の結果（ENDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union EndMatchTurnResult = EndMatchTurnSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+ターンを終える（成功したら対戦の revision が進む）
+"""
+type EndMatchTurnSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
+"""
+type FieldCountMismatch implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	決まりの個数
+	"""
+	expected: Int!
 }
 """
 入力の項目ごとの誤り。理由は __typename で見分ける
@@ -367,6 +913,28 @@ type FieldInvalidFormat implements FieldError {
 	誤りのある入力の項目
 	"""
 	field: String!
+}
+"""
+入力の ID が指すものが、選べるものの中に無い（無い・ほかのプレイヤーのもの・解放していない・公開中でない等。区別しない）
+"""
+type FieldNotFound implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+}
+"""
+入力が、別の入力の項目の値より大きくない（等しいのも含む。例: 目標の魔力が開始時の魔力以下、サイコロの目の最大が最小以下）
+"""
+type FieldNotGreaterThan implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	大きくなければならない相手の入力の項目（例: startingMagic）
+	"""
+	than: String!
 }
 """
 入力が範囲の外
@@ -408,6 +976,32 @@ type FieldTooLong implements FieldError {
 	max: Int!
 }
 """
+入力が下限より小さい（上限は無い）
+"""
+type FieldTooSmall implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	下限（この値を含む）
+	"""
+	min: Int!
+}
+"""
+ゲーム全体のルール
+"""
+type GameRules {
+	"""
+	対戦の決まり
+	"""
+	match: MatchRules!
+}
+"""
+ゲーム全体のルールの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union GameRulesResult = GameRules | PlayerNotRegisteredError
+"""
 土地（ふつうのマス）
 """
 type LandTile implements BoardTile {
@@ -425,6 +1019,671 @@ type LandTile implements BoardTile {
 	attribute: BoardTileAttribute!
 }
 """
+対戦。参加者は部屋の席の順で返す。
+順番は参加者ごとの turnOrder で見せる（始めるときに無作為に決めたもの）
+"""
+type Match {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	対戦の版（変える操作に渡す）
+	"""
+	revision: Int!
+	"""
+	今のラウンド（1 始まり）
+	"""
+	round: Int!
+	"""
+	ルール（始めた時点の写し）
+	"""
+	rules: MatchPlayRules!
+	"""
+	盤面（始めた時点の写し）
+	"""
+	board: MatchBoard!
+	"""
+	参加者（部屋の席の順）
+	"""
+	participants: [MatchParticipant!]!
+	"""
+	今の番の参加者（Match.participants の何番目か。順番が決まるまでは null）
+	"""
+	currentParticipant: Int
+	"""
+	対戦の段階。今の番の人が次にする操作を表す
+	"""
+	phase: MatchPhase!
+	"""
+	このターンに振ったサイコロの目（振る前は null）
+	"""
+	dice: Int
+	"""
+	このターンに残っている歩数
+	"""
+	remainingSteps: Int!
+	"""
+	今の番の人が選べる行き先（CHOOSING_PATH のときだけ中身がある。ほかの段階は空）
+	"""
+	pathChoices: [BoardPosition!]!
+	"""
+	対戦の結果（終わるまでは null）
+	"""
+	outcome: MatchOutcome
+	"""
+	自分が今選べる戦利品のパック（終わった後で、まだ受け取っていないときだけ中身がある。ほかは空）
+	"""
+	rewardPacks: [MatchRewardPack!]!
+	"""
+	この対戦を始めた部屋の公開用の ID（部屋の一覧の投影が遅れて引けない間は null）
+	"""
+	roomId: UUID
+	"""
+	その部屋で何戦目か（1 始まり。roomId が null の間は null）
+	"""
+	number: Int
+}
+"""
+参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
+"""
+type MatchAvatar {
+	"""
+	公開用の ID（プレイヤーのアバターか、NPC のアバターか）
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+}
+"""
+対戦の盤面。始めた時点のボードの写し（対戦が自分の写しを持つので、ボードのマスタが変わっても変わらない）。
+マス・つながり・対の型は Board と同じ
+"""
+type MatchBoard {
+	"""
+	幅
+	"""
+	width: Int!
+	"""
+	高さ
+	"""
+	height: Int!
+	"""
+	マス（y → x の順）
+	"""
+	tiles: [BoardTile!]!
+	"""
+	マスどうしのつながり
+	"""
+	connections: [BoardConnection!]!
+	"""
+	転送円どうし・橋どうしの対
+	"""
+	pairs: [BoardTilePair!]!
+}
+"""
+手札を 1 枚捨てた
+"""
+type MatchCardDiscardedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	捨てた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	捨てた手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	捨てたカード
+	"""
+	card: DeckCardInfo!
+}
+"""
+カードを引いた
+"""
+type MatchCardDrawnEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	引いた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	引いたカード
+	"""
+	card: DeckCardInfo!
+}
+"""
+まだ印の無いチェックポイントに入り、印を付けて魔力が増えた
+"""
+type MatchCheckpointPassedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	通った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	印を付けたチェックポイントの位置
+	"""
+	checkpoint: BoardPosition!
+	"""
+	増えた魔力
+	"""
+	magic: Int!
+}
+"""
+対戦が始まった（参加者・盤面・ルールは match で読む）
+"""
+type MatchCreatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+山札が混ざった（並びは見せないので、項目を持たない）
+"""
+type MatchDecksShuffledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+サイコロを振った
+"""
+type MatchDiceRolledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	振った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	出た目
+	"""
+	value: Int!
+}
+"""
+対戦が終わった理由
+"""
+enum MatchEndReason {
+	"""
+	目標の魔力に届いて拠点に戻った
+	"""
+	TARGET_MAGIC
+	"""
+	ラウンドの上限に達した
+	"""
+	ROUND_LIMIT
+}
+"""
+対戦が終わった
+"""
+type MatchEndedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	勝った参加者（Match.participants の何番目か）。魔力が同じならすべて
+	"""
+	winners: [Int!]!
+	"""
+	参加者ごとの順位（Match.participants の何番目かの順。1 が最上位）。魔力が同じなら同じ順位で、core が決める。目標の魔力で終わったときは勝った人が 1 位で、ほかの人は 2 位以下
+	"""
+	ranks: [Int!]!
+	"""
+	終わった理由
+	"""
+	reason: MatchEndReason!
+}
+"""
+対戦のイベント。種類ごとの型で見せ、見せないもの（山札の並び）は項目を持たない。
+誰が（participant）は Match.participants の何番目か
+"""
+interface MatchEvent {
+	"""
+	対戦の版（このイベントまで進んだ版。抜けなく 1 から続く）
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+指した版より後の対戦のイベント
+"""
+type MatchEventList {
+	"""
+	古い順にすべて（対戦の長さはラウンドの上限で決まるので、ページ分けしない）
+	"""
+	events: [MatchEvent!]!
+}
+"""
+対戦のイベントの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MatchEventsResult = MatchEventList | MatchNotFoundError | PlayerNotRegisteredError
+"""
+全員に手札が配られた
+"""
+type MatchHandsDealtEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	全員に配った枚数（山札が足りなければ、ある分だけ）
+	"""
+	cards: Int!
+}
+"""
+全チェックポイントに印を付けて拠点に入り、周回を終えて魔力が増えた
+"""
+type MatchLapCompletedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	周回を終えた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	増えた魔力
+	"""
+	magic: Int!
+}
+"""
+1 マス進んだ
+"""
+type MatchMovedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	進んだ参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	入ったマスの位置
+	"""
+	to: BoardPosition!
+}
+"""
+自分が参加している対戦が無い（無い・参加していない対戦。存在を明かさないため区別しない）
+"""
+type MatchNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+今の番の参加者ではない（NPC の番も含む）
+"""
+type MatchNotYourTurnError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+対戦の結果。終わった対戦だけが持つ
+"""
+type MatchOutcome {
+	"""
+	勝った参加者（Match.participants の何番目か）。魔力が同じならすべて
+	"""
+	winners: [Int!]!
+	"""
+	参加者ごとの順位（Match.participants の何番目かの順。1 が最上位）。魔力が同じなら同じ順位で、core が決める。目標の魔力で終わったときは勝った人が 1 位で、ほかの人は 2 位以下
+	"""
+	ranks: [Int!]!
+	"""
+	終わった理由
+	"""
+	reason: MatchEndReason!
+}
+"""
+参加者 1 人
+"""
+type MatchParticipant {
+	"""
+	プレイヤーか NPC か
+	"""
+	kind: MatchParticipantKind!
+	"""
+	プレイヤーの公開用の ID（プレイヤーだけ。NPC は null）
+	"""
+	playerId: UUID
+	"""
+	アバター（プレイヤーのアバター、NPC なら NPC のアバター）
+	"""
+	avatar: MatchAvatar!
+	"""
+	今いるマスの位置（始めた時点は拠点）
+	"""
+	position: BoardPosition!
+	"""
+	魔力
+	"""
+	magic: Int!
+	"""
+	手札（引いた順。同じカードが複数あれば、その枚数だけ並べる。カードの型はデッキのカードと同じ）
+	"""
+	hand: [DeckCardInfo!]!
+	"""
+	山札の残りの枚数。並びと中身は見せない
+	"""
+	drawPileCount: Int!
+	"""
+	順番の何番目か（0 始まり）。順番が早い人ほど小さい
+	"""
+	turnOrder: Int!
+	"""
+	拠点を出てから印を付けたチェックポイントの位置（拠点に戻って周回を終えると空に戻る）
+	"""
+	passedCheckpoints: [BoardPosition!]!
+	"""
+	戦利品を受け取ったか（プレイヤーだけ。NPC には配らないので、いつも false）
+	"""
+	rewardReceived: Boolean!
+	"""
+	受け取った戦利品のカード（受け取るまでは空）。引いた順で、同じカードは重ならない
+	"""
+	rewardCards: [DeckCardInfo!]!
+}
+"""
+参加者がプレイヤーか NPC か
+"""
+enum MatchParticipantKind {
+	"""
+	プレイヤー
+	"""
+	PLAYER
+	"""
+	NPC
+	"""
+	NPC
+}
+"""
+対戦の段階。今の番の人が次にする操作を表す
+"""
+enum MatchPhase {
+	"""
+	カードを引く段階（drawMatchCard）
+	"""
+	DRAWING
+	"""
+	手札が上限を超えているので捨てる段階（discardMatchCard）
+	"""
+	DISCARDING
+	"""
+	サイコロを振る段階（rollMatchDice）
+	"""
+	ROLLING
+	"""
+	分かれ道で行き先を選ぶ段階（chooseMatchPath）
+	"""
+	CHOOSING_PATH
+	"""
+	ターンを終える段階（endMatchTurn）
+	"""
+	ENDING
+	"""
+	対戦が終わった（戦利品のパックを選ぶ段階も、全員が受け取るまでこのまま。chooseMatchRewardPack）
+	"""
+	ENDED
+}
+"""
+今の段階ではできない操作（終わった対戦への操作も含む）
+"""
+type MatchPhaseNotAllowedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+対戦のルール。始めた時点の写し（部屋の対戦ルールの 7 つの値と、全体のルール MatchRules の手札の決まり）。
+始めた後にマスタや全体のルールを変えても、進行中の対戦には響かない
+"""
+type MatchPlayRules {
+	"""
+	届いて拠点に戻ると勝ちになる魔力
+	"""
+	targetMagic: Int!
+	"""
+	始めたときの魔力
+	"""
+	startingMagic: Int!
+	"""
+	拠点に戻ったときに増える魔力
+	"""
+	lapBonus: Int!
+	"""
+	チェックポイントを通ったときに増える魔力
+	"""
+	checkpointBonus: Int!
+	"""
+	ラウンドの上限。上限に達したら、その時点で魔力の多い人が勝つ
+	"""
+	roundLimit: Int!
+	"""
+	サイコロの目の最小
+	"""
+	diceMin: Int!
+	"""
+	サイコロの目の最大
+	"""
+	diceMax: Int!
+	"""
+	手札の上限
+	"""
+	maxHandCards: Int!
+	"""
+	始めに配る手札の枚数
+	"""
+	startingHandCards: Int!
+}
+"""
+対戦の進み。画面は手元の版（revision）と比べ、進んでいれば matchEvents で差分を、match で今の状態を読む。
+版だけを送るのは、見せてよいものの絞り込みを query の側だけで行うため
+"""
+type MatchProgress {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	対戦の最新の版（Match.revision と同じ。抜けなく 1 から続く）
+	"""
+	revision: Int!
+	"""
+	その版のイベントの起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+対戦の進みの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MatchProgressResult = MatchProgress | MatchNotFoundError | PlayerNotRegisteredError
+"""
+対戦の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MatchResult = Match | MatchNotFoundError | PlayerNotRegisteredError
+"""
+戦利品はもう受け取った
+"""
+type MatchRewardAlreadyReceivedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+戦利品のパックから引いた
+"""
+type MatchRewardDrawnEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	引いた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	選んだパックのキー
+	"""
+	pack: String!
+	"""
+	引いたカード（重ならない。候補が足りなければ順位の枚数より少ない）。cards にしないのは、MatchHandsDealtEvent.cards（Int）と同じ名前で型が食い違い、問い合わせを検証で断られるため
+	"""
+	rewardCards: [DeckCardInfo!]!
+}
+"""
+戦利品に選べるパック
+"""
+type MatchRewardPack {
+	"""
+	選ぶときに渡すキー（chooseMatchRewardPack の pack）
+	"""
+	key: String!
+	"""
+	名前
+	"""
+	name: String!
+}
+"""
+プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）
+"""
+type MatchRewardsCompletedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+}
+"""
+対戦の決まり（盤面や部屋によらず、ゲーム全体で同じ値）
+"""
+type MatchRules {
+	"""
+	対戦に参加できる人数の下限（この値を含む）
+	"""
+	minPlayers: Int!
+	"""
+	対戦に参加できる人数の上限（この値を含む）
+	"""
+	maxPlayers: Int!
+	"""
+	手札の上限の枚数
+	"""
+	maxHandCards: Int!
+	"""
+	対戦の始めに配る手札の枚数
+	"""
+	startingHandCards: Int!
+}
+"""
+ターンを終えた
+"""
+type MatchTurnEndedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	ターンを終えた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+}
+"""
+順番が決まった
+"""
+type MatchTurnOrderDecidedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	参加者の番号（Match.participants の何番目か）を、順番の早い順に並べたもの
+	"""
+	order: [Int!]!
+}
+"""
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError
 """
 union MeResult = Player | PlayerNotRegisteredError
@@ -434,9 +1693,158 @@ type Mutation {
 	"""
 	registerAvatar(input: RegisterAvatarInput!): RegisterAvatarResult!
 	"""
+	カードを引く
+	"""
+	drawMatchCard(input: DrawMatchCardInput!): DrawMatchCardResult!
+	"""
+	手札を 1 枚捨てる
+	"""
+	discardMatchCard(input: DiscardMatchCardInput!): DiscardMatchCardResult!
+	"""
+	サイコロを振る
+	"""
+	rollMatchDice(input: RollMatchDiceInput!): RollMatchDiceResult!
+	"""
+	分かれ道で行き先を選ぶ
+	"""
+	chooseMatchPath(input: ChooseMatchPathInput!): ChooseMatchPathResult!
+	"""
+	ターンを終える
+	"""
+	endMatchTurn(input: EndMatchTurnInput!): EndMatchTurnResult!
+	"""
+	終わった後に、戦利品のパックを選ぶ（順位の枚数のカードを引く）
+	"""
+	chooseMatchRewardPack(input: ChooseMatchRewardPackInput!): ChooseMatchRewardPackResult!
+	"""
 	JWT の (iss, sub) のプレイヤーを登録する。何度呼んでも、プレイヤーは 1 人だけで、登録済みでも同じ形（同じ id）で返す。game は me が PlayerNotRegisteredError のときに呼ぶ
 	"""
 	registerPlayer: RegisterPlayerResult!
+	"""
+	部屋を作る（名前を受け取る。アバターとデッキを 1 つ以上持っているときだけ）。作った人はプレイヤーの席に自動で座る。席の並びを決めるまでは席が 0 の部屋
+	"""
+	createRoom(input: CreateRoomInput!): CreateRoomResult!
+	"""
+	部屋の名前を変える（作った人だけ。閉じる前まで）
+	"""
+	renameRoom(input: RenameRoomInput!): RenameRoomResult!
+	"""
+	席の並びを決める（公開前だけ）。並びを変えたら、席ごとの選択はすべて外れる
+	"""
+	changeRoomSeats(input: ChangeRoomSeatsInput!): ChangeRoomSeatsResult!
+	"""
+	対戦ルール（ボードと 7 つの値）を決める
+	"""
+	changeRoomMatchRules(input: ChangeRoomMatchRulesInput!): ChangeRoomMatchRulesResult!
+	"""
+	席のアバターとデッキを選ぶ
+	"""
+	changeRoomSeatChoice(input: ChangeRoomSeatChoiceInput!): ChangeRoomSeatChoiceResult!
+	"""
+	部屋を公開する（プレイヤーの席が定員なら、そのまま準備中に進む）
+	"""
+	publishRoom(input: PublishRoomInput!): PublishRoomResult!
+	"""
+	準備完了を申告する
+	"""
+	declareRoomReady(input: DeclareRoomReadyInput!): DeclareRoomReadyResult!
+	"""
+	対戦の後に、続けるか終えるかを選ぶ（次を決める間だけ）
+	"""
+	declareRoomNext(input: DeclareRoomNextInput!): DeclareRoomNextResult!
+	"""
+	休止中の部屋を再開し、準備中に戻す（作った人だけ）
+	"""
+	resumeRoom(input: ResumeRoomInput!): ResumeRoomResult!
+	"""
+	部屋を閉じる
+	"""
+	closeRoom(input: CloseRoomInput!): CloseRoomResult!
+}
+"""
+自分の部屋の一覧の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union MyRoomsResult = RoomsConnection | ValidationErrors | PlayerNotRegisteredError
+"""
+NPC のアバター（プレイヤーが解放した公開中のもの）
+"""
+type NpcAvatar {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うデッキ（割り当てた順。公開中のものだけ）
+	"""
+	decks: [NpcDeck!]!
+}
+"""
+解放した公開中の NPC のアバターが無い（解放していない・公開中でないものを含む。区別しない）
+"""
+type NpcAvatarNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+NPC のアバターの詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union NpcAvatarResult = NpcAvatar | NpcAvatarNotFoundError | PlayerNotRegisteredError
+"""
+NPC のデッキ（公開中のもの）。NPC のアバターを通してだけ出る
+"""
+type NpcDeck {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	入っているカードと枚数（種類 → 名前の順。種類は Creature → Item → Spell）。枚数が 0 のカードは含まない
+	"""
+	cards: [NpcDeckCard!]!
+	"""
+	カードの枚数の合計
+	"""
+	totalCount: Int!
+}
+"""
+NPC のデッキに入っているカードと、その枚数
+"""
+type NpcDeckCard {
+	"""
+	カード
+	"""
+	card: NpcDeckCardInfo!
+	"""
+	枚数
+	"""
+	count: Int!
+}
+"""
+NPC のデッキに入っているカードの、見せるのに要る項目
+"""
+type NpcDeckCardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	種類
+	"""
+	type: CardType!
 }
 """
 ページの情報
@@ -475,6 +1883,22 @@ type Player {
 	このプレイヤーのアバター（作った順。上限があるので、ページ分けしないリスト）
 	"""
 	avatars: [Avatar!]!
+	"""
+	このプレイヤーが解放したボード（解放した順。公開中のものだけで、使用不可になったボードは含まれない。まだ解放が届いていなければ空）
+	"""
+	boards: [Board!]!
+	"""
+	このプレイヤーのデッキ（作った順。スターターの配布で作る数だけなので、ページ分けしないリスト）
+	"""
+	decks: [Deck!]!
+	"""
+	このプレイヤーが解放した NPC のアバター（解放した順。公開中のものだけで、使用不可になったアバターは含まれない。まだ解放が届いていなければ空）
+	"""
+	npcAvatars: [NpcAvatar!]!
+	"""
+	部屋を作るのに足りないもの（アバター → デッキの、先に作る順）。空なら作れる。createRoom が断るときの RoomRequirementsNotMetError と同じ判断
+	"""
+	roomRequirements: [RoomRequirement!]!
 }
 """
 JWT の (iss, sub) のプレイヤーが、まだ登録されていない。game は registerPlayer を呼んでから、me を呼び直す
@@ -497,6 +1921,36 @@ type ProphecyShopTile implements BoardTile {
 	行
 	"""
 	y: Int!
+}
+"""
+部屋を公開する入力
+"""
+input PublishRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+publishRoom の結果（公開前だけ。作った人だけ。席の並びが決まっていなければ RoomSeatsNotDecidedError。対戦ルールと席の選択は、決まっていなくても公開できる）
+"""
+union PublishRoomResult = PublishRoomSuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomSeatsNotDecidedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋を公開した（プレイヤーの席が定員なので、そのまま準備中に進む。公開前に決めたものは、準備中に変えられなくなる）
+"""
+type PublishRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	公開した部屋の revision
+	"""
+	revision: Int!
 }
 type Query {
 	"""
@@ -523,9 +1977,77 @@ type Query {
 		id: UUID!
 	): BoardResult!
 	"""
+	自分のデッキの詳細（登録済みのプレイヤーだけ）。無い・ほかのプレイヤーのデッキなら DeckNotFoundError
+	"""
+	deck(
+		"""
+		デッキの公開用の ID
+		"""
+		id: UUID!
+	): DeckResult!
+	"""
+	ゲーム全体のルール
+	"""
+	gameRules: GameRulesResult!
+	"""
+	自分が参加している対戦の詳細（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	"""
+	match(
+		"""
+		対戦の公開用の ID
+		"""
+		id: UUID!
+	): MatchResult!
+	"""
+	自分が参加している対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	"""
+	matchEvents(
+		"""
+		対戦の公開用の ID
+		"""
+		id: UUID!
+
+		"""
+		手元の版。これより後のイベントを返す（0 なら始めから）
+		"""
+		after: Int!
+	): MatchEventsResult!
+	"""
+	解放した公開中の NPC のアバターの詳細（登録済みのプレイヤーだけ）。解放していない・公開中でなければ NpcAvatarNotFoundError
+	"""
+	npcAvatar(
+		"""
+		NPC のアバターの公開用の ID
+		"""
+		id: UUID!
+	): NpcAvatarResult!
+	"""
 	ログイン中のプレイヤー（JWT の (iss, sub) に登録済みのプレイヤー）を返す。未登録なら PlayerNotRegisteredError
 	"""
 	me: MeResult!
+	"""
+	自分が入っている部屋の一覧（登録済みのプレイヤーだけ。新しい順。閉じた部屋は含まない）
+	"""
+	myRooms(
+		"""
+		1 ページの件数（1〜100。指定が無ければ 50）
+		"""
+		first: Int
+
+		"""
+		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
+		"""
+		after: String
+	): MyRoomsResult!
+	"""
+	自分が入っている部屋の詳細（登録済みのプレイヤーだけ。閉じた部屋も読める）。無い・入っていない部屋は RoomNotFoundError
+	"""
+	room(
+		"""
+		部屋の公開用の ID
+		"""
+		id: UUID!
+	): RoomResult!
 }
 """
 アバターを作る入力
@@ -563,6 +2085,474 @@ type RegisterPlayerSuccess {
 	player: Player!
 }
 """
+部屋の名前を変える入力
+"""
+input RenameRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+	"""
+	新しい名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max）
+	"""
+	name: String!
+}
+"""
+renameRoom の結果（作った人だけ。閉じる前まで。公開の後にも変えられる。閉じた部屋は RoomStatusNotAllowedError）
+"""
+union RenameRoomResult = RenameRoomSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+部屋の名前を変えた（同じ名前なら何も変えず、revision も進まない）
+"""
+type RenameRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	変えた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+休止中の部屋を再開する入力
+"""
+input ResumeRoomInput {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた部屋の revision
+	"""
+	revision: Int!
+}
+"""
+resumeRoom の結果（休止中だけ。作った人だけ）
+"""
+union ResumeRoomResult = ResumeRoomSuccess | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomNotResponsibleError | PlayerNotRegisteredError
+"""
+休止中の部屋を再開し、準備中に戻した（全員が続けたときと同じく、準備完了と公開前に決めた印が外れ、
+ボード・対戦ルール・席の選びを今の担当の決まりで変え直せる）
+"""
+type ResumeRoomSuccess {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	再開した部屋の revision
+	"""
+	revision: Int!
+}
+"""
+先に変えられた（画面を開いた後に、ほかの操作でこの対象が変わった。操作は行われていない）。読み直してから操作し直す
+"""
+type RevisionConflictError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+サイコロを振る入力
+"""
+input RollMatchDiceInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+}
+"""
+rollMatchDice の結果（ROLLING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union RollMatchDiceResult = RollMatchDiceSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+サイコロを振る（成功したら対戦の revision が進む）
+"""
+type RollMatchDiceSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+部屋。自分が入っている部屋だけが読める（入っていない人には RoomNotFoundError）。
+席・対戦ルール・席の選択は、それぞれ「まだ決まっていない（空の席の並び・null）／決まった」で返す
+"""
+type Room {
+	"""
+	部屋の公開用の ID
+	"""
+	id: UUID!
+	"""
+	部屋の名前（ほかの部屋と同じでもよい）
+	"""
+	name: String!
+	"""
+	更新の番号（変える操作の revision に渡す。画面は詳細を読み直し、この revision を持つ）
+	"""
+	revision: Int!
+	"""
+	状態
+	"""
+	status: RoomStatus!
+	"""
+	部屋に入っている人（作った人が先）と、準備完了の申告
+	"""
+	participants: [RoomParticipant!]!
+	"""
+	席の並び（まだ決めていなければ空）
+	"""
+	seats: [RoomSeat!]!
+	"""
+	対戦ルール（まだ決めていなければ null）
+	"""
+	matchRules: RoomMatchRules
+	"""
+	見ている人にできる操作。部屋の詳細（room）だけが返し、一覧（myRooms）では null
+	"""
+	capabilities: RoomCapabilities
+	"""
+	この部屋で始めた対戦の一覧（始めた順。まだ始めていなければ空）。結果は対戦が持つ（match(id)）
+	"""
+	matches: [RoomMatch!]!
+	"""
+	今の対戦（対戦中になるまでは null。次の対戦を始めるまでは終わった対戦のまま）。部屋の詳細（room）だけが返し、一覧（myRooms）では null。部屋の入っている人はみな対戦の参加者なので、読める
+	"""
+	match: Match
+}
+"""
+対戦の後の意思表示を、すでにした（変え直しは無い。操作は行われていない）
+"""
+type RoomAlreadyDeclaredNextError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+準備完了を申告した後に、自分の担当の分を選び直そうとした、または申告し直そうとした（操作は行われていない）
+"""
+type RoomAlreadyReadyError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+見ている人にできる操作。core の Decide と同じ関数で判断した値で、画面は担当・公開前に決めたものの固定・準備完了の条件を自分で判断せず、
+この値で出し分けるだけにする。席ごとの選び直しは RoomSeat.choiceChangeable
+"""
+type RoomCapabilities {
+	"""
+	席の並びを変えられるか（changeRoomSeats）
+	"""
+	changeSeats: Boolean!
+	"""
+	対戦ルールを変えられるか（changeRoomMatchRules）
+	"""
+	changeMatchRules: Boolean!
+	"""
+	公開できるか（publishRoom）
+	"""
+	publish: Boolean!
+	"""
+	準備完了を押せるか（declareRoomReady）
+	"""
+	declareReady: Boolean!
+	"""
+	対戦の後に、続ける・終えるを選べるか（declareRoomNext。次を決める間の、まだ選んでいない人だけ）
+	"""
+	declareNext: Boolean!
+	"""
+	休止中の部屋を再開できるか（resumeRoom。作った人だけ）
+	"""
+	resume: Boolean!
+	"""
+	閉じられるか（closeRoom）。閉じた部屋は、閉じ直しても何も変わらないので false。対戦中も false
+	"""
+	close: Boolean!
+	"""
+	名前を変えられるか（renameRoom）
+	"""
+	rename: Boolean!
+}
+"""
+公開前に決めたものを、準備中に変えようとした（操作は行われていない）
+"""
+type RoomConditionLockedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+自分の担当の分に、まだ決まっていないものがある（準備完了は押せない。操作は行われていない）
+"""
+type RoomConditionsNotDecidedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+この部屋で始めた対戦 1 つ（中身は match(id) で読む）
+"""
+type RoomMatch {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	この部屋で何戦目か（1 始まり）
+	"""
+	number: Int!
+}
+"""
+部屋の対戦ルール。ボードと 7 つの値で、7 つの値はボードの既定のルール（BoardDefaultRules）と同じ名前と決まり。
+部屋では既定ではなく、ボードごと決める値なので、入れ子にせず並べる
+"""
+type RoomMatchRules {
+	"""
+	ボード（作った人が解放した公開中のもの）
+	"""
+	board: RoomNamed!
+	"""
+	目標の魔力（魔力がこの値に届いて拠点に戻ると勝ち。1 以上、開始時の魔力より大きい）
+	"""
+	targetMagic: Int!
+	"""
+	開始時の魔力（0 以上）
+	"""
+	startingMagic: Int!
+	"""
+	周回のボーナス（拠点に戻ったときに増える魔力。0 以上）
+	"""
+	lapBonus: Int!
+	"""
+	チェックポイントのボーナス（チェックポイントを通ったときに増える魔力。0 以上）
+	"""
+	checkpointBonus: Int!
+	"""
+	ラウンドの上限（上限に達したら、その時点で魔力の多い人が勝つ。1 以上）
+	"""
+	roundLimit: Int!
+	"""
+	サイコロの目の最小（1 以上）
+	"""
+	diceMin: Int!
+	"""
+	サイコロの目の最大（最小以上）
+	"""
+	diceMax: Int!
+}
+"""
+アバター・デッキ・ボードを、公開用の ID と名前で見せる値（名前は読むときに引く）
+"""
+type RoomNamed {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+}
+"""
+部屋が無い（無い・入っていない部屋。区別しない）
+"""
+type RoomNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+その操作の担当ではない（作った人だけの操作、ほかの人の席の選択。操作は行われていない）
+"""
+type RoomNotResponsibleError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋に入っている人と、準備完了の申告
+"""
+type RoomParticipant {
+	"""
+	プレイヤーの公開用の ID
+	"""
+	playerId: UUID!
+	"""
+	部屋を作った人か
+	"""
+	owner: Boolean!
+	"""
+	準備完了を申告したか
+	"""
+	ready: Boolean!
+	"""
+	対戦の後の意思表示（続けるなら true、終えるなら false。まだしていない人と、次を決める間でないときは null）
+	"""
+	continues: Boolean
+}
+"""
+部屋を作るのに、作る人が先に持っていなければならないもの
+"""
+enum RoomRequirement {
+	"""
+	アバター（自分の席に座るアバター）
+	"""
+	AVATAR
+	"""
+	デッキ（自分の席で使うデッキ。スターターの配布が終わると持つ）
+	"""
+	DECK
+}
+"""
+部屋を作るのに要るもの（アバター・デッキ）が足りない（部屋は作られていない）
+"""
+type RoomRequirementsNotMetError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+	"""
+	足りないもの（先に作る順）
+	"""
+	missing: [RoomRequirement!]!
+}
+"""
+部屋の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union RoomResult = Room | RoomNotFoundError | PlayerNotRegisteredError
+"""
+席 1 つ。席の並びの順に返す
+"""
+type RoomSeat {
+	"""
+	席の種類
+	"""
+	kind: RoomSeatKind!
+	"""
+	座っているプレイヤーの公開用の ID（プレイヤーの席だけ。NPC の席は null）
+	"""
+	playerId: UUID
+	"""
+	選んだアバター（プレイヤーの席は座っている人のアバター、NPC の席は NPC のアバター。まだ選んでいなければ null）
+	"""
+	avatar: RoomNamed
+	"""
+	選んだデッキ（プレイヤーの席は座っている人のデッキ、NPC の席は NPC のアバターに割り当てたデッキ。まだ選んでいなければ null）
+	"""
+	deck: RoomNamed
+	"""
+	見ている人がこの席のアバターとデッキを選び直せるか（changeRoomSeatChoice）。部屋の詳細（room）だけが返し、一覧（myRooms）では null
+	"""
+	choiceChangeable: Boolean
+}
+"""
+席に座るのがプレイヤーか NPC か。形式（個人戦／チーム戦）とチームは持たない
+"""
+enum RoomSeatKind {
+	"""
+	プレイヤーの席。今は 1 つで、作った人が座る
+	"""
+	PLAYER
+	"""
+	NPC の席
+	"""
+	NPC
+}
+"""
+席の並びがまだ決まっていない（公開と、席の選択はできない。操作は行われていない）
+"""
+type RoomSeatsNotDecidedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない）。全員が準備完了を申告すると対戦中に進み、対戦が終わると次を決める状態に進む
+"""
+enum RoomStatus {
+	"""
+	公開前（マスタの「準備中」と分けて、公開前と呼ぶ）。席・対戦ルール・席の選択を何でも決められる
+	"""
+	DRAFT
+	"""
+	準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める
+	"""
+	PREPARING
+	"""
+	対戦中（全員が準備完了を申告して、対戦が始まった）。対戦は Room.match
+	"""
+	PLAYING
+	"""
+	次を決める（対戦が終わり、全員が戦利品を受け取り終えた後）。参加している人が declareRoomNext で続けるか終えるかを選ぶ。誰かが終えるなら休止中、全員が続けるなら準備中に戻る
+	"""
+	DECIDING_NEXT
+	"""
+	休止中（対戦の後に誰かが終えた。今日はここまで）。一覧に残り、作った人が resumeRoom で再開すると準備中に戻る
+	"""
+	PAUSED
+	"""
+	閉じた（作った人が閉じた）。一覧には出ない
+	"""
+	CLOSED
+}
+"""
+今の状態ではできない操作（席の並びと公開は公開前だけ、条件を選ぶのは公開前か準備中だけ、準備完了は準備中だけ。操作は行われていない）
+"""
+type RoomStatusNotAllowedError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+自分の部屋の一覧の 1 ページ（新しい順。閉じた部屋は含まない）
+"""
+type RoomsConnection {
+	"""
+	このページの部屋
+	"""
+	edges: [RoomsEdge!]!
+	"""
+	ページの情報
+	"""
+	pageInfo: PageInfo!
+}
+"""
+自分の部屋の一覧の 1 件と、その位置
+"""
+type RoomsEdge {
+	"""
+	この 1 件の位置（次のページを取るときに after に渡す）
+	"""
+	cursor: String!
+	"""
+	部屋
+	"""
+	node: Room!
+}
+"""
 聖堂（通る・止まると、属性ごとの品物を売り買いできる）。属性は持たない
 """
 type SanctuaryTile implements BoardTile {
@@ -597,9 +2587,23 @@ enum StarterGrantStatus {
 	"""
 	IN_PROGRESS
 	"""
-	所持カードとデッキがそろった
+	所持カード・デッキ・解放がそろった
 	"""
 	COMPLETED
+}
+type Subscription {
+	"""
+	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
+	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。全員が戦利品を受け取り終えたら、その版を送ってから閉じる
+	（対戦が終わっただけでは閉じない。受け取らないまま離れた人がいると閉じない）。
+	無い・参加していない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
+	"""
+	matchProgress(
+		"""
+		対戦の公開用の ID
+		"""
+		id: UUID!
+	): MatchProgressResult!
 }
 """
 公開用の ID（UUID の文字列）。core の内部の ID は返さない

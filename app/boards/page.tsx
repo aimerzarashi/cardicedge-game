@@ -95,10 +95,10 @@ export default async function BoardsPage({
   return (
     <main>
       <h1>ボードの一覧</h1>
-      <BoardsResult result={result} after={after} />
       <p>
         <Link href="/">トップへ</Link>
       </p>
+      <BoardsResult result={result} after={after} />
     </main>
   );
 }

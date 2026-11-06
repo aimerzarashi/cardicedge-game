@@ -73,6 +73,28 @@ services:
       core-migrate-game:
         condition: service_completed_successfully
 
+  # core が種類の表（domain_entity_types）を起動時に作ってから、写したボード・NPC のアバターの内部 ID の行を作る
+  # （local/core-master/entities.sql）。登録の後にできても配布は待てば直る失敗として続くため、runner の前に済めばよい。
+  # core の healthy を待つ依存にしないのは、runner の run が依存をたどって core-publish-master をもう一度流し、
+  # 主キーの重複で落ちるため。core-db にだけ依存し、種類の表ができるまで自分で待つ
+  core-publish-entities:
+    image: postgres:18.6
+    environment:
+      PGPASSWORD: core_password
+    volumes:
+      - ./local/core-master:/sql:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until [ "$$(psql -h core-db -U core_user -d core_game -Atc "select count(*) from domain_entity_types where name = 'npc_avatar'")" = 1 ]; do sleep 1; done
+        psql -v ON_ERROR_STOP=1 -h core-db -U core_user -d core_game -f /sql/entities.sql
+    restart: "no"
+    # up --wait は、終わって止まったコンテナを失敗とみなすため、runner の依存として流す
+    profiles: ["runner"]
+    depends_on:
+      core-db:
+        condition: service_healthy
+
   core-db:
     image: postgres:18.6
     environment:
@@ -200,6 +222,9 @@ services:
       dockerfile: local/game/Dockerfile
     profiles: ["runner"]
     init: true
+    depends_on:
+      core-publish-entities:
+        condition: service_completed_successfully
     volumes:
       - ./:/home/node/app
     environment:

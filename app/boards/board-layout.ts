@@ -19,6 +19,8 @@ export type Placement =
 export type Tile = Position & Placement;
 // 転送円どうし・橋どうしの対（向きは無い）。a は core が返す向きのまま（座標が小さい側）
 export type Pair = { a: Position; b: Position };
+// 対戦で参加者が立っているマスに出す印（game だけ。label は席の番号等の短い文字）
+export type Piece = Position & { label: string };
 
 export const TILE_KIND_LABELS: Record<Placement["__typename"], string> = {
   LandTile: "土地",

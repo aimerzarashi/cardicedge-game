@@ -1,19 +1,19 @@
--- make test の core_game に入れるマスタ（公開中のカード 3 枚・公開中のスターターデッキ 2 つ・game_rules・ボード）。
+-- make test の core_game に入れるマスタ（公開中のカード 3 枚・公開中の配布デッキ 2 つ・スターターセット・game_rules・ボード・NPC のアバターと割り当てたデッキ）。
 -- core の make publish-master（studio の read model の行を game の DB に写す）の結果と同じ形の行を、固定の値で入れる。
--- 行の形は core の migrations（cards・starter_decks・game_rules・boards）と、tests/testhelper/master.go（PublishMaster）に合わせてある。
+-- 行の形は core の migrations（cards・grant_decks・starter_sets・game_rules・boards・npc_avatars・npc_decks）と、tests/testhelper/master.go（PublishMaster）に合わせてある。
 -- カード A・B・C は、デッキ 1 に A を 4 枚・B を 1 枚、デッキ 2 に A を 2 枚・B を 3 枚・C を 2 枚入れる
 INSERT INTO cards (card_id, card_type, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-00000000000a', 1, 'a', 'published', '{"id":"00000000-0000-4000-8000-00000000000a","name":"A","status":"published"}'),
   ('00000000-0000-4000-8000-00000000000b', 1, 'b', 'published', '{"id":"00000000-0000-4000-8000-00000000000b","name":"B","status":"published"}'),
   ('00000000-0000-4000-8000-00000000000c', 1, 'c', 'published', '{"id":"00000000-0000-4000-8000-00000000000c","name":"C","status":"published"}');
 
-INSERT INTO starter_decks (starter_deck_id, sort_name, status, total_count, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 5, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}'),
+INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata) VALUES
+  ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3}]}'),
   ('00000000-0000-4000-8000-0000000000d2', '2', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d2","name":"水","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":2},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3},{"card_id":"00000000-0000-4000-8000-00000000000c","count":2}]}');
 
 -- 値は core の gamerules.Defaults()
 INSERT INTO game_rules (game_rules_id, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":40,"max_card_duplicates":4},"starter_deck":{"max_published":2}}}');
+  ('00000000-0000-4000-8000-0000000000e1', '{"id":"00000000-0000-4000-8000-0000000000e1","revision":1,"rules":{"player":{"max_decks":10,"max_avatars":5},"deck":{"total_card_count":7,"max_card_duplicates":4},"starter_deck":{"max_published":2},"match":{"min_players":2,"max_players":4,"max_hand_cards":6,"starting_hand_cards":5,"reward_cards_by_rank":[3,2,1,1]}}}');
 
 -- 公開中のボード 3 つ（名前の順に A・B・C）と、使用不可のボード 1 つ（一覧に出ないことを確かめる）。
 -- metadata は studio の read model（readmodel.BoardMetadata）が書く形で、kind・attribute は小文字、default_rules・tile_counts は snake_case。sort_name は並びを決めるだけの値。
@@ -24,3 +24,21 @@ INSERT INTO boards (board_id, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-0000000000b2', '2', 'published', '{"id":"00000000-0000-4000-8000-0000000000b2","name":"公開中B","status":"published","width":3,"height":2,"tiles":[{"x":0,"y":0,"kind":"base"},{"x":1,"y":0,"kind":"land","attribute":"fire"},{"x":2,"y":0,"kind":"checkpoint"},{"x":1,"y":1,"kind":"land","attribute":"multi"}],"connections":[{"a":{"x":0,"y":0},"b":{"x":1,"y":0}},{"a":{"x":1,"y":0},"b":{"x":1,"y":1}},{"a":{"x":1,"y":0},"b":{"x":2,"y":0}}],"pairs":[],"default_rules":{"target_magic":5000,"starting_magic":0,"lap_bonus":200,"checkpoint_bonus":50,"round_limit":20,"dice_min":2,"dice_max":12},"tile_counts":{"land":2,"base":1,"checkpoint":1,"fire":1,"earth":0,"water":0,"wind":0,"neutral":0,"multi":1,"warp":0,"bridge":0,"sanctuary":0,"shrine":0,"prophecy_shop":0,"card_shop":0}}'),
   ('00000000-0000-4000-8000-0000000000b4', '3', 'published', '{"id":"00000000-0000-4000-8000-0000000000b4","name":"公開中C","status":"published","width":6,"height":2,"tiles":[{"x":0,"y":0,"kind":"base"},{"x":1,"y":0,"kind":"warp"},{"x":2,"y":0,"kind":"bridge"},{"x":3,"y":0,"kind":"sanctuary"},{"x":4,"y":0,"kind":"shrine"},{"x":5,"y":0,"kind":"warp"},{"x":0,"y":1,"kind":"checkpoint"},{"x":1,"y":1,"kind":"warp"},{"x":2,"y":1,"kind":"bridge"},{"x":3,"y":1,"kind":"prophecy_shop"},{"x":4,"y":1,"kind":"card_shop"},{"x":5,"y":1,"kind":"warp"}],"connections":[{"a":{"x":0,"y":0},"b":{"x":1,"y":0}},{"a":{"x":1,"y":0},"b":{"x":2,"y":0}},{"a":{"x":2,"y":0},"b":{"x":3,"y":0}},{"a":{"x":3,"y":0},"b":{"x":4,"y":0}},{"a":{"x":4,"y":0},"b":{"x":5,"y":0}},{"a":{"x":0,"y":1},"b":{"x":1,"y":1}},{"a":{"x":1,"y":1},"b":{"x":2,"y":1}},{"a":{"x":2,"y":1},"b":{"x":3,"y":1}},{"a":{"x":3,"y":1},"b":{"x":4,"y":1}},{"a":{"x":4,"y":1},"b":{"x":5,"y":1}},{"a":{"x":0,"y":0},"b":{"x":0,"y":1}},{"a":{"x":1,"y":0},"b":{"x":1,"y":1}},{"a":{"x":2,"y":0},"b":{"x":2,"y":1}},{"a":{"x":3,"y":0},"b":{"x":3,"y":1}},{"a":{"x":4,"y":0},"b":{"x":4,"y":1}},{"a":{"x":5,"y":0},"b":{"x":5,"y":1}}],"pairs":[{"a":{"x":1,"y":0},"b":{"x":1,"y":1}},{"a":{"x":2,"y":0},"b":{"x":2,"y":1}},{"a":{"x":5,"y":0},"b":{"x":5,"y":1}}],"default_rules":{"target_magic":8000,"starting_magic":600,"lap_bonus":300,"checkpoint_bonus":100,"round_limit":30,"dice_min":1,"dice_max":6},"tile_counts":{"land":0,"base":1,"checkpoint":1,"fire":0,"earth":0,"water":0,"wind":0,"neutral":0,"multi":0,"warp":4,"bridge":2,"sanctuary":1,"shrine":1,"prophecy_shop":1,"card_shop":1}}'),
   ('00000000-0000-4000-8000-0000000000b3', '4', 'retired', '{"id":"00000000-0000-4000-8000-0000000000b3","name":"使用不可","status":"retired","width":2,"height":1,"tiles":[{"x":0,"y":0,"kind":"base"},{"x":1,"y":0,"kind":"checkpoint"}],"connections":[{"a":{"x":0,"y":0},"b":{"x":1,"y":0}}],"pairs":[],"default_rules":{"target_magic":8000,"starting_magic":600,"lap_bonus":300,"checkpoint_bonus":100,"round_limit":30,"dice_min":1,"dice_max":6},"tile_counts":{"land":0,"base":1,"checkpoint":1,"fire":0,"earth":0,"water":0,"wind":0,"neutral":0,"multi":0,"warp":0,"bridge":0,"sanctuary":0,"shrine":0,"prophecy_shop":0,"card_shop":0}}');
+
+-- NPC のデッキは、core の make publish-master と同じく、写したアバターに割り当てたものだけを入れる（状態つき）。
+-- 炎の剣士は 水 → 火 → 古い の順に割り当て、使用不可の「古い」は出ない。使用不可のアバターは一覧にも詳細にも出ない
+INSERT INTO npc_decks (npc_deck_id, sort_name, status, total_count, metadata) VALUES
+  ('00000000-0000-4000-8000-0000000000e1', '火のnpcデッキ', 'published', 5, '{"id":"00000000-0000-4000-8000-0000000000e1","name":"火の NPC デッキ","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}'),
+  ('00000000-0000-4000-8000-0000000000e2', '水のnpcデッキ', 'published', 4, '{"id":"00000000-0000-4000-8000-0000000000e2","name":"水の NPC デッキ","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000c","count":2},{"card_id":"00000000-0000-4000-8000-00000000000a","count":2}]}'),
+  ('00000000-0000-4000-8000-0000000000e3', '古いnpcデッキ', 'retired', 1, '{"id":"00000000-0000-4000-8000-0000000000e3","name":"古い NPC デッキ","status":"retired","cards":[{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}');
+
+INSERT INTO npc_avatars (npc_avatar_id, sort_name, status, metadata) VALUES
+  ('00000000-0000-4000-8000-0000000000f1', '炎の剣士', 'published', '{"id":"00000000-0000-4000-8000-0000000000f1","name":"炎の剣士","status":"published","decks":["00000000-0000-4000-8000-0000000000e2","00000000-0000-4000-8000-0000000000e1","00000000-0000-4000-8000-0000000000e3"]}'),
+  ('00000000-0000-4000-8000-0000000000f2', '森の番人', 'published', '{"id":"00000000-0000-4000-8000-0000000000f2","name":"森の番人","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
+  ('00000000-0000-4000-8000-0000000000f3', '使用不可のnpc', 'retired', '{"id":"00000000-0000-4000-8000-0000000000f3","name":"使用不可の NPC","status":"retired","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
+  ('00000000-0000-4000-8000-0000000000f4', '未解放のnpc', 'published', '{"id":"00000000-0000-4000-8000-0000000000f4","name":"未解放の NPC","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}');
+
+-- 公開中のスターターセット。配るデッキは 火・水、解放するボードは 公開中A だけ（部屋の対戦ルールで選べる。ほかのボードは未解放）、解放する NPC は 森の番人 → 使用不可 → 炎の剣士 の順（名前の順でも行の順でもない）。
+-- 未解放の NPC は公開中でも解放しない。使用不可の NPC は解放していても出ない
+INSERT INTO starter_sets (starter_set_id, sort_name, status, metadata) VALUES
+  ('00000000-0000-4000-8000-0000000000a1', '1', 'published', '{"id":"00000000-0000-4000-8000-0000000000a1","name":"公開中","status":"published","revision":1,"grant_decks":["00000000-0000-4000-8000-0000000000d1","00000000-0000-4000-8000-0000000000d2"],"unlock_boards":["00000000-0000-4000-8000-0000000000b1"],"unlock_npc_avatars":["00000000-0000-4000-8000-0000000000f2","00000000-0000-4000-8000-0000000000f3","00000000-0000-4000-8000-0000000000f1"]}');

@@ -27,6 +27,7 @@ make gen-api # 前提にする版の core のイメージから game 用のス�
 make migrate # 未適用の migrations だけを Atlas で適用（DB を作り直さない）
 make migrate-generate NAME=<name> # better-auth の設定と DB の差分 SQL を次の番号で生成
 make migrate-hash # migrations を手で足したら atlas.sum を作り直す
+make dev-cache-reset # 開発用の Turbopack のキャッシュ（.next/dev）を作り直して再起動（下の注意）
 make down    # game を停止（tunnel を含む。core は studio も使うため止めない。game-db のデータは残す）
 make clean   # down に加えて game-db のデータも消す（core も作り直すこと。下の注意）
 ```
@@ -34,6 +35,8 @@ make clean   # down に加えて game-db のデータも消す（core も作り�
 http://localhost:3000 で開く（envoy 経由。Next.js の開発サーバーはホストに公開していない）。
 送ったメール（確認・パスワードの設定等）は http://localhost:8026 の Mailpit で読む（外には送らない。ポートは GAME_MAILPIT_PORT で変更可）。
 ポートが他と衝突する場合は `GAME_PORT=13000 make up` のように変更できる。
+
+開発の画面がページ全体の読み直しを繰り返すとき（ブラウザの console に `[Fast Refresh] rebuilding` が出続ける）は、まず `docker compose restart game`、直らなければ `make dev-cache-reset` で開発用のキャッシュを作り直す。依存（`pnpm-lock.yaml` から入れたもの）か `next.config.ts` が前回の起動から変わっていれば、起動のとき（`make up`・再起動）に自動で作り直す（local/game/dev.sh。studio#66・game#39）。
 
 ### 構成
 
@@ -163,7 +166,7 @@ better-auth のレート制限は本番モード（`NODE_ENV=production`）で�
 | 入口 | 利用者の IP | 置く環境 |
 |---|---|---|
 | 公開の入口（envoy の 10000） | 接続元の IP | すべて |
-| 中継役用の入口（10001。`local/envoy/relay-listener.yaml`） | `X-Forwarded-For` の最後の 1 段 | **テスト用の環境（compose.test.yaml）だけ**。Playwright がテストごとに別の IP を名乗るために使う |
+| 中継役用の入口（10001。`local/envoy/relay-listener.yaml`） | `X-Forwarded-For` の最後の 1 段 | **テスト用の環境（compose.test.yaml）だけ**。Playwright がテストごとに別の IP を名乗るために使う。ブラウザの Subscription（`/game/graphql`）も同じ入口から core へ届くよう、その経路だけ置く |
 
 - **game には envoy を経由してしか届かないようにする**（game の 3000 番を公開しない）。直接届くと `x-client-ip` を偽装できる
 - **中継役用の入口は、開発用・リリース版の環境に置かず、ポートも公開しない**。届いた `X-Forwarded-For` を信じるので、公開するとそのまま偽装の穴になる
