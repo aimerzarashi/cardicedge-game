@@ -619,9 +619,9 @@ input CreateRoomInput {
 	name: String!
 }
 """
-createRoom の結果。名前の誤りは ValidationErrors（項目名 name）。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+createRoom の結果。名前の誤りは ValidationErrors（項目名 name）。アバターかデッキが無ければ RoomRequirementsNotMetError（足りないものの一覧）。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
-union CreateRoomResult = CreateRoomSuccess | ValidationErrors | PlayerNotRegisteredError
+union CreateRoomResult = CreateRoomSuccess | ValidationErrors | RoomRequirementsNotMetError | PlayerNotRegisteredError
 """
 部屋を作った（公開前。席は 0）
 """
@@ -1721,7 +1721,7 @@ type Mutation {
 	"""
 	registerPlayer: RegisterPlayerResult!
 	"""
-	部屋を作る（名前を受け取る）。作った人はプレイヤーの席に自動で座る。席の並びを決めるまでは席が 0 の部屋
+	部屋を作る（名前を受け取る。アバターとデッキを 1 つ以上持っているときだけ）。作った人はプレイヤーの席に自動で座る。席の並びを決めるまでは席が 0 の部屋
 	"""
 	createRoom(input: CreateRoomInput!): CreateRoomResult!
 	"""
@@ -1895,6 +1895,10 @@ type Player {
 	このプレイヤーが解放した NPC のアバター（解放した順。公開中のものだけで、使用不可になったアバターは含まれない。まだ解放が届いていなければ空）
 	"""
 	npcAvatars: [NpcAvatar!]!
+	"""
+	部屋を作るのに足りないもの（アバター → デッキの、先に作る順）。空なら作れる。createRoom が断るときの RoomRequirementsNotMetError と同じ判断
+	"""
+	roomRequirements: [RoomRequirement!]!
 }
 """
 JWT の (iss, sub) のプレイヤーが、まだ登録されていない。game は registerPlayer を呼んでから、me を呼び直す
@@ -2406,6 +2410,32 @@ type RoomParticipant {
 	対戦の後の意思表示（続けるなら true、終えるなら false。まだしていない人と、次を決める間でないときは null）
 	"""
 	continues: Boolean
+}
+"""
+部屋を作るのに、作る人が先に持っていなければならないもの
+"""
+enum RoomRequirement {
+	"""
+	アバター（自分の席に座るアバター）
+	"""
+	AVATAR
+	"""
+	デッキ（自分の席で使うデッキ。スターターの配布が終わると持つ）
+	"""
+	DECK
+}
+"""
+部屋を作るのに要るもの（アバター・デッキ）が足りない（部屋は作られていない）
+"""
+type RoomRequirementsNotMetError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+	"""
+	足りないもの（先に作る順）
+	"""
+	missing: [RoomRequirement!]!
 }
 """
 部屋の詳細の結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError

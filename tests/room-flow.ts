@@ -20,6 +20,8 @@ export async function openNewRoom(
     "部屋用",
   ]);
   await page.goto("/rooms");
+  // 部屋を作れるのはデッキを持ってから。デッキはスターターの配布で届くので、作るフォームが出るまで読み直して待つ
+  await reloadUntilVisible(page, page.getByLabel("部屋の名前"));
   await page.getByLabel("部屋の名前").fill("確認用の部屋");
   await page.getByRole("button", { name: "部屋を作る" }).click();
   await expect(page).toHaveURL(/\/rooms\/[0-9a-f-]{36}$/);

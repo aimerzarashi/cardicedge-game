@@ -4,11 +4,17 @@ import type { MyRoomsQuery } from "@/graphql/graphql";
 import { type CoreResult, callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import { first } from "@/lib/search-params";
-import { ROOM_STATUS_LABELS } from "../messages";
+import { ROOM_REQUIREMENT_STEPS, ROOM_STATUS_LABELS } from "../messages";
 import { CreateRoomForm } from "./create-room-form";
 
 const myRoomsQuery = graphql(`
   query MyRooms($after: String) {
+    me {
+      __typename
+      ... on Player {
+        roomRequirements
+      }
+    }
     myRooms(after: $after) {
       __typename
       ... on RoomsConnection {
@@ -51,14 +57,35 @@ export default async function RoomsPage({ searchParams }: PageProps<"/rooms">) {
   const player = await currentPlayer();
   const result = player.ok ? await callCore(myRoomsQuery, { after }) : player;
 
+  // 作れるかは core が答える（足りないものの一覧。画面で数えない）。読めなかったときはフォームを出し、作る操作の結果に任せる
+  const requirements =
+    result.ok && result.data.me.__typename === "Player"
+      ? result.data.me.roomRequirements
+      : [];
+
   return (
     <main>
       <h1>部屋</h1>
-      <CreateRoomForm />
-      <RoomsResult result={result} after={after} />
       <p>
         <Link href="/">トップへ</Link>
       </p>
+      {requirements.length === 0 ? (
+        <CreateRoomForm />
+      ) : (
+        <section data-testid="room-requirements">
+          <p>部屋を作る前に、次を済ませてください。</p>
+          <ul>
+            {requirements.map((requirement) => (
+              <li key={requirement}>
+                <Link href={ROOM_REQUIREMENT_STEPS[requirement].href}>
+                  {ROOM_REQUIREMENT_STEPS[requirement].label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <RoomsResult result={result} after={after} />
     </main>
   );
 }

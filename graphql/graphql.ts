@@ -231,6 +231,13 @@ export type RollMatchDiceInput = {
   revision: number;
 };
 
+/** 部屋を作るのに、作る人が先に持っていなければならないもの */
+export type RoomRequirement =
+  /** アバター（自分の席に座るアバター） */
+  | 'AVATAR'
+  /** デッキ（自分の席で使うデッキ。スターターの配布が終わると持つ） */
+  | 'DECK';
+
 /** 席に座るのがプレイヤーか NPC か。形式（個人戦／チーム戦）とチームは持たない */
 export type RoomSeatKind =
   /** NPC の席 */
@@ -547,6 +554,7 @@ export type CreateRoomMutationVariables = Exact<{
 export type CreateRoomMutation = { createRoom:
     | { __typename: 'CreateRoomSuccess', id: string }
     | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RoomRequirementsNotMetError' }
     | { __typename: 'ValidationErrors', errors: Array<
         | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
@@ -749,7 +757,10 @@ export type MyRoomsQueryVariables = Exact<{
 }>;
 
 
-export type MyRoomsQuery = { myRooms:
+export type MyRoomsQuery = { me:
+    | { __typename: 'Player', roomRequirements: Array<RoomRequirement> }
+    | { __typename: 'PlayerNotRegisteredError' }
+  , myRooms:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RoomsConnection', edges: Array<{ node: { id: string, name: string, status: RoomStatus, seats: Array<{ kind: RoomSeatKind }>, matchRules: { board: { name: string } } | null } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'ValidationErrors' }
@@ -1482,6 +1493,12 @@ export const RoomMatchDocument = new TypedDocumentString(`
     `) as unknown as TypedDocumentString<RoomMatchQuery, RoomMatchQueryVariables>;
 export const MyRoomsDocument = new TypedDocumentString(`
     query MyRooms($after: String) {
+  me {
+    __typename
+    ... on Player {
+      roomRequirements
+    }
+  }
   myRooms(after: $after) {
     __typename
     ... on RoomsConnection {
