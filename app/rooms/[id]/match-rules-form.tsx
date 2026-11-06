@@ -9,6 +9,16 @@ export type BoardOption = { id: string; name: string; defaultRules: Rules };
 
 const FIELDS = Object.keys(RULE_LABELS) as RuleField[];
 
+// 入力中の値は文字列のまま持つ（打ち直しで欄を空にした間は valueAsNumber が NaN になり、value に入れられないため）。
+// 送るのはフォームの値なので、数にするのも正誤も送った先に任せる
+type RuleInputs = Record<RuleField, string>;
+
+function toInputs(rules: Rules): RuleInputs {
+  return Object.fromEntries(
+    FIELDS.map((field) => [field, String(rules[field])]),
+  ) as RuleInputs;
+}
+
 export function MatchRulesForm({
   id,
   revision,
@@ -28,8 +38,9 @@ export function MatchRulesForm({
   const [boardId, setBoardId] = useState<string | undefined>(
     current?.boardId ?? boards[0]?.id,
   );
-  const [values, setValues] = useState<Rules | undefined>(
-    current ?? boards[0]?.defaultRules,
+  const initial = current ?? boards[0]?.defaultRules;
+  const [values, setValues] = useState<RuleInputs | undefined>(
+    initial && toInputs(initial),
   );
 
   if (!boardId || !values) {
@@ -51,7 +62,7 @@ export function MatchRulesForm({
             // 7 つの値は、選んだボードの既定のルールから始める（選び直したら既定に戻す）
             const board = boards.find((b) => b.id === event.target.value);
             if (board) {
-              setValues(board.defaultRules);
+              setValues(toInputs(board.defaultRules));
             }
           }}
         >
@@ -72,7 +83,7 @@ export function MatchRulesForm({
             required
             value={values[field]}
             onChange={(event) =>
-              setValues({ ...values, [field]: event.target.valueAsNumber })
+              setValues({ ...values, [field]: event.target.value })
             }
           />
         </label>

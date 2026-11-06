@@ -86,3 +86,35 @@ export async function decideNpcSeat(page: Page) {
   await expect(seatItem(page, 1)).toContainText("アバター: 炎の剣士");
   await expect(seatItem(page, 1)).toContainText("デッキ: 火の NPC デッキ");
 }
+
+export function matchOperations(page: Page) {
+  const draw = page.getByRole("button", { name: "カードを引く" });
+  const discard = page.getByRole("button", { name: /を捨てる$/ });
+  const roll = page.getByRole("button", { name: "サイコロを振る" });
+  const choose = page.getByRole("button", { name: /へ進む$/ });
+  const end = page.getByRole("button", { name: "ターンを終える" });
+  return draw.or(discard).or(roll).or(choose).or(end);
+}
+
+// 対戦の画面で、結果が出るまで自分の番の操作を押し続ける（順番は core が決める。NPC の番は core のポリシーが進める）
+export async function playMatchToEnd(page: Page) {
+  const outcome = page.getByTestId("match-outcome");
+  const operations = matchOperations(page);
+  // 上限 1 ラウンドなので数回で終わる
+  for (let step = 0; step < 30; step++) {
+    // 描画は 1 イベントずつ間を置くため、NPC の番が長いと既定の 5 秒では足りない
+    await expect(operations.or(outcome).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await outcome.isVisible()) {
+      return;
+    }
+    const revision = await page.locator("main").getAttribute("data-revision");
+    await operations.first().click();
+    // 押したあとは画面が読み直されて revision が進む。進む前に次を押すと、古い revision で送ってしまう
+    await expect(page.locator("main")).not.toHaveAttribute(
+      "data-revision",
+      revision ?? "",
+    );
+  }
+}

@@ -3,12 +3,20 @@ import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import {
+  continuesLabel,
+  matchNumberLabel,
   ROOM_STATUS_LABELS,
   RULE_LABELS,
   type RuleField,
   SEAT_KIND_LABELS,
 } from "../../messages";
-import { closeRoom, declareRoomReady, publishRoom } from "./actions";
+import {
+  closeRoom,
+  declareRoomNext,
+  declareRoomReady,
+  publishRoom,
+  resumeRoom,
+} from "./actions";
 import { MatchRulesForm } from "./match-rules-form";
 import { RenameForm } from "./rename-form";
 import { RoomActionButton } from "./room-action-button";
@@ -28,11 +36,17 @@ const roomQuery = graphql(`
         match {
           id
         }
+        matches {
+          id
+          number
+        }
         capabilities {
           changeSeats
           changeMatchRules
           publish
           declareReady
+          declareNext
+          resume
           close
           rename
         }
@@ -40,6 +54,7 @@ const roomQuery = graphql(`
           playerId
           owner
           ready
+          continues
         }
         seats {
           kind
@@ -177,6 +192,17 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
   return (
     <main>
       <h1 data-testid="room-name">{room.name}</h1>
+      {/* ほかの画面へのリンクは、中身の長さで位置が変わらないよう見出しの下に置く */}
+      <p>
+        <Link href="/rooms">部屋の一覧へ</Link>
+        {room.match && (
+          // 準備完了のあと対戦の画面へ移るが、対戦の投影が追いついていなかったときの行き先
+          <>
+            {"・"}
+            <Link href={`/matches/${room.match.id}`}>対戦の画面へ</Link>
+          </>
+        )}
+      </p>
       {capabilities?.rename && (
         <RenameForm id={room.id} revision={room.revision} name={room.name} />
       )}
@@ -192,6 +218,14 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
             {participant.playerId === me.id ? "あなた" : "参加者"}
             {participant.owner && "（作った人）"}・
             {participant.ready ? "準備完了" : "未完了"}
+            {room.status === "DECIDING_NEXT" && (
+              <>
+                ・
+                <span data-testid="participant-continues">
+                  {continuesLabel(participant.continues)}
+                </span>
+              </>
+            )}
           </li>
         ))}
       </ul>
@@ -274,6 +308,35 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           準備完了
         </RoomActionButton>
       )}
+      {capabilities?.declareNext && (
+        <>
+          <RoomActionButton
+            action={declareRoomNext}
+            id={room.id}
+            revision={room.revision}
+            values={{ continue: "true" }}
+          >
+            続ける
+          </RoomActionButton>
+          <RoomActionButton
+            action={declareRoomNext}
+            id={room.id}
+            revision={room.revision}
+            values={{ continue: "false" }}
+          >
+            終える
+          </RoomActionButton>
+        </>
+      )}
+      {capabilities?.resume && (
+        <RoomActionButton
+          action={resumeRoom}
+          id={room.id}
+          revision={room.revision}
+        >
+          再開する
+        </RoomActionButton>
+      )}
       {capabilities?.close && (
         <RoomActionButton
           action={closeRoom}
@@ -283,15 +346,20 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           部屋を閉じる
         </RoomActionButton>
       )}
-      {room.match && (
-        // 準備完了のあと対戦の画面へ移るが、対戦の投影が追いついていなかったときの行き先
-        <p>
-          <Link href={`/matches/${room.match.id}`}>対戦の画面へ</Link>
-        </p>
+      {room.matches.length > 0 && (
+        <>
+          <h2>この部屋の対戦</h2>
+          <ol data-testid="room-matches">
+            {room.matches.map((match) => (
+              <li key={match.id}>
+                <Link href={`/matches/${match.id}`}>
+                  {matchNumberLabel(match.number)}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </>
       )}
-      <p>
-        <Link href="/rooms">部屋の一覧へ</Link>
-      </p>
     </main>
   );
 }

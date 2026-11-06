@@ -118,6 +118,16 @@ export type CreateRoomInput = {
   name: string;
 };
 
+/** 対戦の後の意思表示の入力 */
+export type DeclareRoomNextInput = {
+  /** 続けるなら true、終えるなら false */
+  continue: boolean;
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
 /** 準備完了を申告する入力 */
 export type DeclareRoomReadyInput = {
   /** 部屋の公開用の ID */
@@ -205,6 +215,14 @@ export type RenameRoomInput = {
   revision: number;
 };
 
+/** 休止中の部屋を再開する入力 */
+export type ResumeRoomInput = {
+  /** 部屋の公開用の ID */
+  id: string;
+  /** 画面が見ていた部屋の revision */
+  revision: number;
+};
+
 /** サイコロを振る入力 */
 export type RollMatchDiceInput = {
   /** 対戦の公開用の ID */
@@ -220,13 +238,17 @@ export type RoomSeatKind =
   /** プレイヤーの席。今は 1 つで、作った人が座る */
   | 'PLAYER';
 
-/** 部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない）。全員が準備完了を申告すると対戦中に進む */
+/** 部屋の状態。公開は同時に準備中に進む（今は公開しただけの状態を持たない）。全員が準備完了を申告すると対戦中に進み、対戦が終わると次を決める状態に進む */
 export type RoomStatus =
   /** 閉じた（作った人が閉じた）。一覧には出ない */
   | 'CLOSED'
+  /** 次を決める（対戦が終わり、全員が戦利品を受け取り終えた後）。参加している人が declareRoomNext で続けるか終えるかを選ぶ。誰かが終えるなら休止中、全員が続けるなら準備中に戻る */
+  | 'DECIDING_NEXT'
   /** 公開前（マスタの「準備中」と分けて、公開前と呼ぶ）。席・対戦ルール・席の選択を何でも決められる */
   | 'DRAFT'
-  /** 対戦中（全員が準備完了を申告して、対戦が始まった）。対戦は Room.match。対戦が終わった後の部屋の動きは先の候補 */
+  /** 休止中（対戦の後に誰かが終えた。今日はここまで）。一覧に残り、作った人が resumeRoom で再開すると準備中に戻る */
+  | 'PAUSED'
+  /** 対戦中（全員が準備完了を申告して、対戦が始まった）。対戦は Room.match */
   | 'PLAYING'
   /** 準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める */
   | 'PREPARING';
@@ -325,7 +347,7 @@ export type MatchDetailQueryVariables = Exact<{
 
 
 export type MatchDetailQuery = { match:
-    | { __typename: 'Match', id: string, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -507,7 +529,7 @@ export type RoomDetailQueryVariables = Exact<{
 
 export type RoomDetailQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
     | { __typename: 'RoomNotFoundError' }
   , me:
     | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
@@ -664,6 +686,34 @@ export type DeclareRoomReadyMutation = { declareRoomReady:
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomAlreadyReadyError' }
     | { __typename: 'RoomConditionsNotDecidedError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomNotResponsibleError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type DeclareRoomNextMutationVariables = Exact<{
+  input: DeclareRoomNextInput;
+}>;
+
+
+export type DeclareRoomNextMutation = { declareRoomNext:
+    | { __typename: 'DeclareRoomNextSuccess' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'RoomAlreadyDeclaredNextError' }
+    | { __typename: 'RoomNotFoundError' }
+    | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type ResumeRoomMutationVariables = Exact<{
+  input: ResumeRoomInput;
+}>;
+
+
+export type ResumeRoomMutation = { resumeRoom:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'ResumeRoomSuccess' }
+    | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
@@ -904,6 +954,8 @@ export const MatchDetailDocument = new TypedDocumentString(`
     __typename
     ... on Match {
       id
+      roomId
+      number
       revision
       round
       phase
@@ -1175,11 +1227,17 @@ export const RoomDetailDocument = new TypedDocumentString(`
       match {
         id
       }
+      matches {
+        id
+        number
+      }
       capabilities {
         changeSeats
         changeMatchRules
         publish
         declareReady
+        declareNext
+        resume
         close
         rename
       }
@@ -1187,6 +1245,7 @@ export const RoomDetailDocument = new TypedDocumentString(`
         playerId
         owner
         ready
+        continues
       }
       seats {
         kind
@@ -1388,6 +1447,20 @@ export const DeclareRoomReadyDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<DeclareRoomReadyMutation, DeclareRoomReadyMutationVariables>;
+export const DeclareRoomNextDocument = new TypedDocumentString(`
+    mutation DeclareRoomNext($input: DeclareRoomNextInput!) {
+  declareRoomNext(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<DeclareRoomNextMutation, DeclareRoomNextMutationVariables>;
+export const ResumeRoomDocument = new TypedDocumentString(`
+    mutation ResumeRoom($input: ResumeRoomInput!) {
+  resumeRoom(input: $input) {
+    __typename
+  }
+}
+    `) as unknown as TypedDocumentString<ResumeRoomMutation, ResumeRoomMutationVariables>;
 export const CloseRoomDocument = new TypedDocumentString(`
     mutation CloseRoom($input: CloseRoomInput!) {
   closeRoom(input: $input) {
