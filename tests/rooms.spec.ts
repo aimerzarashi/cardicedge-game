@@ -1,4 +1,4 @@
-import { login, seedPlayer } from "./account";
+import { login, seedPlayer, signUpAndVerify } from "./account";
 import { expect, test } from "./fixtures";
 import {
   decideNpcSeat,
@@ -116,6 +116,39 @@ test("公開前に決めなかったものは準備中に決められ、決め�
   await page.goBack();
   await expect(page.getByTestId("participants")).toContainText("準備完了");
   await expect(page.getByRole("button", { name: /を決める$/ })).toHaveCount(0);
+});
+
+test("アバターが無いと部屋の一覧に作るフォームが出ず、先にアバターを作る案内が出て、作るとフォームが出る", async ({
+  page,
+  request,
+}) => {
+  const email = `room-requirements-${Date.now()}@example.com`;
+  await signUpAndVerify(page, request, email, "player-password");
+  await login(page, email, "player-password");
+  await expect(page.getByTestId("player-email")).toHaveText(email);
+
+  // デッキはスターターの配布で届くので、届いてアバターだけが足りない状態になるまで読み直して待つ（足りないものは core が返す）
+  await page.goto("/rooms");
+  const requirements = page.getByTestId("room-requirements");
+  await expect(async () => {
+    await page.reload();
+    await expect(requirements.getByRole("listitem")).toHaveText(
+      ["アバターを作る"],
+      { timeout: 1000 },
+    );
+  }).toPass();
+  await expect(page.getByLabel("部屋の名前")).toHaveCount(0);
+
+  await requirements.getByRole("link", { name: "アバターを作る" }).click();
+  await expect(page).toHaveURL(/\/avatars$/);
+  await page.getByLabel("名前").fill("部屋用");
+  await page.getByRole("button", { name: "作る" }).click();
+  await expect(page.getByTestId("avatars").getByRole("listitem")).toHaveText([
+    "部屋用",
+  ]);
+  await page.goto("/rooms");
+  await expect(requirements).toHaveCount(0);
+  await expect(page.getByLabel("部屋の名前")).toBeVisible();
 });
 
 test("部屋の名前は、作るときも変えるときも、誤りが文言で出て、変えると詳細と一覧に反映される", async ({

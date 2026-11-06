@@ -74,6 +74,15 @@ export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
   CLOSED: "閉じた",
 };
 
+// 部屋を作る前に済ませること（core の roomRequirements。足りないものだけが来る）と、その画面
+export const ROOM_REQUIREMENT_STEPS = {
+  AVATAR: { label: "アバターを作る", href: "/avatars" },
+  DECK: {
+    label: "デッキを受け取る（スターターの受け取りが済むと届きます）",
+    href: "/decks",
+  },
+} as const;
+
 // 次を決める間の、参加者ごとの意思表示（core の continues。まだなら null）
 export function continuesLabel(continues: boolean | null | undefined): string {
   if (continues === null || continues === undefined) {
@@ -144,6 +153,8 @@ const ROOM_ERROR_MESSAGES: Record<string, string> = {
     "公開前に決めた条件は、準備中には変えられません。再読み込みしてください",
   RoomNotResponsibleError: "この操作は、担当の人だけができます",
   RoomAlreadyDeclaredNextError: "続けるか終えるかは、もう選んでいます",
+  RoomRequirementsNotMetError:
+    "部屋を作るには、先にアバターとデッキが要ります。再読み込みしてください",
   RoomAlreadyReadyError: "準備完了を申告したあとは、選び直せません",
   RoomConditionsNotDecidedError:
     "自分の担当の分に、まだ決まっていないものがあります",
