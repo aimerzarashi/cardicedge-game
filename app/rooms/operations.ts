@@ -138,6 +138,24 @@ export const declareRoomReadyMutation = graphql(`
   }
 `);
 
+// 結果の型ごとの文言は messages.ts の roomErrorMessage で作る（成功は Success で終わる型）
+export const declareRoomNextMutation = graphql(`
+  mutation DeclareRoomNext($input: DeclareRoomNextInput!) {
+    declareRoomNext(input: $input) {
+      __typename
+    }
+  }
+`);
+
+// 休止中の部屋を再開し、準備中に戻す（作った人だけ）
+export const resumeRoomMutation = graphql(`
+  mutation ResumeRoom($input: ResumeRoomInput!) {
+    resumeRoom(input: $input) {
+      __typename
+    }
+  }
+`);
+
 export const closeRoomMutation = graphql(`
   mutation CloseRoom($input: CloseRoomInput!) {
     closeRoom(input: $input) {

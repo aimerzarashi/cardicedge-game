@@ -69,8 +69,23 @@ export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
   DRAFT: "公開前",
   PREPARING: "準備中",
   PLAYING: "対戦中",
+  DECIDING_NEXT: "次を決める",
+  PAUSED: "休止中",
   CLOSED: "閉じた",
 };
+
+// 次を決める間の、参加者ごとの意思表示（core の continues。まだなら null）
+export function continuesLabel(continues: boolean | null | undefined): string {
+  if (continues === null || continues === undefined) {
+    return "まだ";
+  }
+  return continues ? "続ける" : "終える";
+}
+
+// 何戦目か（core の number は 1 始まり。投影の遅れの間は null）
+export function matchNumberLabel(number: number): string {
+  return `${number} 戦目`;
+}
 
 export const SEAT_KIND_LABELS = {
   PLAYER: "プレイヤー",
@@ -128,6 +143,7 @@ const ROOM_ERROR_MESSAGES: Record<string, string> = {
   RoomConditionLockedError:
     "公開前に決めた条件は、準備中には変えられません。再読み込みしてください",
   RoomNotResponsibleError: "この操作は、担当の人だけができます",
+  RoomAlreadyDeclaredNextError: "続けるか終えるかは、もう選んでいます",
   RoomAlreadyReadyError: "準備完了を申告したあとは、選び直せません",
   RoomConditionsNotDecidedError:
     "自分の担当の分に、まだ決まっていないものがあります",

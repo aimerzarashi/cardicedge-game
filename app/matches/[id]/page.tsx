@@ -6,6 +6,7 @@ import {
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
   MATCH_REVIEW_MESSAGES,
+  matchNumberLabel,
   RULE_LABELS,
   type RuleField,
   SEAT_KIND_LABELS,
@@ -36,6 +37,8 @@ const matchQuery = graphql(`
       __typename
       ... on Match {
         id
+        roomId
+        number
         revision
         round
         phase
@@ -204,7 +207,30 @@ export default async function MatchPage({
 
   return (
     <main data-revision={match.revision}>
-      <h1>対戦</h1>
+      <h1>
+        対戦
+        {match.number !== null && match.number !== undefined && (
+          <>
+            {" "}
+            <span data-testid="match-number">
+              {matchNumberLabel(match.number)}
+            </span>
+          </>
+        )}
+      </h1>
+      {/* ほかの画面へのリンクは、中身の長さで位置が変わらないよう見出しの下に置く（右の列の下の「描画したイベント」は進むたびに伸び、
+          振り返りは戦利品を選ぶと伸びる）。roomId は投影の遅れの間は null のため、そのときは部屋の一覧へだけ */}
+      <p>
+        {match.roomId && (
+          <>
+            <Link href={`/rooms/${match.roomId}`}>
+              {MATCH_REVIEW_MESSAGES.backToRoom}
+            </Link>
+            {"・"}
+          </>
+        )}
+        <Link href="/rooms">部屋の一覧へ</Link>
+      </p>
       <MatchLive
         id={match.id}
         revision={match.revision}
@@ -307,10 +333,6 @@ export default async function MatchPage({
                   ))}
                 </div>
               )}
-              {/* 対戦から部屋を引けない（Match に部屋の ID が無い）ため、部屋の一覧へ戻す */}
-              <p>
-                <Link href="/rooms">{MATCH_REVIEW_MESSAGES.backToRoom}</Link>
-              </p>
             </div>
           ) : mine ? (
             <div style={ROW_STYLE}>
@@ -454,9 +476,6 @@ export default async function MatchPage({
           </dl>
         </div>
       </MatchLive>
-      <p>
-        <Link href="/rooms">部屋の一覧へ</Link>
-      </p>
     </main>
   );
 }

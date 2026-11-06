@@ -8,13 +8,17 @@ const TIMEOUT_MS = 3_000;
 const INTERVAL_MS = 50;
 
 // declareRoomReady の結果は対戦の ID を返さず、Room.match は投影から読むため、直後に読むと出ていないことがある。
-// 対戦の画面へ移せるよう、出るまで読み直す
-export async function waitMatch(roomId: string): Promise<string | undefined> {
+// 対戦の画面へ移せるよう、出るまで読み直す。Room.match は次の対戦を始めるまで終わった対戦のままなので、
+// 2 戦目以降は前の対戦の ID（previousId）と違うものが出るまで待つ
+export async function waitMatch(
+  roomId: string,
+  previousId?: string,
+): Promise<string | undefined> {
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
     const result = await callCore(roomMatchQuery, { id: roomId });
     if (result.ok && result.data.room.__typename === "Room") {
-      if (result.data.room.match) {
+      if (result.data.room.match && result.data.room.match.id !== previousId) {
         return result.data.room.match.id;
       }
     }

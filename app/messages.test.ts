@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  continuesLabel,
   fieldErrorMessage,
+  matchNumberLabel,
   RULE_LABELS,
   type RuleField,
   ruleStep,
@@ -39,5 +41,26 @@ describe("fieldErrorMessage", () => {
       }),
       "サイコロの目（最大）は「サイコロの目（最小）」より大きくしてください",
     );
+  });
+});
+
+describe("continuesLabel", () => {
+  it("まだ選んでいない人（null）は「まだ」、続ける人は「続ける」、終える人は「終える」", () => {
+    assert.deepEqual([null, undefined, true, false].map(continuesLabel), [
+      "まだ",
+      "まだ",
+      "続ける",
+      "終える",
+    ]);
+  });
+});
+
+describe("matchNumberLabel", () => {
+  it("1 始まりの番号を「n 戦目」にする", () => {
+    assert.deepEqual([1, 2, 10].map(matchNumberLabel), [
+      "1 戦目",
+      "2 戦目",
+      "10 戦目",
+    ]);
   });
 });

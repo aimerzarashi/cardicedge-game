@@ -17,9 +17,12 @@ import {
   changeRoomSeatChoiceMutation,
   changeRoomSeatsMutation,
   closeRoomMutation,
+  declareRoomNextMutation,
   declareRoomReadyMutation,
   publishRoomMutation,
   renameRoomMutation,
+  resumeRoomMutation,
+  roomMatchQuery,
 } from "../operations";
 import { waitMatch } from "./wait-match";
 
@@ -159,6 +162,12 @@ export async function declareRoomReady(
   if (id === undefined || revision === undefined) {
     return BAD_FORM;
   }
+  // 前の対戦が残っているので、始まった対戦と区別できるよう、準備完了の前の対戦の ID を控える
+  const before = await callCore(roomMatchQuery, { id });
+  const previousId =
+    before.ok && before.data.room.__typename === "Room"
+      ? before.data.room.match?.id
+      : undefined;
   const result = await callCore(declareRoomReadyMutation, {
     input: { id, revision },
   });
@@ -170,11 +179,50 @@ export async function declareRoomReady(
     return state;
   }
   // 全員がそろうと対戦が始まる。始まっていれば対戦の画面へ移し、まだなら（ほかのプレイヤーの待ち）今の部屋を出し直す
-  const matchId = await waitMatch(id);
+  const matchId = await waitMatch(id, previousId);
   if (matchId) {
     redirect(`/matches/${matchId}`);
   }
   return state;
+}
+
+export async function declareRoomNext(
+  _previous: RoomActionState,
+  form: FormData,
+): Promise<RoomActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const choice = text(form, "continue");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    (choice !== "true" && choice !== "false")
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(declareRoomNextMutation, {
+    input: { id, revision, continue: choice === "true" },
+  });
+  return result.ok
+    ? finish(result.data.declareRoomNext)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function resumeRoom(
+  _previous: RoomActionState,
+  form: FormData,
+): Promise<RoomActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(resumeRoomMutation, {
+    input: { id, revision },
+  });
+  return result.ok
+    ? finish(result.data.resumeRoom)
+    : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
 export async function closeRoom(
