@@ -34,6 +34,9 @@ export default async function DecksPage() {
   return (
     <main>
       <h1>デッキ</h1>
+      <p>
+        <Link href="/">トップへ</Link>
+      </p>
       {result.ok ? (
         <Decks me={result.data.me} />
       ) : (
@@ -42,9 +45,6 @@ export default async function DecksPage() {
           <Link href="/decks">再読み込み</Link>
         </p>
       )}
-      <p>
-        <Link href="/">トップへ</Link>
-      </p>
     </main>
   );
 }
