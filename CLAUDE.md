@@ -40,6 +40,7 @@
 # 入口（envoy）
 
 - アクセスはすべて game-envoy:10000 を経由する（ホストは GAME_PORT、既定 3000）。game:3000 はホストに公開しない
+- envoy から game への接続は、何もしていない時間が 4 秒で手放す（local/envoy/envoy.yaml の game のクラスターの `idle_timeout`）。Next.js（Node.js）は何もしていない接続を 5 秒で閉じるため、envoy が先に手放さないと、閉じられた接続に送って 503（reset reason: connection termination）になる。開発の `next dev` には keep-alive を変える入口が無いので、Next.js の側は延ばさない。ルートの envoy.yaml（リリース確認の環境）も同じ（game#46。studio#68）
 - envoy を経由するホスト名からのアクセスは Next.js の `allowedDevOrigins` に追加する（`game-envoy`、`*.trycloudflare.com`）
 
 # 画面の決まり
