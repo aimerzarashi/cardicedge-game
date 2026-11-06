@@ -7,6 +7,7 @@ import {
   CORE_UNAVAILABLE_OPERATION,
   type FieldErrorValue,
   fieldErrorMessage,
+  NOT_REFLECTED,
   nameErrorMessage,
   RULE_LABELS,
   type RuleField,
@@ -24,18 +25,27 @@ import {
   resumeRoomMutation,
   roomMatchQuery,
 } from "../operations";
-import { waitMatch } from "./wait-match";
+import { waitRoom } from "../wait-room";
 
 export type RoomActionState = { error?: string };
 
-type Outcome = { __typename: string; errors?: FieldErrorValue[] };
+type Outcome = {
+  __typename: string;
+  id?: string;
+  revision?: number;
+  errors?: FieldErrorValue[];
+};
 
 // 成功の型の名前は操作ごとに違い、どれも Success で終わる。それ以外はすべて誤りとして表示する
-function finish(outcome: Outcome): RoomActionState {
+async function finish(outcome: Outcome): Promise<RoomActionState> {
   if (outcome.__typename.endsWith("Success")) {
-    // 変えたあとの revision と内容を、最新の詳細で出し直す
+    // 詳細は投影から読むため、操作の結果の revision に届いてから、変えたあとの revision と内容で出し直す
+    const reached =
+      outcome.id !== undefined && outcome.revision !== undefined
+        ? await waitRoom(outcome.id, outcome.revision)
+        : "timeout";
     refresh();
-    return {};
+    return reached === "reached" ? {} : { error: NOT_REFLECTED };
   }
   if (outcome.__typename === "ValidationErrors" && outcome.errors) {
     if (outcome.errors.every((error) => error.field === "name")) {
@@ -174,13 +184,19 @@ export async function declareRoomReady(
   if (!result.ok) {
     return { error: CORE_UNAVAILABLE_OPERATION };
   }
-  const state = finish(result.data.declareRoomReady);
+  const state = await finish(result.data.declareRoomReady);
   if (state.error !== undefined) {
     return state;
   }
-  // 全員がそろうと対戦が始まる。始まっていれば対戦の画面へ移し、まだなら（ほかのプレイヤーの待ち）今の部屋を出し直す
-  const matchId = await waitMatch(id, previousId);
-  if (matchId) {
+  // 全員がそろうと対戦が始まる（Room.match は準備完了と同じ版で変わる）。詳細が操作の結果の版に届いているので、1 回読めば
+  // 始まったかが分かる。始まっていれば対戦の画面へ移し、まだなら（ほかのプレイヤーの待ち）今の部屋を出し直したままにする。
+  // Room.match は次の対戦を始めるまで終わった対戦のままなので、準備完了の前の対戦の ID と違うかで見分ける
+  const after = await callCore(roomMatchQuery, { id });
+  const matchId =
+    after.ok && after.data.room.__typename === "Room"
+      ? after.data.room.match?.id
+      : undefined;
+  if (matchId && matchId !== previousId) {
     redirect(`/matches/${matchId}`);
   }
   return state;

@@ -4,10 +4,12 @@ import { redirect } from "next/navigation";
 import { callCore } from "@/lib/core";
 import {
   CORE_UNAVAILABLE_OPERATION,
+  NOT_REFLECTED,
   nameErrorMessage,
   roomErrorMessage,
 } from "../messages";
 import { createRoomMutation } from "./operations";
+import { waitRoom } from "./wait-room";
 
 export type CreateRoomState = {
   // 入力欄に入れておく値（誤りのときは入力した値を残す）
@@ -35,6 +37,11 @@ export async function createRoom(
   }
   if (created.__typename !== "CreateRoomSuccess") {
     return { value: name, error: roomErrorMessage(created.__typename) };
+  }
+  // 詳細は投影から読むため、作った直後に移ると「見つかりません」になりうる。詳細に出るまで待ってから移す。
+  // 待ちきれなければ作れてはいるので、入力を空にして、反映を待つよう知らせる（一覧に出てから開ける）
+  if ((await waitRoom(created.id, created.revision)) === "timeout") {
+    return { value: "", error: NOT_REFLECTED };
   }
   redirect(`/rooms/${created.id}`);
 }

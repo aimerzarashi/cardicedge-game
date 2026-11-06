@@ -9,6 +9,7 @@ export const createRoomMutation = graphql(`
       __typename
       ... on CreateRoomSuccess {
         id
+        revision
       }
       ... on ValidationErrors {
         errors {
@@ -26,6 +27,10 @@ export const renameRoomMutation = graphql(`
   mutation RenameRoom($input: RenameRoomInput!) {
     renameRoom(input: $input) {
       __typename
+      ... on RenameRoomSuccess {
+        id
+        revision
+      }
       ... on ValidationErrors {
         errors {
           __typename
@@ -45,6 +50,10 @@ export const changeRoomSeatsMutation = graphql(`
   mutation ChangeRoomSeats($input: ChangeRoomSeatsInput!) {
     changeRoomSeats(input: $input) {
       __typename
+      ... on ChangeRoomSeatsSuccess {
+        id
+        revision
+      }
       ... on ValidationErrors {
         errors {
           __typename
@@ -72,6 +81,10 @@ export const changeRoomMatchRulesMutation = graphql(`
   mutation ChangeRoomMatchRules($input: ChangeRoomMatchRulesInput!) {
     changeRoomMatchRules(input: $input) {
       __typename
+      ... on ChangeRoomMatchRulesSuccess {
+        id
+        revision
+      }
       ... on ValidationErrors {
         errors {
           __typename
@@ -99,6 +112,10 @@ export const changeRoomSeatChoiceMutation = graphql(`
   mutation ChangeRoomSeatChoice($input: ChangeRoomSeatChoiceInput!) {
     changeRoomSeatChoice(input: $input) {
       __typename
+      ... on ChangeRoomSeatChoiceSuccess {
+        id
+        revision
+      }
       ... on ValidationErrors {
         errors {
           __typename
@@ -126,6 +143,10 @@ export const publishRoomMutation = graphql(`
   mutation PublishRoom($input: PublishRoomInput!) {
     publishRoom(input: $input) {
       __typename
+      ... on PublishRoomSuccess {
+        id
+        revision
+      }
     }
   }
 `);
@@ -134,6 +155,10 @@ export const declareRoomReadyMutation = graphql(`
   mutation DeclareRoomReady($input: DeclareRoomReadyInput!) {
     declareRoomReady(input: $input) {
       __typename
+      ... on DeclareRoomReadySuccess {
+        id
+        revision
+      }
     }
   }
 `);
@@ -143,6 +168,10 @@ export const declareRoomNextMutation = graphql(`
   mutation DeclareRoomNext($input: DeclareRoomNextInput!) {
     declareRoomNext(input: $input) {
       __typename
+      ... on DeclareRoomNextSuccess {
+        id
+        revision
+      }
     }
   }
 `);
@@ -152,6 +181,10 @@ export const resumeRoomMutation = graphql(`
   mutation ResumeRoom($input: ResumeRoomInput!) {
     resumeRoom(input: $input) {
       __typename
+      ... on ResumeRoomSuccess {
+        id
+        revision
+      }
     }
   }
 `);
@@ -160,6 +193,22 @@ export const closeRoomMutation = graphql(`
   mutation CloseRoom($input: CloseRoomInput!) {
     closeRoom(input: $input) {
       __typename
+      ... on CloseRoomSuccess {
+        id
+        revision
+      }
+    }
+  }
+`);
+
+// 操作の結果の revision まで、部屋の詳細（read model）が追いついたかを確かめる（app/rooms/wait-room.ts）
+export const roomRevisionQuery = graphql(`
+  query RoomRevision($id: UUID!) {
+    room(id: $id) {
+      __typename
+      ... on Room {
+        revision
+      }
     }
   }
 `);

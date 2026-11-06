@@ -168,6 +168,10 @@ export function roomErrorMessage(typename: string): string {
   );
 }
 
+// 操作は済んだが、詳細（投影）が操作の結果まで追いつくのを待ちきれなかった（投影が止まっている等）
+export const NOT_REFLECTED =
+  "反映に時間がかかっています。しばらくしてから再読み込みしてください";
+
 export const CORE_UNAVAILABLE_OPERATION =
   "core に接続できません。時間をおいてもう一度操作してください";
 

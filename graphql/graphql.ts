@@ -552,7 +552,7 @@ export type CreateRoomMutationVariables = Exact<{
 
 
 export type CreateRoomMutation = { createRoom:
-    | { __typename: 'CreateRoomSuccess', id: string }
+    | { __typename: 'CreateRoomSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RoomRequirementsNotMetError' }
     | { __typename: 'ValidationErrors', errors: Array<
@@ -574,7 +574,7 @@ export type RenameRoomMutationVariables = Exact<{
 
 export type RenameRoomMutation = { renameRoom:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'RenameRoomSuccess' }
+    | { __typename: 'RenameRoomSuccess', id: string, revision: number }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
@@ -597,7 +597,7 @@ export type ChangeRoomSeatsMutationVariables = Exact<{
 
 
 export type ChangeRoomSeatsMutation = { changeRoomSeats:
-    | { __typename: 'ChangeRoomSeatsSuccess' }
+    | { __typename: 'ChangeRoomSeatsSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
@@ -621,7 +621,7 @@ export type ChangeRoomMatchRulesMutationVariables = Exact<{
 
 
 export type ChangeRoomMatchRulesMutation = { changeRoomMatchRules:
-    | { __typename: 'ChangeRoomMatchRulesSuccess' }
+    | { __typename: 'ChangeRoomMatchRulesSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomAlreadyReadyError' }
@@ -647,7 +647,7 @@ export type ChangeRoomSeatChoiceMutationVariables = Exact<{
 
 
 export type ChangeRoomSeatChoiceMutation = { changeRoomSeatChoice:
-    | { __typename: 'ChangeRoomSeatChoiceSuccess' }
+    | { __typename: 'ChangeRoomSeatChoiceSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomAlreadyReadyError' }
@@ -675,7 +675,7 @@ export type PublishRoomMutationVariables = Exact<{
 
 export type PublishRoomMutation = { publishRoom:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'PublishRoomSuccess' }
+    | { __typename: 'PublishRoomSuccess', id: string, revision: number }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
@@ -689,7 +689,7 @@ export type DeclareRoomReadyMutationVariables = Exact<{
 
 
 export type DeclareRoomReadyMutation = { declareRoomReady:
-    | { __typename: 'DeclareRoomReadySuccess' }
+    | { __typename: 'DeclareRoomReadySuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomAlreadyReadyError' }
@@ -705,7 +705,7 @@ export type DeclareRoomNextMutationVariables = Exact<{
 
 
 export type DeclareRoomNextMutation = { declareRoomNext:
-    | { __typename: 'DeclareRoomNextSuccess' }
+    | { __typename: 'DeclareRoomNextSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomAlreadyDeclaredNextError' }
@@ -720,7 +720,7 @@ export type ResumeRoomMutationVariables = Exact<{
 
 export type ResumeRoomMutation = { resumeRoom:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'ResumeRoomSuccess' }
+    | { __typename: 'ResumeRoomSuccess', id: string, revision: number }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
@@ -733,12 +733,23 @@ export type CloseRoomMutationVariables = Exact<{
 
 
 export type CloseRoomMutation = { closeRoom:
-    | { __typename: 'CloseRoomSuccess' }
+    | { __typename: 'CloseRoomSuccess', id: string, revision: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'RoomNotFoundError' }
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
+   };
+
+export type RoomRevisionQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type RoomRevisionQuery = { room:
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'Room', revision: number }
+    | { __typename: 'RoomNotFoundError' }
    };
 
 export type RoomMatchQueryVariables = Exact<{
@@ -1338,6 +1349,7 @@ export const CreateRoomDocument = new TypedDocumentString(`
     __typename
     ... on CreateRoomSuccess {
       id
+      revision
     }
     ... on ValidationErrors {
       errors {
@@ -1354,6 +1366,10 @@ export const RenameRoomDocument = new TypedDocumentString(`
     mutation RenameRoom($input: RenameRoomInput!) {
   renameRoom(input: $input) {
     __typename
+    ... on RenameRoomSuccess {
+      id
+      revision
+    }
     ... on ValidationErrors {
       errors {
         __typename
@@ -1370,6 +1386,10 @@ export const ChangeRoomSeatsDocument = new TypedDocumentString(`
     mutation ChangeRoomSeats($input: ChangeRoomSeatsInput!) {
   changeRoomSeats(input: $input) {
     __typename
+    ... on ChangeRoomSeatsSuccess {
+      id
+      revision
+    }
     ... on ValidationErrors {
       errors {
         __typename
@@ -1396,6 +1416,10 @@ export const ChangeRoomMatchRulesDocument = new TypedDocumentString(`
     mutation ChangeRoomMatchRules($input: ChangeRoomMatchRulesInput!) {
   changeRoomMatchRules(input: $input) {
     __typename
+    ... on ChangeRoomMatchRulesSuccess {
+      id
+      revision
+    }
     ... on ValidationErrors {
       errors {
         __typename
@@ -1422,6 +1446,10 @@ export const ChangeRoomSeatChoiceDocument = new TypedDocumentString(`
     mutation ChangeRoomSeatChoice($input: ChangeRoomSeatChoiceInput!) {
   changeRoomSeatChoice(input: $input) {
     __typename
+    ... on ChangeRoomSeatChoiceSuccess {
+      id
+      revision
+    }
     ... on ValidationErrors {
       errors {
         __typename
@@ -1448,6 +1476,10 @@ export const PublishRoomDocument = new TypedDocumentString(`
     mutation PublishRoom($input: PublishRoomInput!) {
   publishRoom(input: $input) {
     __typename
+    ... on PublishRoomSuccess {
+      id
+      revision
+    }
   }
 }
     `) as unknown as TypedDocumentString<PublishRoomMutation, PublishRoomMutationVariables>;
@@ -1455,6 +1487,10 @@ export const DeclareRoomReadyDocument = new TypedDocumentString(`
     mutation DeclareRoomReady($input: DeclareRoomReadyInput!) {
   declareRoomReady(input: $input) {
     __typename
+    ... on DeclareRoomReadySuccess {
+      id
+      revision
+    }
   }
 }
     `) as unknown as TypedDocumentString<DeclareRoomReadyMutation, DeclareRoomReadyMutationVariables>;
@@ -1462,6 +1498,10 @@ export const DeclareRoomNextDocument = new TypedDocumentString(`
     mutation DeclareRoomNext($input: DeclareRoomNextInput!) {
   declareRoomNext(input: $input) {
     __typename
+    ... on DeclareRoomNextSuccess {
+      id
+      revision
+    }
   }
 }
     `) as unknown as TypedDocumentString<DeclareRoomNextMutation, DeclareRoomNextMutationVariables>;
@@ -1469,6 +1509,10 @@ export const ResumeRoomDocument = new TypedDocumentString(`
     mutation ResumeRoom($input: ResumeRoomInput!) {
   resumeRoom(input: $input) {
     __typename
+    ... on ResumeRoomSuccess {
+      id
+      revision
+    }
   }
 }
     `) as unknown as TypedDocumentString<ResumeRoomMutation, ResumeRoomMutationVariables>;
@@ -1476,9 +1520,23 @@ export const CloseRoomDocument = new TypedDocumentString(`
     mutation CloseRoom($input: CloseRoomInput!) {
   closeRoom(input: $input) {
     __typename
+    ... on CloseRoomSuccess {
+      id
+      revision
+    }
   }
 }
     `) as unknown as TypedDocumentString<CloseRoomMutation, CloseRoomMutationVariables>;
+export const RoomRevisionDocument = new TypedDocumentString(`
+    query RoomRevision($id: UUID!) {
+  room(id: $id) {
+    __typename
+    ... on Room {
+      revision
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RoomRevisionQuery, RoomRevisionQueryVariables>;
 export const RoomMatchDocument = new TypedDocumentString(`
     query RoomMatch($id: UUID!) {
   room(id: $id) {
