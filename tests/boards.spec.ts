@@ -30,7 +30,7 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   await expect(rows.nth(5)).toContainText("公開中C");
   await expect(rows.nth(5)).toContainText("6×2");
   await expect(rows.nth(7)).toContainText("公開中D");
-  await expect(rows.nth(7)).toContainText("5×1");
+  await expect(rows.nth(7)).toContainText("8×1");
   await expect(page.getByText("使用不可")).toHaveCount(0);
 });
 
@@ -55,7 +55,7 @@ test("一覧に、ボードごとのマスの数と既定のルールが出る",
   );
 });
 
-test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) => {
+test("詳細に、既定のルールの 8 つの値が出る", async ({ page }) => {
   await openBoards(page);
 
   await page.getByRole("link", { name: "公開中B" }).click();
@@ -70,6 +70,7 @@ test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) 
     "ラウンドの上限",
     "サイコロの目（最小）",
     "サイコロの目（最大）",
+    "土地の基本の値",
   ]);
   await expect(rules.locator("dd")).toHaveText([
     "5000",
@@ -79,6 +80,7 @@ test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) 
     "20",
     "2",
     "12",
+    "100",
   ]);
 });
 

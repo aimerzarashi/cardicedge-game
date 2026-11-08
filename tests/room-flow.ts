@@ -56,7 +56,7 @@ export async function decideRules(
 ) {
   await reloadUntilVisible(page, page.getByLabel("ボード"));
   await page.getByLabel("ボード").selectOption({ label: board });
-  // 7 つの値は、選んだボードの既定のルールから始まる
+  // 8 つの値は、選んだボードの既定のルールから始まる
   await expect(page.getByLabel("目標の魔力")).toHaveValue("8000");
   await page.getByLabel("目標の魔力").fill("9000");
   if (roundLimit !== undefined) {

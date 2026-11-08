@@ -96,21 +96,21 @@ describe("reviewRows", () => {
     {
       kind: "PLAYER",
       avatar: { name: "あ" },
-      magic: 100,
+      totalMagic: 100,
       rewardReceived: true,
       rewardCards: [{ name: "A" }, { name: "B" }],
     },
     {
       kind: "NPC",
       avatar: { name: "い" },
-      magic: 300,
+      totalMagic: 300,
       rewardReceived: false,
       rewardCards: [],
     },
     {
       kind: "PLAYER",
       avatar: { name: "う" },
-      magic: 300,
+      totalMagic: 300,
       rewardReceived: false,
       rewardCards: [],
     },
@@ -135,7 +135,7 @@ describe("reviewRows", () => {
       rank: 3,
       name: "あ",
       isPlayer: true,
-      magic: 100,
+      totalMagic: 100,
       rewardReceived: true,
       rewardCards: ["A", "B"],
     });
@@ -143,23 +143,41 @@ describe("reviewRows", () => {
 });
 
 describe("territoryMarks", () => {
-  const territory = (owner: number, name: string) => ({
+  const territory = (owner: number, id: number, name: string, level = 1) => ({
     position: { x: owner, y: 0 },
     owner,
-    creature: { card: { name } },
+    level,
+    toll: level * 60,
+    creature: { id, card: { name } },
   });
 
-  it("「駒の番号-その人が配置した順の番号」と持ち主の色を付ける", () => {
+  it("番号は core のクリーチャーの ID で、盤面から外れた番号は飛んだままにする", () => {
     assert.deepEqual(
       territoryMarks([
-        territory(1, "ウルフ"),
-        territory(0, "ゴーレム"),
-        territory(1, "ノーム"),
-      ]).map(({ label, creature, color }) => ({ label, creature, color })),
+        territory(1, 1, "ウルフ"),
+        territory(0, 3, "ゴーレム", 2),
+      ]).map(({ number, level, toll, creature, color }) => ({
+        number,
+        level,
+        toll,
+        creature,
+        color,
+      })),
       [
-        { label: "2-1", creature: "ウルフ", color: participantColor(1) },
-        { label: "1-1", creature: "ゴーレム", color: participantColor(0) },
-        { label: "2-2", creature: "ノーム", color: participantColor(1) },
+        {
+          number: 1,
+          level: 1,
+          toll: 60,
+          creature: "ウルフ",
+          color: participantColor(1),
+        },
+        {
+          number: 3,
+          level: 2,
+          toll: 120,
+          creature: "ゴーレム",
+          color: participantColor(0),
+        },
       ],
     );
   });

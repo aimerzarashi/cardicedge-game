@@ -50,8 +50,10 @@ export type CardType =
   /** スペル */
   | 'SPELL';
 
-/** 対戦ルールを決める入力。7 つの値の名前と決まりは、ボードの既定のルールと同じ */
+/** 対戦ルールを決める入力。8 つの値の名前と決まりは、ボードの既定のルールと同じ */
 export type ChangeRoomMatchRulesInput = {
+  /** 土地の基本の値（1 以上。レベルと連鎖の倍率を掛ける元） */
+  baseLandValue: number;
   /** ボードの公開用の ID（作った人が解放した公開中のもの。Player.boards に出るもの） */
   boardId: string;
   /** チェックポイントのボーナス（0 以上） */
@@ -233,6 +235,8 @@ export type MatchPhase =
   | 'ENDED'
   /** ターンを終える段階（endMatchTurn） */
   | 'ENDING'
+  /** 通行料を払って魔力が負になったので、自分の領地を手放す段階（relinquishMatchTerritory。0 以上になるまで続く） */
+  | 'RELINQUISHING'
   /** サイコロを振る段階（rollMatchDice） */
   | 'ROLLING';
 
@@ -248,6 +252,16 @@ export type PublishRoomInput = {
 export type RegisterAvatarInput = {
   /** 名前（前後の空白を除いて 1 文字以上。長さの上限は ValidationErrors の FieldTooLong の max で返す） */
   name: string;
+};
+
+/** 魔力が負の間に、自分の領地を手放す入力 */
+export type RelinquishMatchTerritoryInput = {
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 手放す領地の位置（Match.relinquishChoices の中から選ぶ。手放せないものは ValidationErrors の FieldNotFound） */
+  position: BoardPositionInput;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
 };
 
 /** 部屋の名前を変える入力 */
@@ -358,7 +372,7 @@ export type BoardQuery = { board:
         | { __typename: 'SanctuaryTile', x: number, y: number }
         | { __typename: 'ShrineTile', x: number, y: number }
         | { __typename: 'WarpTile', x: number, y: number }
-      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }
+      >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }>, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number } }
     | { __typename: 'BoardNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -369,7 +383,7 @@ export type BoardsQueryVariables = Exact<{
 
 
 export type BoardsQuery = { boards:
-    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+    | { __typename: 'BoardsConnection', edges: Array<{ node: { id: string, name: string, width: number, height: number, tileCounts: { land: number, base: number, checkpoint: number, fire: number, earth: number, water: number, wind: number, neutral: number, multi: number, warp: number, bridge: number, sanctuary: number, shrine: number, prophecyShop: number, cardShop: number }, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number } } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'ValidationErrors' }
    };
@@ -434,7 +448,7 @@ export type MatchDetailQueryVariables = Exact<{
 
 
 export type MatchDetailQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, territories: Array<{ owner: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, relinquishChoices: Array<{ x: number, y: number }>, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -444,7 +458,7 @@ export type MatchDetailQuery = { match:
           | { __typename: 'SanctuaryTile', x: number, y: number }
           | { __typename: 'ShrineTile', x: number, y: number }
           | { __typename: 'WarpTile', x: number, y: number }
-        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<
+        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, totalMagic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<
           | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
@@ -513,6 +527,30 @@ export type DeployMatchCreatureMutation = { deployMatchCreature:
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type RelinquishMatchTerritoryMutationVariables = Exact<{
+  input: RelinquishMatchTerritoryInput;
+}>;
+
+
+export type RelinquishMatchTerritoryMutation = { relinquishMatchTerritory:
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RelinquishMatchTerritorySuccess' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
         | { __typename: 'FieldTooSmall', field: string }
@@ -625,6 +663,7 @@ export type MatchEventsQuery = { matchEvents:
         | { __typename: 'MatchEndedEvent', winners: Array<number>, reason: MatchEndReason, revision: number }
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number }
+        | { __typename: 'MatchMagicDepletedEvent', participant: number, magic: number, revision: number }
         | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number } }
         | { __typename: 'MatchRewardDrawnEvent', participant: number, revision: number, rewardCards: Array<
             | { name: string }
@@ -632,6 +671,8 @@ export type MatchEventsQuery = { matchEvents:
             | { name: string }
           > }
         | { __typename: 'MatchRewardsCompletedEvent', revision: number }
+        | { __typename: 'MatchTerritoryRelinquishedEvent', participant: number, magic: number, revision: number, position: { x: number, y: number } }
+        | { __typename: 'MatchTollPaidEvent', participant: number, owner: number, magic: number, revision: number, position: { x: number, y: number } }
         | { __typename: 'MatchTurnEndedEvent', participant: number, revision: number }
         | { __typename: 'MatchTurnOrderDecidedEvent', order: Array<number>, revision: number }
       > }
@@ -669,10 +710,10 @@ export type RoomDetailQueryVariables = Exact<{
 
 export type RoomDetailQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, board: { id: string, name: string } } | null }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, board: { id: string, name: string } } | null }
     | { __typename: 'RoomNotFoundError' }
   , me:
-    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
+    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
     | { __typename: 'PlayerNotRegisteredError' }
   , gameRules:
     | { __typename: 'GameRules', match: { minPlayers: number, maxPlayers: number } }
@@ -1012,6 +1053,7 @@ export const BoardDocument = new TypedDocumentString(`
         roundLimit
         diceMin
         diceMax
+        baseLandValue
       }
     }
   }
@@ -1053,6 +1095,7 @@ export const BoardsDocument = new TypedDocumentString(`
             roundLimit
             diceMin
             diceMax
+            baseLandValue
           }
         }
       }
@@ -1171,12 +1214,20 @@ export const MatchDetailDocument = new TypedDocumentString(`
         y
       }
       deployChoices
+      relinquishChoices {
+        x
+        y
+      }
       territories {
         position {
           x
           y
         }
         owner
+        level
+        value
+        toll
+        relinquishMagic
         creature {
           id
           hitPoints
@@ -1203,8 +1254,11 @@ export const MatchDetailDocument = new TypedDocumentString(`
         roundLimit
         diceMin
         diceMax
+        baseLandValue
         maxHandCards
         startingHandCards
+        tollPercentage
+        relinquishPercentage
       }
       board {
         width
@@ -1240,6 +1294,7 @@ export const MatchDetailDocument = new TypedDocumentString(`
           y
         }
         magic
+        totalMagic
         hand {
           __typename
           id
@@ -1309,6 +1364,19 @@ export const DeployMatchCreatureDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<DeployMatchCreatureMutation, DeployMatchCreatureMutationVariables>;
+export const RelinquishMatchTerritoryDocument = new TypedDocumentString(`
+    mutation RelinquishMatchTerritory($input: RelinquishMatchTerritoryInput!) {
+  relinquishMatchTerritory(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<RelinquishMatchTerritoryMutation, RelinquishMatchTerritoryMutationVariables>;
 export const RollMatchDiceDocument = new TypedDocumentString(`
     mutation RollMatchDice($input: RollMatchDiceInput!) {
   rollMatchDice(input: $input) {
@@ -1389,6 +1457,27 @@ export const MatchEventsDocument = new TypedDocumentString(`
             y
           }
           cost
+        }
+        ... on MatchTollPaidEvent {
+          participant
+          owner
+          position {
+            x
+            y
+          }
+          magic
+        }
+        ... on MatchTerritoryRelinquishedEvent {
+          participant
+          position {
+            x
+            y
+          }
+          magic
+        }
+        ... on MatchMagicDepletedEvent {
+          participant
+          magic
         }
         ... on MatchDiceRolledEvent {
           participant
@@ -1531,6 +1620,7 @@ export const RoomDetailDocument = new TypedDocumentString(`
         roundLimit
         diceMin
         diceMax
+        baseLandValue
       }
     }
   }
@@ -1557,6 +1647,7 @@ export const RoomDetailDocument = new TypedDocumentString(`
           roundLimit
           diceMin
           diceMax
+          baseLandValue
         }
       }
       npcAvatars {

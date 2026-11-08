@@ -43,6 +43,7 @@ export const RULE_LABELS = {
   roundLimit: "ラウンドの上限",
   diceMin: "サイコロの目（最小）",
   diceMax: "サイコロの目（最大）",
+  baseLandValue: "土地の基本の値",
 } as const;
 export type RuleField = keyof typeof RULE_LABELS;
 
@@ -52,6 +53,7 @@ export function ruleStep(field: RuleField): number {
     case "roundLimit":
     case "diceMin":
     case "diceMax":
+    case "baseLandValue":
       return 1;
     default:
       return 100;
@@ -221,6 +223,7 @@ export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   ROLLING: "サイコロを振る",
   CHOOSING_PATH: "行き先を選ぶ",
   DEPLOYING: "クリーチャーを配置する",
+  RELINQUISHING: "領地を手放す",
   ENDING: "ターンを終える",
   ENDED: "対戦は終わりました",
 };
@@ -266,6 +269,12 @@ export const MATCH_EVENT_MESSAGES = {
   lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
   creatureDeployed: (card: string, x: number, y: number, cost: number) =>
     `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
+  tollPaid: (owner: string, x: number, y: number, magic: number) =>
+    `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
+  territoryRelinquished: (x: number, y: number, magic: number) =>
+    `領地 (${x}, ${y}) を手放した（魔力 +${magic}）`,
+  magicDepleted: (magic: number) =>
+    `魔力が枯渇し、拠点からやり直す（魔力 ${magic}）`,
   turnEnded: "ターンを終えた",
   ended: (winners: string, reason: string) =>
     `対戦が終わった（勝った人: ${winners}。${reason}）`,

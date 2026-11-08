@@ -17,6 +17,7 @@ export type MatchEventView = {
   rewardCards?: { name: string }[];
   position?: { x: number; y: number };
   cost?: number;
+  owner?: number;
 };
 
 function nameOf(names: string[], seat: number): string {
@@ -47,6 +48,21 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.cost ?? 0,
       );
+    case "MatchTollPaidEvent":
+      return m.tollPaid(
+        nameOf(names, event.owner ?? 0),
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.magic ?? 0,
+      );
+    case "MatchTerritoryRelinquishedEvent":
+      return m.territoryRelinquished(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.magic ?? 0,
+      );
+    case "MatchMagicDepletedEvent":
+      return m.magicDepleted(event.magic ?? 0);
     case "MatchDiceRolledEvent":
       return m.diceRolled(event.value ?? 0);
     case "MatchMovedEvent":

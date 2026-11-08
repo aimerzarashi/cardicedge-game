@@ -38,7 +38,7 @@ import {
 // マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
 // 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
-// territories（領地。マスの側面（厚み）を持ち主の色にし、マスの上寄せに持ち主の色の ♞ と配置した順の番号を出し、マスの名前にも「領地 1-1 クリーチャー名」と添える。core#113・game#50）。
+// territories（領地。マスの側面（厚み）を持ち主の色にし、レベルの分だけ板を積み、マスの上寄せに持ち主の色の ♞ とクリーチャーの ID を出し、マスの中央に通行料を出し、マスの名前にも「領地 1 レベル 1 クリーチャー名 通行料 60」と添える。core#113・game#50・game#57）。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -325,7 +325,7 @@ function TileButton({
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
   const territoryName = territory
-    ? ` 領地 ${territory.label} ${territory.creature}`
+    ? ` 領地 ${territory.number} レベル ${territory.level} ${territory.creature} 通行料 ${territory.toll}`
     : "";
   return (
     <button
@@ -334,7 +334,7 @@ function TileButton({
       disabled
       style={{
         ...paint(tile),
-        ...tileSide(territory?.color),
+        ...tileSide(territory?.color, territory?.level),
         position: "relative",
         padding: 0,
         display: "flex",
@@ -379,6 +379,24 @@ function TileButton({
         >
           <span style={{ color: territory.color }}>{CREATURE_GLYPH}</span>
           {territory.number}
+        </span>
+      )}
+      {territory && (
+        // 土地のマスは中央に文字が無いので、通行料を中央に出す（2026-11-08 オーナー）
+        <span
+          aria-hidden
+          data-testid="territory-toll"
+          style={{
+            transform: "rotate(-45deg) scaleY(2)",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: "bold",
+            lineHeight: 1,
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {territory.toll}
         </span>
       )}
       {pieces.length > 0 && (

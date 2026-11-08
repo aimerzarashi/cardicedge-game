@@ -63,6 +63,7 @@ const boardsQuery = graphql(`
               roundLimit
               diceMin
               diceMax
+              baseLandValue
             }
           }
         }

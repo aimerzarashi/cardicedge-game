@@ -53,27 +53,24 @@ export function participantPieces(participants: Participant[]): Piece[] {
   }));
 }
 
-// 領地の印。「持ち主の駒の番号（参加者の番号 + 1）-その人が配置した順の番号」。core が返す順（できた順）で数える。
-// クリーチャーが盤面から外れるようになると（core#114）番号がずれるので、そのときに core から返す形を考える
+// 領地の印。番号は core の creature.id（対戦全体の通し番号。盤面から外れても残りの番号がずれない）
 export function territoryMarks(
   territories: {
     position: { x: number; y: number };
     owner: number;
-    creature: { card: { name: string } };
+    level: number;
+    toll: number;
+    creature: { id: number; card: { name: string } };
   }[],
 ): TerritoryMark[] {
-  const counts = new Map<number, number>();
-  return territories.map((territory) => {
-    const number = (counts.get(territory.owner) ?? 0) + 1;
-    counts.set(territory.owner, number);
-    return {
-      ...territory.position,
-      label: `${territory.owner + 1}-${number}`,
-      number,
-      creature: territory.creature.card.name,
-      color: participantColor(territory.owner),
-    };
-  });
+  return territories.map((territory) => ({
+    ...territory.position,
+    number: territory.creature.id,
+    level: territory.level,
+    toll: territory.toll,
+    creature: territory.creature.card.name,
+    color: participantColor(territory.owner),
+  }));
 }
 
 // 自分の番か。currentParticipant の参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
@@ -103,7 +100,7 @@ export type ReviewRow = {
   rank: number;
   name: string;
   isPlayer: boolean;
-  magic: number;
+  totalMagic: number;
   rewardReceived: boolean;
   rewardCards: string[];
 };
@@ -113,7 +110,7 @@ export function reviewRows(
   participants: {
     kind: string;
     avatar: { name: string };
-    magic: number;
+    totalMagic: number;
     rewardReceived: boolean;
     rewardCards: { name: string }[];
   }[],
@@ -125,7 +122,7 @@ export function reviewRows(
       rank: ranks[seat] ?? 0,
       name: participant.avatar.name,
       isPlayer: participant.kind === "PLAYER",
-      magic: participant.magic,
+      totalMagic: participant.totalMagic,
       rewardReceived: participant.rewardReceived,
       rewardCards: participant.rewardCards.map((card) => card.name),
     }))
