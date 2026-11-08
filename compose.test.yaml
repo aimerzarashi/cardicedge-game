@@ -128,6 +128,8 @@ services:
       # Playwright は中継役用の入口（10001）から入るため、そのオリジンも受け付ける
       BETTER_AUTH_TRUSTED_ORIGINS: http://game-envoy:10001
       JWT_ISSUER: diecardomain-game
+      # better-auth のクッキー名の頭。studio と game で別にする（同じホストに並べたとき、片方のログインがもう片方を切らないため。studio#72・game#55）
+      BETTER_AUTH_COOKIE_PREFIX: game
       JWT_AUDIENCE: diecardomain-core
       CORE_GRAPHQL_URL: http://game-envoy:10000/game/graphql
       SMTP_URL: smtp://game-mailpit:1025

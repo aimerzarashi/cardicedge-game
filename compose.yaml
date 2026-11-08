@@ -20,6 +20,8 @@ services:
       BETTER_AUTH_URL: http://localhost:${GAME_PORT:-3000}
       # JWT の iss / aud。core の設定と一致させる。iss は core がプレイヤーを識別するキーの一部のため、運用開始後は変えない
       JWT_ISSUER: diecardomain-game
+      # better-auth のクッキー名の頭。studio と game で別にする（同じホストに並べたとき、片方のログインがもう片方を切らないため。studio#72・game#55）
+      BETTER_AUTH_COOKIE_PREFIX: game
       JWT_AUDIENCE: diecardomain-core
       # core の GraphQL。game は共有ネットワークに参加しないため、game-envoy を通す（studio#11）
       CORE_GRAPHQL_URL: http://game-envoy:10000/game/graphql
