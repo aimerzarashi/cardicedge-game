@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { participantColor } from "../boards/board-paint.ts";
 import {
   currentTurnText,
   isMyTurn,
@@ -7,6 +8,7 @@ import {
   participantRows,
   reviewRows,
   roundText,
+  territoryMarks,
   winnerNames,
 } from "./match-view.ts";
 
@@ -55,8 +57,8 @@ describe("currentTurnText", () => {
 describe("participantPieces", () => {
   it("席の順に 1 始まりの番号を印にして、位置を引き継ぐ", () => {
     assert.deepEqual(participantPieces(participants), [
-      { x: 0, y: 0, label: "1" },
-      { x: 2, y: 1, label: "2" },
+      { x: 0, y: 0, label: "1", color: participantColor(0) },
+      { x: 2, y: 1, label: "2", color: participantColor(1) },
     ]);
   });
 });
@@ -137,5 +139,28 @@ describe("reviewRows", () => {
       rewardReceived: true,
       rewardCards: ["A", "B"],
     });
+  });
+});
+
+describe("territoryMarks", () => {
+  const territory = (owner: number, name: string) => ({
+    position: { x: owner, y: 0 },
+    owner,
+    creature: { card: { name } },
+  });
+
+  it("「駒の番号-その人が配置した順の番号」と持ち主の色を付ける", () => {
+    assert.deepEqual(
+      territoryMarks([
+        territory(1, "ウルフ"),
+        territory(0, "ゴーレム"),
+        territory(1, "ノーム"),
+      ]).map(({ label, creature, color }) => ({ label, creature, color })),
+      [
+        { label: "2-1", creature: "ウルフ", color: participantColor(1) },
+        { label: "1-1", creature: "ゴーレム", color: participantColor(0) },
+        { label: "2-2", creature: "ノーム", color: participantColor(1) },
+      ],
+    );
   });
 });

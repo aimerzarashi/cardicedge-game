@@ -136,3 +136,53 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await expect(page.getByRole("button", { name: "再開する" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "準備完了" })).toBeVisible();
 });
+
+test("空いている土地に止まるとクリーチャーを配置でき、盤面と領地の欄に出る", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(90_000);
+  await openNewRoom(page, request, "match-deploy");
+  await decideSeats(page);
+  // 公開中D は拠点の先に土地が 3 つ続く 1 本道で、サイコロの目は 1〜2。NPC が土地を取っても、残りの土地に止まれる
+  await decideRules(page, undefined, "公開中D");
+  await decidePlayerSeat(page);
+  await decideNpcSeat(page);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+
+  const deploy = page.getByRole("button", { name: /を配置する$/ });
+  const operations = matchOperations(page);
+  for (let step = 0; step < 40; step++) {
+    await expect(deploy.or(operations).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await deploy.first().isVisible()) {
+      break;
+    }
+    const revision = await page.locator("main").getAttribute("data-revision");
+    await operations.first().click();
+    await expect(page.locator("main")).not.toHaveAttribute(
+      "data-revision",
+      revision ?? "",
+    );
+  }
+  await expect(
+    page.getByRole("button", { name: "配置せずにターンを終える" }),
+  ).toBeVisible();
+  const label = (await deploy.first().textContent()) ?? "";
+  const creature = label.replace(/を配置する$/, "");
+
+  await deploy.first().click();
+
+  await expect(page.getByTestId("match-territories")).toContainText(
+    new RegExp(`1-1.*コマ 1（部屋用）.*${creature}`),
+  );
+  await expect(
+    page.getByRole("button", {
+      name: new RegExp(`領地 1-1 ${creature}`),
+    }),
+  ).toBeVisible();
+});

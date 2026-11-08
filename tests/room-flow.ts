@@ -49,9 +49,13 @@ export async function decideSeats(page: Page) {
   await expect(seatItem(page, 1)).toContainText("NPC");
 }
 
-export async function decideRules(page: Page, roundLimit?: number) {
+export async function decideRules(
+  page: Page,
+  roundLimit?: number,
+  board = "公開中A",
+) {
   await reloadUntilVisible(page, page.getByLabel("ボード"));
-  await page.getByLabel("ボード").selectOption({ label: "公開中A" });
+  await page.getByLabel("ボード").selectOption({ label: board });
   // 7 つの値は、選んだボードの既定のルールから始まる
   await expect(page.getByLabel("目標の魔力")).toHaveValue("8000");
   await page.getByLabel("目標の魔力").fill("9000");
@@ -59,7 +63,7 @@ export async function decideRules(page: Page, roundLimit?: number) {
     await page.getByLabel("ラウンドの上限").fill(String(roundLimit));
   }
   await page.getByRole("button", { name: "対戦ルールを決める" }).click();
-  await expect(page.getByTestId("match-rules")).toContainText("公開中A");
+  await expect(page.getByTestId("match-rules")).toContainText(board);
   await expect(page.getByTestId("match-rules")).toContainText(
     "目標の魔力 9000",
   );

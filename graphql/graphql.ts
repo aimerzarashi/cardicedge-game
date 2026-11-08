@@ -169,6 +169,16 @@ export type DeclareRoomReadyInput = {
   revision: number;
 };
 
+/** 止まった空き地にクリーチャーを配置する入力 */
+export type DeployMatchCreatureInput = {
+  /** 配置する手札の番号（0 始まり。Match.deployChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で配置できないものは FieldNotFound） */
+  handIndex: number;
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
 /** 手札を 1 枚捨てる入力 */
 export type DiscardMatchCardInput = {
   /** 捨てる手札の番号（0 始まり。自分の手札の枚数の範囲。範囲の外は ValidationErrors の FieldOutOfRange） */
@@ -213,6 +223,8 @@ export type MatchParticipantKind =
 export type MatchPhase =
   /** 分かれ道で行き先を選ぶ段階（chooseMatchPath） */
   | 'CHOOSING_PATH'
+  /** 空いている土地に止まった後の段階。クリーチャーを配置する（deployMatchCreature。配置したらターンを終える）か、配置せずにターンを終える（endMatchTurn） */
+  | 'DEPLOYING'
   /** 手札が上限を超えているので捨てる段階（discardMatchCard） */
   | 'DISCARDING'
   /** カードを引く段階（drawMatchCard） */
@@ -422,7 +434,7 @@ export type MatchDetailQueryVariables = Exact<{
 
 
 export type MatchDetailQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, currentParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, territories: Array<{ owner: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, maxHandCards: number, startingHandCards: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -466,6 +478,30 @@ export type DiscardMatchCardMutationVariables = Exact<{
 
 export type DiscardMatchCardMutation = { discardMatchCard:
     | { __typename: 'DiscardMatchCardSuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type DeployMatchCreatureMutationVariables = Exact<{
+  input: DeployMatchCreatureInput;
+}>;
+
+
+export type DeployMatchCreatureMutation = { deployMatchCreature:
+    | { __typename: 'DeployMatchCreatureSuccess' }
     | { __typename: 'MatchNotFoundError' }
     | { __typename: 'MatchNotYourTurnError' }
     | { __typename: 'MatchPhaseNotAllowedError' }
@@ -579,6 +615,11 @@ export type MatchEventsQuery = { matchEvents:
            }
         | { __typename: 'MatchCheckpointPassedEvent', participant: number, magic: number, revision: number, checkpoint: { x: number, y: number } }
         | { __typename: 'MatchCreatedEvent', revision: number }
+        | { __typename: 'MatchCreatureDeployedEvent', participant: number, cost: number, revision: number, card:
+            | { name: string }
+            | { name: string }
+            | { name: string }
+          , position: { x: number, y: number } }
         | { __typename: 'MatchDecksShuffledEvent', revision: number }
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, revision: number }
         | { __typename: 'MatchEndedEvent', winners: Array<number>, reason: MatchEndReason, revision: number }
@@ -1129,6 +1170,22 @@ export const MatchDetailDocument = new TypedDocumentString(`
         x
         y
       }
+      deployChoices
+      territories {
+        position {
+          x
+          y
+        }
+        owner
+        creature {
+          id
+          hitPoints
+          card {
+            id
+            name
+          }
+        }
+      }
       outcome {
         winners
         reason
@@ -1235,6 +1292,23 @@ export const DiscardMatchCardDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<DiscardMatchCardMutation, DiscardMatchCardMutationVariables>;
+export const DeployMatchCreatureDocument = new TypedDocumentString(`
+    mutation DeployMatchCreature($input: DeployMatchCreatureInput!) {
+  deployMatchCreature(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+        ... on FieldOutOfRange {
+          min
+          max
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<DeployMatchCreatureMutation, DeployMatchCreatureMutationVariables>;
 export const RollMatchDiceDocument = new TypedDocumentString(`
     mutation RollMatchDice($input: RollMatchDiceInput!) {
   rollMatchDice(input: $input) {
@@ -1304,6 +1378,17 @@ export const MatchEventsDocument = new TypedDocumentString(`
           card {
             name
           }
+        }
+        ... on MatchCreatureDeployedEvent {
+          participant
+          card {
+            name
+          }
+          position {
+            x
+            y
+          }
+          cost
         }
         ... on MatchDiceRolledEvent {
           participant

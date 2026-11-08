@@ -2,6 +2,7 @@ import Link from "next/link";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
+import { participantColor } from "../../boards/board-paint";
 import {
   elementsLabel,
   MATCH_END_REASON_LABELS,
@@ -20,11 +21,13 @@ import {
   participantRows,
   reviewRows,
   roundText,
+  territoryMarks,
   winnerNames,
 } from "../match-view";
 import {
   chooseMatchPath,
   chooseMatchRewardPack,
+  deployMatchCreature,
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
@@ -49,6 +52,22 @@ const matchQuery = graphql(`
         pathChoices {
           x
           y
+        }
+        deployChoices
+        territories {
+          position {
+            x
+            y
+          }
+          owner
+          creature {
+            id
+            hitPoints
+            card {
+              id
+              name
+            }
+          }
         }
         outcome {
           winners
@@ -169,6 +188,23 @@ const HAND_STYLE = {
 
 const RULE_FIELDS = Object.keys(RULE_LABELS) as RuleField[];
 
+// 盤面の枠・コマの番号と同じ色の印（色の意味は隣の文字でもわかるので、読み上げない）
+function ParticipantColorMark({ seat }: { seat: number }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: "inline-block",
+        width: "0.8em",
+        height: "0.8em",
+        marginRight: "0.3em",
+        border: "1px solid #10182b",
+        background: participantColor(seat),
+      }}
+    />
+  );
+}
+
 function Message({ children }: { children: string }) {
   return (
     <main>
@@ -250,6 +286,7 @@ export default async function MatchPage({
           height: match.board.height,
           tiles: match.board.tiles,
           pairs: match.board.pairs,
+          territories: territoryMarks(match.territories),
         }}
         pieces={participantPieces(match.participants)}
       >
@@ -382,6 +419,26 @@ export default async function MatchPage({
                     ({position.x}, {position.y}) へ進む
                   </MatchActionButton>
                 ))}
+              {match.phase === "DEPLOYING" &&
+                match.deployChoices.map((handIndex) => (
+                  <MatchActionButton
+                    key={handIndex}
+                    action={deployMatchCreature}
+                    values={{ handIndex }}
+                    {...actionProps}
+                  >
+                    {match.participants[match.currentParticipant ?? 0]?.hand[
+                      handIndex
+                    ]?.name ?? ""}
+                    を配置する
+                  </MatchActionButton>
+                ))}
+              {match.phase === "DEPLOYING" && (
+                // 配置しないのは、ターンを終えること（core に専用の操作は無い）
+                <MatchActionButton action={endMatchTurn} {...actionProps}>
+                  配置せずにターンを終える
+                </MatchActionButton>
+              )}
               {match.phase === "ENDING" && (
                 <MatchActionButton action={endMatchTurn} {...actionProps}>
                   ターンを終える
@@ -404,6 +461,7 @@ export default async function MatchPage({
                     style={{ marginBottom: "0.5rem" }}
                   >
                     <p style={{ margin: 0 }}>
+                      <ParticipantColorMark seat={row.seat} />
                       コマ {row.piece}・{SEAT_KIND_LABELS[participant.kind]}・
                       {participant.avatar.name}
                       {row.isCurrent && (
@@ -475,6 +533,27 @@ export default async function MatchPage({
               },
             )}
           </ul>
+
+          <h2>領地</h2>
+          {match.territories.length === 0 ? (
+            <p>まだ領地はありません</p>
+          ) : (
+            <ul data-testid="match-territories">
+              {match.territories.map((territory, index) => (
+                <li key={territory.creature.id}>
+                  <ParticipantColorMark seat={territory.owner} />
+                  {territoryMarks(match.territories)[index].label} (
+                  {territory.position.x}, {territory.position.y}) コマ{" "}
+                  {territory.owner + 1}（
+                  {match.participants[territory.owner]?.avatar.name}）:{" "}
+                  <Link href={`/cards/${territory.creature.card.id}`}>
+                    {territory.creature.card.name}
+                  </Link>
+                  （HP {territory.creature.hitPoints}）
+                </li>
+              ))}
+            </ul>
+          )}
 
           <h2>ルール</h2>
           <dl data-testid="match-rules" style={RULES_STYLE}>

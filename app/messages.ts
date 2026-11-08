@@ -220,6 +220,7 @@ export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   DISCARDING: "手札を捨てる",
   ROLLING: "サイコロを振る",
   CHOOSING_PATH: "行き先を選ぶ",
+  DEPLOYING: "クリーチャーを配置する",
   ENDING: "ターンを終える",
   ENDED: "対戦は終わりました",
 };
@@ -263,6 +264,8 @@ export const MATCH_EVENT_MESSAGES = {
   checkpointPassed: (x: number, y: number, magic: number) =>
     `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,
   lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
+  creatureDeployed: (card: string, x: number, y: number, cost: number) =>
+    `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
   turnEnded: "ターンを終えた",
   ended: (winners: string, reason: string) =>
     `対戦が終わった（勝った人: ${winners}。${reason}）`,

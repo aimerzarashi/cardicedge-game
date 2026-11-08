@@ -12,6 +12,7 @@ import type { MatchEventView } from "../match-events";
 import {
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
+  deployMatchCreatureMutation,
   discardMatchCardMutation,
   drawMatchCardMutation,
   endMatchTurnMutation,
@@ -124,6 +125,24 @@ export async function chooseMatchPath(
   });
   return result.ok
     ? finish(result.data.chooseMatchPath)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function deployMatchCreature(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(deployMatchCreatureMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.deployMatchCreature)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

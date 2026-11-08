@@ -15,6 +15,8 @@ export type MatchEventView = {
   winners?: number[];
   reason?: keyof typeof MATCH_END_REASON_LABELS;
   rewardCards?: { name: string }[];
+  position?: { x: number; y: number };
+  cost?: number;
 };
 
 function nameOf(names: string[], seat: number): string {
@@ -38,6 +40,13 @@ function body(event: MatchEventView, names: string[]): string {
       return m.cardDrawn(event.card?.name ?? "");
     case "MatchCardDiscardedEvent":
       return m.cardDiscarded(event.card?.name ?? "");
+    case "MatchCreatureDeployedEvent":
+      return m.creatureDeployed(
+        event.card?.name ?? "",
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.cost ?? 0,
+      );
     case "MatchDiceRolledEvent":
       return m.diceRolled(event.value ?? 0);
     case "MatchMovedEvent":

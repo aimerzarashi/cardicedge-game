@@ -10,7 +10,9 @@ import {
   LAND_COLORS,
   LEGEND,
   paint,
+  participantColor,
   tileName,
+  tileSide,
   tileText,
   WARP_COLOR,
 } from "./board-paint.ts";
@@ -80,6 +82,40 @@ describe("paint（マスの色）", () => {
     ];
 
     assert.equal(new Set(colors).size, colors.length);
+  });
+});
+
+describe("participantColor（参加者の色）", () => {
+  it("席の順に、火・水・地・風の土地の色を割り当てる", () => {
+    assert.deepEqual([0, 1, 2, 3].map(participantColor), [
+      LAND_COLORS.FIRE,
+      LAND_COLORS.WATER,
+      LAND_COLORS.EARTH,
+      LAND_COLORS.WIND,
+    ]);
+  });
+});
+
+describe("tileSide（マスの側面）", () => {
+  const layersOf = (color?: string) =>
+    String(tileSide(color).boxShadow).split(/, (?=\d+px|inset)/);
+
+  it("上面の縁の線に続けて、持ち主の色の影を右下へ 1 つずつずらして重ねる", () => {
+    const layers = layersOf("#d9534f");
+    assert.match(layers[0], /^inset /);
+    assert.equal(layers[1], "1px 1px 0 #d9534f");
+    assert.equal(layers.length, 11);
+  });
+
+  it("接地する側の影は暗くする", () => {
+    assert.equal(
+      layersOf("#d9534f")[10],
+      "10px 10px 0 color-mix(in srgb, #d9534f 60%, black)",
+    );
+  });
+
+  it("持ち主がいなければ、暗い灰色にする", () => {
+    assert.equal(layersOf()[1], "1px 1px 0 #3a4256");
   });
 });
 
