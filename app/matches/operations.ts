@@ -28,6 +28,24 @@ export const discardMatchCardMutation = graphql(`
   }
 `);
 
+export const deployMatchCreatureMutation = graphql(`
+  mutation DeployMatchCreature($input: DeployMatchCreatureInput!) {
+    deployMatchCreature(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const rollMatchDiceMutation = graphql(`
   mutation RollMatchDice($input: RollMatchDiceInput!) {
     rollMatchDice(input: $input) {
@@ -102,6 +120,17 @@ export const matchEventsQuery = graphql(`
             card {
               name
             }
+          }
+          ... on MatchCreatureDeployedEvent {
+            participant
+            card {
+              name
+            }
+            position {
+              x
+              y
+            }
+            cost
           }
           ... on MatchDiceRolledEvent {
             participant

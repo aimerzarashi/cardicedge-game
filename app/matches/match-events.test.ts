@@ -27,6 +27,22 @@ describe("eventLine", () => {
     );
   });
 
+  it("配置したイベントは、クリーチャーの名前・位置・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(17, {
+          __typename: "MatchCreatureDeployedEvent",
+          participant: 0,
+          card: { name: "ウルフ" },
+          position: { x: 1, y: 0 },
+          cost: 10,
+        }),
+        names,
+      ),
+      "版 17 部屋用: クリーチャー「ウルフ」を (1, 0) に配置した（魔力 -10）",
+    );
+  });
+
   it("チェックポイントは位置と増えた魔力を出す", () => {
     assert.equal(
       eventLine(

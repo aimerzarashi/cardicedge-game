@@ -29,6 +29,8 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   await expect(rows.nth(3)).toContainText("3×2");
   await expect(rows.nth(5)).toContainText("公開中C");
   await expect(rows.nth(5)).toContainText("6×2");
+  await expect(rows.nth(7)).toContainText("公開中D");
+  await expect(rows.nth(7)).toContainText("5×1");
   await expect(page.getByText("使用不可")).toHaveCount(0);
 });
 

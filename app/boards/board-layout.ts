@@ -20,7 +20,14 @@ export type Tile = Position & Placement;
 // 転送円どうし・橋どうしの対（向きは無い）。a は core が返す向きのまま（座標が小さい側）
 export type Pair = { a: Position; b: Position };
 // 対戦で参加者が立っているマスに出す印（game だけ。label は席の番号等の短い文字）
-export type Piece = Position & { label: string };
+export type Piece = Position & { label: string; color?: string };
+// 対戦の領地の印（game だけ。label は「持ち主の駒の番号-配置した順の番号」、number は配置した順の番号、creature はそこにいるクリーチャーの名前、color は持ち主の色）
+export type TerritoryMark = Position & {
+  label: string;
+  number: number;
+  creature: string;
+  color: string;
+};
 
 export const TILE_KIND_LABELS: Record<Placement["__typename"], string> = {
   LandTile: "土地",

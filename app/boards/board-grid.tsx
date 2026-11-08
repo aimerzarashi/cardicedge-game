@@ -7,15 +7,19 @@ import {
   type Piece,
   type Position,
   pairLabel,
+  type TerritoryMark,
   type Tile,
   tileAt,
   tileLabel,
 } from "./board-layout";
 import {
   BOARD_BACKGROUND,
+  CREATURE_GLYPH,
   LEGEND,
+  PIECE_GLYPH,
   paint,
   tileName,
+  tileSide,
   tileText,
 } from "./board-paint";
 import {
@@ -33,7 +37,8 @@ import {
 // 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
 // マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
-// 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に番号を出し、マスの名前にも「駒 1」と添える。位置は core が返したものをそのまま描く）。
+// 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
+// territories（領地。マスの側面（厚み）を持ち主の色にし、マスの上寄せに持ち主の色の ♞ と配置した順の番号を出し、マスの名前にも「領地 1-1 クリーチャー名」と添える。core#113・game#50）。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -56,12 +61,14 @@ export function BoardGrid({
   tiles,
   pairs,
   pieces = [],
+  territories = [],
 }: {
   width: number;
   height: number;
   tiles: Tile[];
   pairs: Pair[];
   pieces?: Piece[];
+  territories?: TerritoryMark[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size | null>(null);
@@ -184,6 +191,9 @@ export function BoardGrid({
               tile={tile}
               pair={pairLabel({ tiles, pairs }, tile)}
               pieces={pieces.filter((piece) => piece.x === x && piece.y === y)}
+              territory={territories.find(
+                (territory) => territory.x === x && territory.y === y,
+              )}
             />
           ) : (
             <span key={key} />
@@ -303,22 +313,28 @@ function TileButton({
   tile,
   pair,
   pieces,
+  territory,
 }: {
   position: Position;
   tile: Tile;
   // 転送円・橋の対の番号（対になっていなければ無い）
   pair: PairLabel | undefined;
   pieces: Piece[];
+  territory: TerritoryMark | undefined;
 }) {
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
+  const territoryName = territory
+    ? ` 領地 ${territory.label} ${territory.creature}`
+    : "";
   return (
     <button
       type="button"
-      aria-label={`${tileName(position, tile, pair)}${pieceNames && ` ${pieceNames}`}`}
+      aria-label={`${tileName(position, tile, pair)}${territoryName}${pieceNames && ` ${pieceNames}`}`}
       disabled
       style={{
         ...paint(tile),
+        ...tileSide(territory?.color),
         position: "relative",
         padding: 0,
         display: "flex",
@@ -343,22 +359,49 @@ function TileButton({
           {text}
         </span>
       )}
+      {territory && (
+        // 回転を打ち消して正面に向ける。駒の番号と重ならないよう、画面の真上の角（回す前の左上の角）に寄せる
+        <span
+          aria-hidden
+          data-testid="territory"
+          style={{
+            position: "absolute",
+            top: "20%",
+            left: "20%",
+            transform: "translate(-50%, -50%) rotate(-45deg) scaleY(2)",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: "bold",
+            lineHeight: 1,
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ color: territory.color }}>{CREATURE_GLYPH}</span>
+          {territory.number}
+        </span>
+      )}
       {pieces.length > 0 && (
-        // 回転を打ち消して正面に向ける。マスの文字（text）と重ならないよう、下寄せにする
+        // 回転を打ち消して正面に向ける。マスの文字（text）と領地の番号に重ならないよう、画面の真下の角（回す前の右下の角）に寄せる
         <span
           aria-hidden
           data-testid="piece"
           style={{
             position: "absolute",
-            transform: "rotate(-45deg) scaleY(2)",
-            color: "#ffff66",
+            top: "80%",
+            left: "80%",
+            transform: "translate(-50%, -50%) rotate(-45deg) scaleY(2)",
             fontSize: 14,
             fontWeight: "bold",
             textShadow: "0 0 2px #000, 0 0 2px #000",
             whiteSpace: "nowrap",
           }}
         >
-          {pieces.map((piece) => piece.label).join(",")}
+          {pieces.map((piece) => (
+            <span key={piece.label} style={{ color: piece.color ?? "#ffff66" }}>
+              {PIECE_GLYPH}
+            </span>
+          ))}
         </span>
       )}
     </button>
