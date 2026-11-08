@@ -3,10 +3,12 @@ import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import {
+  elementsLabel,
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
   MATCH_REVIEW_MESSAGES,
   matchNumberLabel,
+  RARITY_LABELS,
   RULE_LABELS,
   type RuleField,
   SEAT_KIND_LABELS,
@@ -76,7 +78,7 @@ const matchQuery = graphql(`
             x
             y
             ... on LandTile {
-              attribute
+              element
             }
           }
           pairs {
@@ -103,8 +105,16 @@ const matchQuery = graphql(`
           }
           magic
           hand {
+            __typename
             id
             name
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+            }
           }
           drawPileCount
           turnOrder
@@ -445,7 +455,16 @@ export default async function MatchPage({
                           <ul data-testid="participant-hand" style={HAND_STYLE}>
                             {participant.hand.map((card, cardIndex) => (
                               // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、引いた順で区別する
-                              <li key={cardIndex}>{card.name}</li>
+                              <li key={cardIndex}>
+                                <Link href={`/cards/${card.id}`}>
+                                  {card.name}
+                                </Link>
+                                （コスト {card.cost}・
+                                {RARITY_LABELS[card.rarity]}
+                                {card.__typename === "CreatureCardInfo" &&
+                                  `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
+                                ）
+                              </li>
                             ))}
                           </ul>
                         </dd>

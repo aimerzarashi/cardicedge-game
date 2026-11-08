@@ -11,7 +11,7 @@ import {
   tileLabel,
 } from "./board-layout.ts";
 
-const fire: Placement = { __typename: "LandTile", attribute: "FIRE" };
+const fire: Placement = { __typename: "LandTile", element: "FIRE" };
 const warp: Placement = { __typename: "WarpTile" };
 const bridge: Placement = { __typename: "BridgeTile" };
 

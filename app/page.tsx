@@ -51,6 +51,11 @@ export default async function Home() {
       ) : null}
       {player.ok ? (
         <p>
+          <Link href="/collection">所持カード</Link>
+        </p>
+      ) : null}
+      {player.ok ? (
+        <p>
           <Link href="/rooms">部屋</Link>
         </p>
       ) : null}

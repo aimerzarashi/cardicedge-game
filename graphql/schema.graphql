@@ -187,36 +187,6 @@ interface BoardTile {
 	y: Int!
 }
 """
-土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
-効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
-"""
-enum BoardTileAttribute {
-	"""
-	火（火属性）
-	"""
-	FIRE
-	"""
-	地（地属性）
-	"""
-	EARTH
-	"""
-	水（水属性）
-	"""
-	WATER
-	"""
-	風（風属性）
-	"""
-	WIND
-	"""
-	無（無属性）
-	"""
-	NEUTRAL
-	"""
-	複（複属性）。火・地・水・風の 4 色のマークが描かれた特殊な土地。組み合わせは持たない（属性の値の 1 つ）
-	"""
-	MULTI
-}
-"""
 ボードのマスの数（read model の投影のときに数える）。土地だけが属性を持つので、属性ごとの数の和が土地の数になる
 """
 type BoardTileCounts {
@@ -282,6 +252,36 @@ type BoardTileCounts {
 	cardShop: Int!
 }
 """
+土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
+効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
+"""
+enum BoardTileElement {
+	"""
+	火（火属性）
+	"""
+	FIRE
+	"""
+	地（地属性）
+	"""
+	EARTH
+	"""
+	水（水属性）
+	"""
+	WATER
+	"""
+	風（風属性）
+	"""
+	WIND
+	"""
+	無（無属性）
+	"""
+	NEUTRAL
+	"""
+	複（複属性）。火・地・水・風の 4 色のマークが描かれた特殊な土地。組み合わせは持たない（属性の値の 1 つ）
+	"""
+	MULTI
+}
+"""
 転送円どうし・橋どうしの対（向きは無い。離れていてよい）
 """
 type BoardTilePair {
@@ -338,6 +338,61 @@ type BridgeTile implements BoardTile {
 	y: Int!
 }
 """
+カードの、見せるのに要る項目
+"""
+interface CardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うのに払う魔力
+	"""
+	cost: Int!
+	"""
+	希少度
+	"""
+	rarity: CardRarity!
+}
+"""
+カードが無い（無い ID・カードでない ID・準備中で写されていないカード）
+"""
+type CardNotFoundError {
+	"""
+	開発者向けの説明（画面にそのまま出す文言ではない）
+	"""
+	message: String!
+}
+"""
+カードの希少度
+"""
+enum CardRarity {
+	"""
+	画面では N
+	"""
+	NORMAL
+	"""
+	画面では S
+	"""
+	STRANGE
+	"""
+	画面では R
+	"""
+	RARE
+	"""
+	画面では E
+	"""
+	EXTRA
+}
+"""
+カードの詳細の結果。種類ごとの型（__typename で見分ける）。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
+"""
+union CardResult = CreatureCardInfo | ItemCardInfo | SpellCardInfo | CardNotFoundError | PlayerNotRegisteredError
+"""
 カード屋（止まると、用意されたカードから 1 枚買える）。属性は持たない
 """
 type CardShopTile implements BoardTile {
@@ -351,11 +406,20 @@ type CardShopTile implements BoardTile {
 	y: Int!
 }
 """
-カードの種類
+カードの種類。所持カードの絞り込みに使う（結果のカードの種類は __typename で見分ける）
 """
 enum CardType {
+	"""
+	クリーチャー
+	"""
 	CREATURE
+	"""
+	アイテム
+	"""
 	ITEM
+	"""
+	スペル
+	"""
 	SPELL
 }
 """
@@ -610,6 +674,58 @@ type CloseRoomSuccess {
 	revision: Int!
 }
 """
+所持しているカード 1 種類と、その枚数
+"""
+type CollectionCard {
+	"""
+	カード
+	"""
+	card: CardInfo!
+	"""
+	持っている枚数（1 以上）
+	"""
+	count: Int!
+}
+"""
+所持カードの一覧の 1 ページ（種類 → 名前の順）
+"""
+type CollectionCardConnection {
+	"""
+	このページの所持カード
+	"""
+	edges: [CollectionCardEdge!]!
+	"""
+	ページの情報
+	"""
+	pageInfo: PageInfo!
+}
+"""
+所持カードの一覧の 1 件と、その位置
+"""
+type CollectionCardEdge {
+	"""
+	この 1 件の位置（次のページを取るときに after に渡す）
+	"""
+	cursor: String!
+	"""
+	所持しているカードと枚数
+	"""
+	node: CollectionCard!
+}
+"""
+所持カードの絞り込み
+"""
+input CollectionFilter {
+	"""
+	カードの種類（指定が無ければすべて。空のリストは入力の誤り）
+	"""
+	types: [CardType!]
+}
+"""
+所持カードの一覧の結果。入力の誤りは ValidationErrors
+"""
+union CollectionResult = CollectionCardConnection | ValidationErrors
+"""
 部屋を作る入力
 """
 input CreateRoomInput {
@@ -634,6 +750,64 @@ type CreateRoomSuccess {
 	作った部屋の revision
 	"""
 	revision: Int!
+}
+"""
+クリーチャー
+"""
+type CreatureCardInfo implements CardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うのに払う魔力
+	"""
+	cost: Int!
+	"""
+	希少度
+	"""
+	rarity: CardRarity!
+	"""
+	属性（1〜4 つ。無は単独。火・地・水・風の順に並べる）
+	"""
+	elements: [CreatureElement!]!
+	"""
+	攻撃力（AT）
+	"""
+	attack: Int!
+	"""
+	体力（HP）
+	"""
+	hitPoints: Int!
+}
+"""
+クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独
+"""
+enum CreatureElement {
+	"""
+	火
+	"""
+	FIRE
+	"""
+	地
+	"""
+	EARTH
+	"""
+	水
+	"""
+	WATER
+	"""
+	風
+	"""
+	WIND
+	"""
+	無
+	"""
+	NEUTRAL
 }
 """
 日時（RFC 3339 の文字列。例: 2026-10-17T09:00:00Z）
@@ -671,28 +845,11 @@ type DeckCard {
 	"""
 	カード
 	"""
-	card: DeckCardInfo!
+	card: CardInfo!
 	"""
 	枚数
 	"""
 	count: Int!
-}
-"""
-デッキに入っているカードの、見せるのに要る項目
-"""
-type DeckCardInfo {
-	"""
-	公開用の ID
-	"""
-	id: UUID!
-	"""
-	名前
-	"""
-	name: String!
-	"""
-	種類
-	"""
-	type: CardType!
 }
 """
 自分のものとしてデッキが無い（無い・ほかのプレイヤーのもの。存在を明かさないため区別しない）
@@ -1002,6 +1159,27 @@ type GameRules {
 """
 union GameRulesResult = GameRules | PlayerNotRegisteredError
 """
+アイテム
+"""
+type ItemCardInfo implements CardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うのに払う魔力
+	"""
+	cost: Int!
+	"""
+	希少度
+	"""
+	rarity: CardRarity!
+}
+"""
 土地（ふつうのマス）
 """
 type LandTile implements BoardTile {
@@ -1016,7 +1194,7 @@ type LandTile implements BoardTile {
 	"""
 	属性
 	"""
-	attribute: BoardTileAttribute!
+	element: BoardTileElement!
 }
 """
 対戦。参加者は部屋の席の順で返す。
@@ -1146,7 +1324,7 @@ type MatchCardDiscardedEvent implements MatchEvent {
 	"""
 	捨てたカード
 	"""
-	card: DeckCardInfo!
+	card: CardInfo!
 }
 """
 カードを引いた
@@ -1167,7 +1345,7 @@ type MatchCardDrawnEvent implements MatchEvent {
 	"""
 	引いたカード
 	"""
-	card: DeckCardInfo!
+	card: CardInfo!
 }
 """
 まだ印の無いチェックポイントに入り、印を付けて魔力が増えた
@@ -1427,7 +1605,7 @@ type MatchParticipant {
 	"""
 	手札（引いた順。同じカードが複数あれば、その枚数だけ並べる。カードの型はデッキのカードと同じ）
 	"""
-	hand: [DeckCardInfo!]!
+	hand: [CardInfo!]!
 	"""
 	山札の残りの枚数。並びと中身は見せない
 	"""
@@ -1447,7 +1625,7 @@ type MatchParticipant {
 	"""
 	受け取った戦利品のカード（受け取るまでは空）。引いた順で、同じカードは重ならない
 	"""
-	rewardCards: [DeckCardInfo!]!
+	rewardCards: [CardInfo!]!
 }
 """
 参加者がプレイヤーか NPC か
@@ -1600,7 +1778,7 @@ type MatchRewardDrawnEvent implements MatchEvent {
 	"""
 	引いたカード（重ならない。候補が足りなければ順位の枚数より少ない）。cards にしないのは、MatchHandsDealtEvent.cards（Int）と同じ名前で型が食い違い、問い合わせを検証で断られるため
 	"""
-	rewardCards: [DeckCardInfo!]!
+	rewardCards: [CardInfo!]!
 }
 """
 戦利品に選べるパック
@@ -1823,28 +2001,11 @@ type NpcDeckCard {
 	"""
 	カード
 	"""
-	card: NpcDeckCardInfo!
+	card: CardInfo!
 	"""
 	枚数
 	"""
 	count: Int!
-}
-"""
-NPC のデッキに入っているカードの、見せるのに要る項目
-"""
-type NpcDeckCardInfo {
-	"""
-	公開用の ID
-	"""
-	id: UUID!
-	"""
-	名前
-	"""
-	name: String!
-	"""
-	種類
-	"""
-	type: CardType!
 }
 """
 ページの情報
@@ -1887,6 +2048,25 @@ type Player {
 	このプレイヤーが解放したボード（解放した順。公開中のものだけで、使用不可になったボードは含まれない。まだ解放が届いていなければ空）
 	"""
 	boards: [Board!]!
+	"""
+	このプレイヤーが持っているカード（種類 → 名前の順。まだ配布が届いていなければ空）
+	"""
+	collection(
+		"""
+		絞り込み（指定が無ければすべて）
+		"""
+		filter: CollectionFilter
+
+		"""
+		1 ページの件数（1〜100。指定が無ければ 50）
+		"""
+		first: Int
+
+		"""
+		前のページの pageInfo.endCursor（指定が無ければ最初のページ）
+		"""
+		after: String
+	): CollectionResult!
 	"""
 	このプレイヤーのデッキ（作った順。スターターの配布で作る数だけなので、ページ分けしないリスト）
 	"""
@@ -1976,6 +2156,15 @@ type Query {
 		"""
 		id: UUID!
 	): BoardResult!
+	"""
+	カードの詳細（登録済みのプレイヤーだけ）。公開中と使用不可のカードを返し、無い ID・カードでない ID は CardNotFoundError
+	"""
+	card(
+		"""
+		カードの公開用の ID
+		"""
+		id: UUID!
+	): CardResult!
 	"""
 	自分のデッキの詳細（登録済みのプレイヤーだけ）。無い・ほかのプレイヤーのデッキなら DeckNotFoundError
 	"""
@@ -2577,6 +2766,27 @@ type ShrineTile implements BoardTile {
 	行
 	"""
 	y: Int!
+}
+"""
+スペル
+"""
+type SpellCardInfo implements CardInfo {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
+	"""
+	使うのに払う魔力
+	"""
+	cost: Int!
+	"""
+	希少度
+	"""
+	rarity: CardRarity!
 }
 """
 スターターの配布の状態
