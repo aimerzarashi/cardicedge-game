@@ -16,7 +16,7 @@ export type BoardPositionInput = {
  * 土地の属性。土地は必ずどれか 1 つを持つ（火属性の土地・地属性の土地 等）。拠点・チェックポイントは持たない。
  * 効き方（地形効果・連鎖・属性の変更のコスト等）は対戦の決まりで、ここでは決めない
  */
-export type BoardTileAttribute =
+export type BoardTileElement =
   /** 地（地属性） */
   | 'EARTH'
   /** 火（火属性） */
@@ -30,10 +30,24 @@ export type BoardTileAttribute =
   /** 風（風属性） */
   | 'WIND';
 
-/** カードの種類 */
+/** カードの希少度 */
+export type CardRarity =
+  /** 画面では E */
+  | 'EXTRA'
+  /** 画面では N */
+  | 'NORMAL'
+  /** 画面では R */
+  | 'RARE'
+  /** 画面では S */
+  | 'STRANGE';
+
+/** カードの種類。所持カードの絞り込みに使う（結果のカードの種類は __typename で見分ける） */
 export type CardType =
+  /** クリーチャー */
   | 'CREATURE'
+  /** アイテム */
   | 'ITEM'
+  /** スペル */
   | 'SPELL';
 
 /** 対戦ルールを決める入力。7 つの値の名前と決まりは、ボードの既定のルールと同じ */
@@ -112,11 +126,30 @@ export type CloseRoomInput = {
   revision: number;
 };
 
+/** 所持カードの絞り込み */
+export type CollectionFilter = {
+  /** カードの種類（指定が無ければすべて。空のリストは入力の誤り） */
+  types?: Array<CardType> | null | undefined;
+};
+
 /** 部屋を作る入力 */
 export type CreateRoomInput = {
   /** 部屋の名前（前後の空白を除いて 1〜20 文字。FieldRequired・FieldTooLong の max。ほかの部屋と同じでもよい） */
   name: string;
 };
+
+/** クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独 */
+export type CreatureElement =
+  /** 地 */
+  | 'EARTH'
+  /** 火 */
+  | 'FIRE'
+  /** 無 */
+  | 'NEUTRAL'
+  /** 水 */
+  | 'WATER'
+  /** 風 */
+  | 'WIND';
 
 /** 対戦の後の意思表示の入力 */
 export type DeclareRoomNextInput = {
@@ -308,7 +341,7 @@ export type BoardQuery = { board:
         | { __typename: 'BridgeTile', x: number, y: number }
         | { __typename: 'CardShopTile', x: number, y: number }
         | { __typename: 'CheckpointTile', x: number, y: number }
-        | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
+        | { __typename: 'LandTile', element: BoardTileElement, x: number, y: number }
         | { __typename: 'ProphecyShopTile', x: number, y: number }
         | { __typename: 'SanctuaryTile', x: number, y: number }
         | { __typename: 'ShrineTile', x: number, y: number }
@@ -329,13 +362,48 @@ export type BoardsQuery = { boards:
     | { __typename: 'ValidationErrors' }
    };
 
+export type CardQueryVariables = Exact<{
+  id: string;
+}>;
+
+
+export type CardQuery = { card:
+    | { __typename: 'CardNotFoundError' }
+    | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number }
+    | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+   };
+
+export type CollectionQueryVariables = Exact<{
+  filter?: CollectionFilter | null | undefined;
+  after?: string | null | undefined;
+}>;
+
+
+export type CollectionQuery = { me:
+    | { __typename: 'Player', collection:
+        | { __typename: 'CollectionCardConnection', edges: Array<{ node: { count: number, card:
+                | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+                | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+                | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+               } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
+        | { __typename: 'ValidationErrors' }
+       }
+    | { __typename: 'PlayerNotRegisteredError' }
+   };
+
 export type PlayerDeckQueryVariables = Exact<{
   id: string;
 }>;
 
 
 export type PlayerDeckQuery = { deck:
-    | { __typename: 'Deck', id: string, name: string, totalCount: number, cards: Array<{ count: number, card: { id: string, name: string, type: CardType } }> }
+    | { __typename: 'Deck', id: string, name: string, totalCount: number, cards: Array<{ count: number, card:
+          | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+         }> }
     | { __typename: 'DeckNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -359,12 +427,20 @@ export type MatchDetailQuery = { match:
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
           | { __typename: 'CheckpointTile', x: number, y: number }
-          | { __typename: 'LandTile', attribute: BoardTileAttribute, x: number, y: number }
+          | { __typename: 'LandTile', element: BoardTileElement, x: number, y: number }
           | { __typename: 'ProphecyShopTile', x: number, y: number }
           | { __typename: 'SanctuaryTile', x: number, y: number }
           | { __typename: 'ShrineTile', x: number, y: number }
           | { __typename: 'WarpTile', x: number, y: number }
-        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<{ id: string, name: string }>, passedCheckpoints: Array<{ x: number, y: number }>, rewardCards: Array<{ name: string }> }> }
+        >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { id: string, name: string }, position: { x: number, y: number }, hand: Array<
+          | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+        >, passedCheckpoints: Array<{ x: number, y: number }>, rewardCards: Array<
+          | { name: string }
+          | { name: string }
+          | { name: string }
+        > }> }
     | { __typename: 'MatchNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -491,8 +567,16 @@ export type MatchEventsQueryVariables = Exact<{
 
 export type MatchEventsQuery = { matchEvents:
     | { __typename: 'MatchEventList', events: Array<
-        | { __typename: 'MatchCardDiscardedEvent', participant: number, revision: number, card: { name: string } }
-        | { __typename: 'MatchCardDrawnEvent', participant: number, revision: number, card: { name: string } }
+        | { __typename: 'MatchCardDiscardedEvent', participant: number, revision: number, card:
+            | { name: string }
+            | { name: string }
+            | { name: string }
+           }
+        | { __typename: 'MatchCardDrawnEvent', participant: number, revision: number, card:
+            | { name: string }
+            | { name: string }
+            | { name: string }
+           }
         | { __typename: 'MatchCheckpointPassedEvent', participant: number, magic: number, revision: number, checkpoint: { x: number, y: number } }
         | { __typename: 'MatchCreatedEvent', revision: number }
         | { __typename: 'MatchDecksShuffledEvent', revision: number }
@@ -501,7 +585,11 @@ export type MatchEventsQuery = { matchEvents:
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number }
         | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number } }
-        | { __typename: 'MatchRewardDrawnEvent', participant: number, revision: number, rewardCards: Array<{ name: string }> }
+        | { __typename: 'MatchRewardDrawnEvent', participant: number, revision: number, rewardCards: Array<
+            | { name: string }
+            | { name: string }
+            | { name: string }
+          > }
         | { __typename: 'MatchRewardsCompletedEvent', revision: number }
         | { __typename: 'MatchTurnEndedEvent', participant: number, revision: number }
         | { __typename: 'MatchTurnOrderDecidedEvent', order: Array<number>, revision: number }
@@ -516,7 +604,11 @@ export type NpcAvatarQueryVariables = Exact<{
 
 
 export type NpcAvatarQuery = { npcAvatar:
-    | { __typename: 'NpcAvatar', id: string, name: string, decks: Array<{ id: string, name: string, totalCount: number, cards: Array<{ count: number, card: { id: string, name: string, type: CardType } }> }> }
+    | { __typename: 'NpcAvatar', id: string, name: string, decks: Array<{ id: string, name: string, totalCount: number, cards: Array<{ count: number, card:
+            | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+           }> }> }
     | { __typename: 'NpcAvatarNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
    };
@@ -858,7 +950,7 @@ export const BoardDocument = new TypedDocumentString(`
         x
         y
         ... on LandTile {
-          attribute
+          element
         }
       }
       pairs {
@@ -931,6 +1023,54 @@ export const BoardsDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<BoardsQuery, BoardsQueryVariables>;
+export const CardDocument = new TypedDocumentString(`
+    query Card($id: UUID!) {
+  card(id: $id) {
+    __typename
+    ... on CardInfo {
+      id
+      name
+      cost
+      rarity
+    }
+    ... on CreatureCardInfo {
+      elements
+      attack
+      hitPoints
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CardQuery, CardQueryVariables>;
+export const CollectionDocument = new TypedDocumentString(`
+    query Collection($filter: CollectionFilter, $after: String) {
+  me {
+    __typename
+    ... on Player {
+      collection(filter: $filter, after: $after) {
+        __typename
+        ... on CollectionCardConnection {
+          edges {
+            node {
+              count
+              card {
+                __typename
+                id
+                name
+                cost
+                rarity
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<CollectionQuery, CollectionQueryVariables>;
 export const PlayerDeckDocument = new TypedDocumentString(`
     query PlayerDeck($id: UUID!) {
   deck(id: $id) {
@@ -942,9 +1082,11 @@ export const PlayerDeckDocument = new TypedDocumentString(`
       cards {
         count
         card {
+          __typename
           id
           name
-          type
+          cost
+          rarity
         }
       }
     }
@@ -1015,7 +1157,7 @@ export const MatchDetailDocument = new TypedDocumentString(`
           x
           y
           ... on LandTile {
-            attribute
+            element
           }
         }
         pairs {
@@ -1042,8 +1184,16 @@ export const MatchDetailDocument = new TypedDocumentString(`
         }
         magic
         hand {
+          __typename
           id
           name
+          cost
+          rarity
+          ... on CreatureCardInfo {
+            elements
+            attack
+            hitPoints
+          }
         }
         drawPileCount
         turnOrder
@@ -1210,9 +1360,11 @@ export const NpcAvatarDocument = new TypedDocumentString(`
         cards {
           count
           card {
+            __typename
             id
             name
-            type
+            cost
+            rarity
           }
         }
       }

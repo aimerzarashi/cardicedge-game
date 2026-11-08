@@ -2,7 +2,7 @@ import Link from "next/link";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
-import { CARD_TYPE_LABELS } from "../../messages";
+import { CARD_TYPE_LABELS, RARITY_LABELS } from "../../messages";
 
 const npcAvatarQuery = graphql(`
   query NpcAvatar($id: UUID!) {
@@ -18,9 +18,11 @@ const npcAvatarQuery = graphql(`
           cards {
             count
             card {
+              __typename
               id
               name
-              type
+              cost
+              rarity
             }
           }
         }
@@ -94,14 +96,20 @@ export default async function NpcAvatarPage({
               <tr>
                 <th>カード名</th>
                 <th>種類</th>
+                <th>コスト</th>
+                <th>希少度</th>
                 <th>枚数</th>
               </tr>
             </thead>
             <tbody>
               {deck.cards.map(({ card, count }) => (
                 <tr key={card.id}>
-                  <td>{card.name}</td>
-                  <td>{CARD_TYPE_LABELS[card.type]}</td>
+                  <td>
+                    <Link href={`/cards/${card.id}`}>{card.name}</Link>
+                  </td>
+                  <td>{CARD_TYPE_LABELS[card.__typename]}</td>
+                  <td>{card.cost}</td>
+                  <td>{RARITY_LABELS[card.rarity]}</td>
                   <td>{count}</td>
                 </tr>
               ))}

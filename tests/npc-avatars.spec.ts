@@ -42,8 +42,8 @@ test("詳細に、割り当てた順の公開中のデッキごとに、カー�
   await expect(water.getByText("合計 4 枚")).toBeVisible();
   const rows = water.locator("tbody tr");
   await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*2/);
-  await expect(rows.nth(1)).toHaveText(/C\s*クリーチャー\s*2/);
+  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*10\s*N\s*2/);
+  await expect(rows.nth(1)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*2/);
 });
 
 test("未解放・使用不可・無い・形の違う ID の NPC は「見つからない」になる", async ({

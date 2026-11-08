@@ -59,9 +59,9 @@ test("詳細に、カードと枚数が種類 → 名前の順で出る。無い
   await expect(page.getByText("合計 7 枚")).toBeVisible();
   const rows = page.locator("tbody tr");
   await expect(rows).toHaveCount(3);
-  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*2/);
-  await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*3/);
-  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*2/);
+  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*10\s*N\s*2/);
+  await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*20\s*S\s*3/);
+  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*2/);
 
   for (const id of ["00000000-0000-4000-8000-0000000000ff", "not-a-uuid"]) {
     await page.goto(`/decks/${id}`);

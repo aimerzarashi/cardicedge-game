@@ -21,8 +21,8 @@ const tile = (placement: Placement, x = 0, y = 0): Tile => ({
   ...placement,
 });
 const land = (
-  attribute: "FIRE" | "EARTH" | "WATER" | "WIND" | "NEUTRAL" | "MULTI",
-) => tile({ __typename: "LandTile", attribute });
+  element: "FIRE" | "EARTH" | "WATER" | "WIND" | "NEUTRAL" | "MULTI",
+) => tile({ __typename: "LandTile", element });
 const pair = (number: number, end: 1 | 2): PairLabel => ({ number, end });
 
 describe("paint（マスの色）", () => {

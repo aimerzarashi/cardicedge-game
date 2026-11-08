@@ -1,7 +1,9 @@
 // core は文言を返さず、理由の型と値だけを返すため、文言はここで作る
 
 import type {
+  CardRarity,
   CardType,
+  CreatureElement,
   MatchEndReason,
   MatchPhase,
   RoomStatus,
@@ -58,11 +60,48 @@ export function ruleStep(field: RuleField): number {
 
 // カードの種類の呼び方（studio の lib/card-type.ts と同じ）。Record<string, string> にしないのは、種類が core に加わったときに
 // 足し忘れると、型検査に引っかからず種類の欄が黙って空になるため
-export const CARD_TYPE_LABELS: Record<CardType, string> = {
-  CREATURE: "クリーチャー",
-  ITEM: "アイテム",
-  SPELL: "スペル",
+// 種類は core の型（__typename）で見分ける。種類を足し忘れると型検査で止まるよう、型の名前で持つ
+export const CARD_TYPE_LABELS: Record<
+  "CreatureCardInfo" | "ItemCardInfo" | "SpellCardInfo",
+  string
+> = {
+  CreatureCardInfo: "クリーチャー",
+  ItemCardInfo: "アイテム",
+  SpellCardInfo: "スペル",
 };
+
+// 所持カードの絞り込みの選択肢（core の CardType。結果の種類は __typename で見分けるので CARD_TYPE_LABELS とは別）
+export const CARD_TYPE_FILTERS: { value: CardType; label: string }[] = [
+  { value: "CREATURE", label: "クリーチャー" },
+  { value: "ITEM", label: "アイテム" },
+  { value: "SPELL", label: "スペル" },
+];
+
+export function isCardType(value: string): value is CardType {
+  return CARD_TYPE_FILTERS.some((type) => type.value === value);
+}
+
+// 希少度は画面では略称で出す（core の値は略さない名前）
+export const RARITY_LABELS: Record<CardRarity, string> = {
+  NORMAL: "N",
+  STRANGE: "S",
+  RARE: "R",
+  EXTRA: "E",
+};
+
+// クリーチャーの属性（core の CreatureElement。ボードのマスの属性 BoardTileElement とは別の型のため、ボードの ELEMENT_LABELS と分ける）
+export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
+  FIRE: "火",
+  EARTH: "地",
+  WATER: "水",
+  WIND: "風",
+  NEUTRAL: "無",
+};
+
+// 複数の属性は core が並べた順のまま 1 文字ずつつなぐ（例: 火水）
+export function elementsLabel(elements: readonly CreatureElement[]): string {
+  return elements.map((element) => CREATURE_ELEMENT_LABELS[element]).join("");
+}
 
 // 状態を足し忘れると型検査で止まるよう、core の状態の型で持つ（CARD_TYPE_LABELS と同じ）
 export const ROOM_STATUS_LABELS: Record<RoomStatus, string> = {
