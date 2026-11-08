@@ -127,6 +127,7 @@ better-auth には認証のための情報（メールアドレス・パスワ�
 | 開発・テスト用のプレイヤー | `pnpm db:seed` で作る（player@example.com / player-password。メールアドレスは確認済み）。本番では使わない |
 | 名前 | better-auth の `name` は必須の列だが使わず、空文字にする |
 | JWT | `/api/auth/token` で取得。`iss` / `aud` は環境変数 `JWT_ISSUER` / `JWT_AUDIENCE`（必須。開発・テストは `diecardomain-game` / `diecardomain-core`。core の `GAME_JWT_ISSUER` / `GAME_JWT_AUDIENCE` と一致させる）。`sub` は better-auth のユーザー ID。中身は `sub`・`iss`・`aud`・`iat`・`exp` と、`email`・`email_verified`（OIDC の標準のクレーム名。studio と同じ。core はプレイヤーを (iss, sub) で識別し、今はメールアドレスを使わない）（有効期限 15 分）。**`JWT_ISSUER` は core がプレイヤーを識別するキーの一部のため、運用を始めた環境では変えない** |
+| セッションのクッキー | 名前の頭は環境変数 `BETTER_AUTH_COOKIE_PREFIX`（必須。開発・テスト・リリース確認は `game`。クッキーは `game.session_token` 等）。studio と別の値にする（ブラウザのクッキーはポートで分かれないため、同じホストに並べると、同じ名前では片方のログインがもう片方のセッションを切る。studio#72・game#55） |
 | JWKS | `/api/auth/jwks`（EdDSA / Ed25519）。core が JWT の検証に使う |
 
 `make up` では、game-migrate がマイグレーションを適用してから、開発サーバーの起動前に `db:seed`（冪等）を実行する。
