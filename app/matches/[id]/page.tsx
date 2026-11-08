@@ -31,6 +31,7 @@ import {
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
+  relinquishMatchTerritory,
   rollMatchDice,
 } from "./actions";
 import { MatchActionButton } from "./match-action-button";
@@ -54,12 +55,20 @@ const matchQuery = graphql(`
           y
         }
         deployChoices
+        relinquishChoices {
+          x
+          y
+        }
         territories {
           position {
             x
             y
           }
           owner
+          level
+          value
+          toll
+          relinquishMagic
           creature {
             id
             hitPoints
@@ -86,8 +95,11 @@ const matchQuery = graphql(`
           roundLimit
           diceMin
           diceMax
+          baseLandValue
           maxHandCards
           startingHandCards
+          tollPercentage
+          relinquishPercentage
         }
         board {
           width
@@ -123,6 +135,7 @@ const matchQuery = graphql(`
             y
           }
           magic
+          totalMagic
           hand {
             __typename
             id
@@ -349,7 +362,7 @@ export default async function MatchPage({
                       <span data-testid="review-rank">
                         {MATCH_REVIEW_MESSAGES.rank(row.rank)}
                       </span>{" "}
-                      コマ {row.seat + 1}・{row.name}・魔力 {row.magic}
+                      コマ {row.seat + 1}・{row.name}・総魔力 {row.totalMagic}
                       {" ・ "}
                       {!row.isPlayer ? (
                         MATCH_REVIEW_MESSAGES.rewardNone
@@ -439,6 +452,26 @@ export default async function MatchPage({
                   配置せずにターンを終える
                 </MatchActionButton>
               )}
+              {match.phase === "RELINQUISHING" &&
+                match.relinquishChoices.map((position) => {
+                  const territory = match.territories.find(
+                    (candidate) =>
+                      candidate.position.x === position.x &&
+                      candidate.position.y === position.y,
+                  );
+                  return (
+                    <MatchActionButton
+                      key={`${position.x},${position.y}`}
+                      action={relinquishMatchTerritory}
+                      values={{ x: position.x, y: position.y }}
+                      {...actionProps}
+                    >
+                      ({position.x}, {position.y}) の
+                      {territory?.creature.card.name}を手放す（魔力 +
+                      {territory?.relinquishMagic}）
+                    </MatchActionButton>
+                  );
+                })}
               {match.phase === "ENDING" && (
                 <MatchActionButton action={endMatchTurn} {...actionProps}>
                   ターンを終える
@@ -478,6 +511,15 @@ export default async function MatchPage({
                           data-testid="participant-magic"
                         >
                           {participant.magic}
+                        </dd>
+                      </div>
+                      <div style={PAIR_STYLE}>
+                        <dt>総魔力</dt>
+                        <dd
+                          style={{ margin: 0 }}
+                          data-testid="participant-total-magic"
+                        >
+                          {participant.totalMagic}
                         </dd>
                       </div>
                       <div style={PAIR_STYLE}>
@@ -539,17 +581,17 @@ export default async function MatchPage({
             <p>まだ領地はありません</p>
           ) : (
             <ul data-testid="match-territories">
-              {match.territories.map((territory, index) => (
+              {match.territories.map((territory) => (
                 <li key={territory.creature.id}>
                   <ParticipantColorMark seat={territory.owner} />
-                  {territoryMarks(match.territories)[index].label} (
-                  {territory.position.x}, {territory.position.y}) コマ{" "}
-                  {territory.owner + 1}（
+                  {territory.creature.id} ({territory.position.x},{" "}
+                  {territory.position.y}) コマ {territory.owner + 1}（
                   {match.participants[territory.owner]?.avatar.name}）:{" "}
                   <Link href={`/cards/${territory.creature.card.id}`}>
                     {territory.creature.card.name}
                   </Link>
-                  （HP {territory.creature.hitPoints}）
+                  （HP {territory.creature.hitPoints}）レベル {territory.level}
+                  ・価値 {territory.value}・通行料 {territory.toll}
                 </li>
               ))}
             </ul>
@@ -570,6 +612,14 @@ export default async function MatchPage({
             <div style={PAIR_STYLE}>
               <dt>配る枚数</dt>
               <dd style={{ margin: 0 }}>{match.rules.startingHandCards}</dd>
+            </div>
+            <div style={PAIR_STYLE}>
+              <dt>通行料の割合</dt>
+              <dd style={{ margin: 0 }}>{match.rules.tollPercentage}%</dd>
+            </div>
+            <div style={PAIR_STYLE}>
+              <dt>手放すときの割合</dt>
+              <dd style={{ margin: 0 }}>{match.rules.relinquishPercentage}%</dd>
             </div>
           </dl>
         </div>

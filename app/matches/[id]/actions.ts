@@ -17,6 +17,7 @@ import {
   drawMatchCardMutation,
   endMatchTurnMutation,
   matchEventsQuery,
+  relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
 } from "../operations";
 
@@ -143,6 +144,30 @@ export async function deployMatchCreature(
   });
   return result.ok
     ? finish(result.data.deployMatchCreature)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function relinquishMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(relinquishMatchTerritoryMutation, {
+    input: { id, revision, position: { x, y } },
+  });
+  return result.ok
+    ? finish(result.data.relinquishMatchTerritory)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

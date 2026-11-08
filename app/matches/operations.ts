@@ -46,6 +46,20 @@ export const deployMatchCreatureMutation = graphql(`
   }
 `);
 
+export const relinquishMatchTerritoryMutation = graphql(`
+  mutation RelinquishMatchTerritory($input: RelinquishMatchTerritoryInput!) {
+    relinquishMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
 export const rollMatchDiceMutation = graphql(`
   mutation RollMatchDice($input: RollMatchDiceInput!) {
     rollMatchDice(input: $input) {
@@ -131,6 +145,27 @@ export const matchEventsQuery = graphql(`
               y
             }
             cost
+          }
+          ... on MatchTollPaidEvent {
+            participant
+            owner
+            position {
+              x
+              y
+            }
+            magic
+          }
+          ... on MatchTerritoryRelinquishedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            magic
+          }
+          ... on MatchMagicDepletedEvent {
+            participant
+            magic
           }
           ... on MatchDiceRolledEvent {
             participant

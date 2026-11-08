@@ -144,7 +144,7 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   test.setTimeout(90_000);
   await openNewRoom(page, request, "match-deploy");
   await decideSeats(page);
-  // 公開中D は拠点の先に土地が 3 つ続く 1 本道で、サイコロの目は 1〜2。NPC が土地を取っても、残りの土地に止まれる
+  // 公開中D は拠点の先に土地が 6 つ続く 1 本道で、サイコロの目は 1〜2。3 つだと、プレイヤーが空き地に止まる前に NPC がすべて取って詰まることがあった
   await decideRules(page, undefined, "公開中D");
   await decidePlayerSeat(page);
   await decideNpcSeat(page);
@@ -178,11 +178,16 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   await deploy.first().click();
 
   await expect(page.getByTestId("match-territories")).toContainText(
-    new RegExp(`1-1.*コマ 1（部屋用）.*${creature}`),
+    // NPC が先に配置していることがあるので、番号（対戦全体の通し番号）は決め打ちしない。自分の土地は 1 つなので連鎖しない
+    new RegExp(
+      `\\d+ .*コマ 1（部屋用）.*${creature}.*レベル 1.*価値 100.*通行料 60`,
+    ),
   );
   await expect(
-    page.getByRole("button", {
-      name: new RegExp(`領地 1-1 ${creature}`),
-    }),
+    page
+      .getByRole("button", {
+        name: new RegExp(`領地 \\d+ レベル 1 ${creature} 通行料 60`),
+      })
+      .first(),
   ).toBeVisible();
 });

@@ -62,19 +62,26 @@ const TILE_SIDE_SHADE = 3;
 const TILE_RADIUS = 7;
 
 // マスを薄い板に見せる側面。領地は持ち主の色、空きは暗い灰色。盤面は rotate(45deg) しているので、右下へずらした影を重ねると画面の真下へ伸びる。
-// CSS の 3D 変形にしないのは、格子全体の回転とつぶし（scaleY）の中で奥行きを合わせる手間に対して、見えるのが手前の 2 辺だけのため
-export function tileSide(color: string = VACANT_SIDE_COLOR): CSSProperties {
-  const sides = Array.from({ length: TILE_THICKNESS }, (_, i) => {
-    // 接地する側を暗くして、板が盤面に乗っているように見せる
+// CSS の 3D 変形にしないのは、格子全体の回転とつぶし（scaleY）の中で奥行きを合わせる手間に対して、見えるのが手前の 2 辺だけのため。
+// レベルの分だけ板を積む。下へ伸ばすとマスの間を超えて隣のマスにかかるので、上面を左上（画面の真上）へ持ち上げる（2026-11-08 オーナー）
+export function tileSide(
+  color: string = VACANT_SIDE_COLOR,
+  level = 1,
+): CSSProperties {
+  const slabs = Math.max(level, 1);
+  const sides = Array.from({ length: TILE_THICKNESS * slabs }, (_, i) => {
+    // 板ごとに接地する側を暗くして、積み重なって見えるようにする
     const shaded =
-      i + 1 > TILE_THICKNESS - TILE_SIDE_SHADE
+      (i % TILE_THICKNESS) + 1 > TILE_THICKNESS - TILE_SIDE_SHADE
         ? `color-mix(in srgb, ${color} 60%, black)`
         : color;
     return `${i + 1}px ${i + 1}px 0 ${shaded}`;
   });
+  const lift = TILE_THICKNESS * (slabs - 1);
   return {
     borderRadius: TILE_RADIUS,
     boxShadow: [`inset 0 0 0 3px rgb(0 0 0 / 0.3)`, ...sides].join(", "),
+    ...(lift > 0 && { transform: `translate(${-lift}px, ${-lift}px)` }),
   };
 }
 

@@ -26,6 +26,7 @@ describe("ruleStep", () => {
         roundLimit: 1,
         diceMin: 1,
         diceMax: 1,
+        baseLandValue: 1,
       },
     );
   });

@@ -43,6 +43,51 @@ describe("eventLine", () => {
     );
   });
 
+  it("通行料は、受け取った人の名前・位置・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(18, {
+          __typename: "MatchTollPaidEvent",
+          participant: 0,
+          owner: 1,
+          position: { x: 1, y: 0 },
+          magic: 60,
+        }),
+        names,
+      ),
+      "版 18 部屋用: ゴリガンの領地 (1, 0) に通行料を払った（魔力 -60）",
+    );
+  });
+
+  it("領地を手放したイベントは、位置と受け取った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(19, {
+          __typename: "MatchTerritoryRelinquishedEvent",
+          participant: 0,
+          position: { x: 2, y: 0 },
+          magic: 80,
+        }),
+        names,
+      ),
+      "版 19 部屋用: 領地 (2, 0) を手放した（魔力 +80）",
+    );
+  });
+
+  it("魔力の枯渇は、与えられた魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(20, {
+          __typename: "MatchMagicDepletedEvent",
+          participant: 0,
+          magic: 600,
+        }),
+        names,
+      ),
+      "版 20 部屋用: 魔力が枯渇し、拠点からやり直す（魔力 600）",
+    );
+  });
+
   it("チェックポイントは位置と増えた魔力を出す", () => {
     assert.equal(
       eventLine(

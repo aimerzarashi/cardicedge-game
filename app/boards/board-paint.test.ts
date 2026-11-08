@@ -114,6 +114,16 @@ describe("tileSide（マスの側面）", () => {
     );
   });
 
+  it("レベルの分だけ板を積み、下の板の分だけ上面を持ち上げる", () => {
+    const side = tileSide("#d9534f", 3);
+    assert.equal(String(side.boxShadow).split(/, (?=\d+px|inset)/).length, 31);
+    assert.equal(side.transform, "translate(-20px, -20px)");
+  });
+
+  it("レベル 1 は持ち上げない", () => {
+    assert.equal(tileSide("#d9534f", 1).transform, undefined);
+  });
+
   it("持ち主がいなければ、暗い灰色にする", () => {
     assert.equal(layersOf()[1], "1px 1px 0 #3a4256");
   });

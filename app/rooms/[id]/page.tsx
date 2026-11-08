@@ -81,6 +81,7 @@ const roomQuery = graphql(`
           roundLimit
           diceMin
           diceMax
+          baseLandValue
         }
       }
     }
@@ -107,6 +108,7 @@ const roomQuery = graphql(`
             roundLimit
             diceMin
             diceMax
+            baseLandValue
           }
         }
         npcAvatars {
