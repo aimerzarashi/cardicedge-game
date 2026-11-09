@@ -9,6 +9,7 @@ import {
   matchErrorMessage,
 } from "../../messages";
 import {
+  attackMatchTerritoryMutation,
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
   defendMatchTerritoryMutation,
@@ -183,15 +184,27 @@ export async function invadeMatchTerritory(
     return BAD_FORM;
   }
   const result = await callCore(invadeMatchTerritoryMutation, {
-    input: {
-      id,
-      revision,
-      handIndex,
-      itemHandIndex: integer(form, "itemHandIndex"),
-    },
+    input: { id, revision, handIndex },
   });
   return result.ok
     ? finish(result.data.invadeMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function attackMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(attackMatchTerritoryMutation, {
+    input: { id, revision, itemHandIndex: integer(form, "itemHandIndex") },
+  });
+  return result.ok
+    ? finish(result.data.attackMatchTerritory)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

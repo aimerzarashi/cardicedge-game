@@ -18,6 +18,7 @@ const DRAGON: FrameCard = {
   name: "ドラゴン",
   cost: 30,
   rarity: "NORMAL" as FrameCard["rarity"],
+  attack: 30,
   hitPoints: 20,
 };
 const TERRITORY: FrameTerritory = {
@@ -26,7 +27,11 @@ const TERRITORY: FrameTerritory = {
   level: 1,
   value: 100,
   toll: 60,
-  creature: { id: 1, hitPoints: 20, card: { id: "c1", name: "ドラゴン" } },
+  creature: {
+    id: 1,
+    hitPoints: 20,
+    card: { id: "c1", name: "ドラゴン", attack: 30 },
+  },
 };
 
 function participant(turnOrder: number) {
@@ -78,7 +83,7 @@ function event(
 
 const INVASION = {
   position: { x: 1, y: 0 },
-  card: { ...DRAGON, id: "c9", name: "ナイト" },
+  card: { ...DRAGON, id: "c9", name: "ナイト", attack: 40 },
   hitPoints: 20,
 };
 
@@ -157,7 +162,7 @@ describe("applyEvent", () => {
     assert.deepEqual(next.territories[0].creature, {
       id: 7,
       hitPoints: 8,
-      card: { id: "c9", name: "ナイト" },
+      card: { id: "c9", name: "ナイト", attack: 40 },
     });
   });
 

@@ -60,7 +60,11 @@ export function territoryMarks(
     owner: number;
     level: number;
     toll: number;
-    creature: { id: number; card: { name: string } };
+    creature: {
+      id: number;
+      hitPoints: number;
+      card: { name: string; attack: number };
+    };
   }[],
 ): TerritoryMark[] {
   return territories.map((territory) => ({
@@ -69,6 +73,8 @@ export function territoryMarks(
     level: territory.level,
     toll: territory.toll,
     creature: territory.creature.card.name,
+    attack: territory.creature.card.attack,
+    hitPoints: territory.creature.hitPoints,
     color: participantColor(territory.owner),
   }));
 }

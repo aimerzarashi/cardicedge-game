@@ -61,7 +61,7 @@ export function BoardGrid({
   tiles,
   pairs,
   pieces = [],
-  territories = [],
+  territories,
 }: {
   width: number;
   height: number;
@@ -71,6 +71,8 @@ export function BoardGrid({
   territories?: TerritoryMark[];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
+  // 見るだけの切り替えなのでイベントにせず、ここで持つ（開き直すと通行料の表示に戻る）
+  const [showsStats, setShowsStats] = useState(false);
   const [size, setSize] = useState<Size | null>(null);
   // null の間は、ボード全体が枠に収まる大きさで中央に置く
   const [view, setView] = useState<View | null>(null);
@@ -191,9 +193,10 @@ export function BoardGrid({
               tile={tile}
               pair={pairLabel({ tiles, pairs }, tile)}
               pieces={pieces.filter((piece) => piece.x === x && piece.y === y)}
-              territory={territories.find(
+              territory={territories?.find(
                 (territory) => territory.x === x && territory.y === y,
               )}
+              showsStats={showsStats}
             />
           ) : (
             <span key={key} />
@@ -230,6 +233,12 @@ export function BoardGrid({
         >
           全体を表示
         </button>
+        {/* ボードの詳細の画面には領地が無いので、対戦の画面にだけ出す */}
+        {territories && (
+          <button type="button" onClick={() => setShowsStats(!showsStats)}>
+            {showsStats ? "通行料を表示" : "AT・HP を表示"}
+          </button>
+        )}
       </div>
       <div
         ref={viewport}
@@ -314,6 +323,7 @@ function TileButton({
   pair,
   pieces,
   territory,
+  showsStats,
 }: {
   position: Position;
   tile: Tile;
@@ -321,11 +331,12 @@ function TileButton({
   pair: PairLabel | undefined;
   pieces: Piece[];
   territory: TerritoryMark | undefined;
+  showsStats: boolean;
 }) {
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
   const territoryName = territory
-    ? ` 領地 ${territory.number} レベル ${territory.level} ${territory.creature} 通行料 ${territory.toll}`
+    ? ` 領地 ${territory.number} レベル ${territory.level} ${territory.creature} 通行料 ${territory.toll} AT ${territory.attack} HP ${territory.hitPoints}`
     : "";
   return (
     <button
@@ -385,7 +396,7 @@ function TileButton({
         // 土地のマスは中央に文字が無いので、通行料を中央に出す（2026-11-08 オーナー）
         <span
           aria-hidden
-          data-testid="territory-toll"
+          data-testid={showsStats ? "territory-stats" : "territory-toll"}
           style={{
             transform: "rotate(-45deg) scaleY(2)",
             color: "#ffffff",
@@ -396,7 +407,9 @@ function TileButton({
             whiteSpace: "nowrap",
           }}
         >
-          {territory.toll}
+          {showsStats
+            ? `⚔${territory.attack} ♡${territory.hitPoints}`
+            : territory.toll}
         </span>
       )}
       {pieces.length > 0 && (

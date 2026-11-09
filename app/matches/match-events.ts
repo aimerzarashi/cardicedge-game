@@ -61,6 +61,8 @@ function body(event: MatchEventView, names: string[]): string {
       );
     case "MatchItemUsedEvent":
       return m.itemUsed(event.card?.name ?? "", event.cost ?? 0);
+    case "MatchItemSkippedEvent":
+      return m.itemSkipped;
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
         event.striker === "DEFENDER" ? m.battleDefender : m.battleAttacker,

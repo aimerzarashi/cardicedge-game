@@ -21,12 +21,14 @@ export type Tile = Position & Placement;
 export type Pair = { a: Position; b: Position };
 // 対戦で参加者が立っているマスに出す印（game だけ。label は席の番号等の短い文字）
 export type Piece = Position & { label: string; color?: string };
-// 対戦の領地の印（game だけ。number は配置したクリーチャーの ID、level は土地のレベル、toll は通行料、creature はそこにいるクリーチャーの名前、color は持ち主の色）
+// 対戦の領地の印（game だけ。number は配置したクリーチャーの ID、level は土地のレベル、toll は通行料、creature はそこにいるクリーチャーの名前、attack と hitPoints はその AT と今の HP、color は持ち主の色）
 export type TerritoryMark = Position & {
   number: number;
   level: number;
   toll: number;
   creature: string;
+  attack: number;
+  hitPoints: number;
   color: string;
 };
 

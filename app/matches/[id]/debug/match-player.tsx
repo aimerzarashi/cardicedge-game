@@ -12,6 +12,8 @@ import { BoardGrid } from "../../../boards/board-grid";
 import { participantColor } from "../../../boards/board-paint";
 import {
   elementsLabel,
+  ITEM_CATEGORY_LABELS,
+  itemBonusesLabel,
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
   MATCH_PHASE_NOT_WAITING,
@@ -30,6 +32,7 @@ import {
   winnerNames,
 } from "../../match-view";
 import {
+  attackMatchTerritory,
   chooseMatchPath,
   chooseMatchRewardPack,
   defendMatchTerritory,
@@ -114,92 +117,34 @@ export type MatchPlayerOperations = {
   rewardPacks: { key: string; name: string }[];
 };
 
-// アイテムは効果がまだ無く、コストを払って手札から無くなるだけ
-function itemName(hand: FrameCard[], handIndex: number): string {
-  return hand[handIndex]?.name ?? "";
-}
-
-// クリーチャーを選んでから、アイテムを選ぶと送る（配置と同じく、選ぶこと自体をボタンにするため）
-function InvadeOperations({
-  actionProps,
-  hand,
-  invadeChoices,
-  itemChoices,
-}: {
-  actionProps: { id: string; revision: number };
-  hand: FrameCard[];
-  invadeChoices: number[];
-  itemChoices: number[];
-}) {
-  const [creature, setCreature] = useState<number | null>(null);
-  if (creature === null) {
-    return (
-      <>
-        {invadeChoices.map((handIndex) => (
-          <button
-            key={handIndex}
-            type="button"
-            onClick={() => setCreature(handIndex)}
-          >
-            {hand[handIndex]?.name ?? ""}で侵略する
-          </button>
-        ))}
-        <MatchActionButton action={payMatchToll} {...actionProps}>
-          通行料を払う
-        </MatchActionButton>
-      </>
-    );
-  }
-  return (
-    <>
-      <span>{hand[creature]?.name ?? ""}で侵略:</span>
-      {itemChoices.map((itemHandIndex) => (
-        <MatchActionButton
-          key={itemHandIndex}
-          action={invadeMatchTerritory}
-          values={{ handIndex: creature, itemHandIndex }}
-          {...actionProps}
-        >
-          {itemName(hand, itemHandIndex)}を出して侵略する
-        </MatchActionButton>
-      ))}
-      <MatchActionButton
-        action={invadeMatchTerritory}
-        values={{ handIndex: creature }}
-        {...actionProps}
-      >
-        アイテムを出さずに侵略する
-      </MatchActionButton>
-      <button type="button" onClick={() => setCreature(null)}>
-        クリーチャーを選び直す
-      </button>
-    </>
-  );
-}
-
-function DefendOperations({
+// アイテムは効果がまだ無く、コストを払って手札から無くなるだけ。攻める側も守る側も同じ形で選ぶ
+function ItemOperations({
+  action,
   actionProps,
   hand,
   itemChoices,
+  verb,
 }: {
+  action: ComponentProps<typeof MatchActionButton>["action"];
   actionProps: { id: string; revision: number };
   hand: FrameCard[];
   itemChoices: number[];
+  verb: string;
 }) {
   return (
     <>
       {itemChoices.map((itemHandIndex) => (
         <MatchActionButton
           key={itemHandIndex}
-          action={defendMatchTerritory}
+          action={action}
           values={{ itemHandIndex }}
           {...actionProps}
         >
-          {itemName(hand, itemHandIndex)}を出して戦闘に進む
+          {hand[itemHandIndex]?.name ?? ""}を出して{verb}
         </MatchActionButton>
       ))}
-      <MatchActionButton action={defendMatchTerritory} {...actionProps}>
-        アイテムを出さずに戦闘に進む
+      <MatchActionButton action={action} {...actionProps}>
+        アイテムを出さずに{verb}
       </MatchActionButton>
     </>
   );
@@ -303,20 +248,38 @@ function Operations({
         </MatchActionButton>
       )}
       {latest.phase === "INVADING" && (
-        <InvadeOperations
-          // 版が変わると手札の番号の意味も変わるので、選びを持ち越さない
-          key={latest.revision}
+        <>
+          {operations.invadeChoices.map((handIndex) => (
+            <MatchActionButton
+              key={handIndex}
+              action={invadeMatchTerritory}
+              values={{ handIndex }}
+              {...actionProps}
+            >
+              {hand[handIndex]?.name ?? ""}で侵略する
+            </MatchActionButton>
+          ))}
+          <MatchActionButton action={payMatchToll} {...actionProps}>
+            通行料を払う
+          </MatchActionButton>
+        </>
+      )}
+      {latest.phase === "ATTACKING" && (
+        <ItemOperations
+          action={attackMatchTerritory}
           actionProps={actionProps}
           hand={hand}
-          invadeChoices={operations.invadeChoices}
           itemChoices={operations.itemChoices}
+          verb="攻める"
         />
       )}
       {latest.phase === "DEFENDING" && (
-        <DefendOperations
+        <ItemOperations
+          action={defendMatchTerritory}
           actionProps={actionProps}
           hand={hand}
           itemChoices={operations.itemChoices}
+          verb="戦闘に進む"
         />
       )}
       {latest.phase === "RELINQUISHING" &&
@@ -498,6 +461,8 @@ function FrameView({
                             （コスト {card.cost}・{RARITY_LABELS[card.rarity]}
                             {card.elements &&
                               `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
+                            {card.category &&
+                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
                             ）
                           </li>
                         ))}
@@ -533,7 +498,8 @@ function FrameView({
               <Link href={`/cards/${territory.creature.card.id}`}>
                 {territory.creature.card.name}
               </Link>
-              （HP {territory.creature.hitPoints}）レベル {territory.level}
+              （AT {territory.creature.card.attack}・HP{" "}
+              {territory.creature.hitPoints}）レベル {territory.level}
               ・価値 {territory.value}・通行料 {territory.toll}
             </li>
           ))}

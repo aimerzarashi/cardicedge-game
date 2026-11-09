@@ -58,6 +58,7 @@ export const matchDebugQuery = graphql(`
             card {
               id
               name
+              attack
             }
           }
         }
@@ -129,6 +130,11 @@ export const matchDebugQuery = graphql(`
               attack
               hitPoints
             }
+            ... on ItemCardInfo {
+              category
+              attackBonus
+              hitPointsBonus
+            }
           }
           drawPileCount
           turnOrder
@@ -190,6 +196,11 @@ export const matchDebugEventsQuery = graphql(`
                 attack
                 hitPoints
               }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
             }
           }
           ... on MatchCardDiscardedEvent {
@@ -206,6 +217,11 @@ export const matchDebugEventsQuery = graphql(`
                 attack
                 hitPoints
               }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
             }
           }
           ... on MatchCreatureDeployedEvent {
@@ -221,6 +237,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+              }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
               }
             }
             creature
@@ -244,6 +265,11 @@ export const matchDebugEventsQuery = graphql(`
                 attack
                 hitPoints
               }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
             }
             position {
               x
@@ -265,8 +291,16 @@ export const matchDebugEventsQuery = graphql(`
                 attack
                 hitPoints
               }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
             }
             cost
+          }
+          ... on MatchItemSkippedEvent {
+            participant
           }
           ... on MatchCreatureStruckEvent {
             striker
@@ -298,6 +332,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+              }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
               }
             }
             returnedToHand

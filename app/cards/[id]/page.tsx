@@ -2,7 +2,13 @@ import Link from "next/link";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
-import { CARD_TYPE_LABELS, elementsLabel, RARITY_LABELS } from "../../messages";
+import {
+  CARD_TYPE_LABELS,
+  elementsLabel,
+  ITEM_CATEGORY_LABELS,
+  itemBonusesLabel,
+  RARITY_LABELS,
+} from "../../messages";
 
 const cardQuery = graphql(`
   query Card($id: UUID!) {
@@ -18,6 +24,11 @@ const cardQuery = graphql(`
         elements
         attack
         hitPoints
+      }
+      ... on ItemCardInfo {
+        category
+        attackBonus
+        hitPointsBonus
       }
     }
   }
@@ -96,6 +107,14 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{card.attack}</dd>
             <dt>HP</dt>
             <dd>{card.hitPoints}</dd>
+          </>
+        )}
+        {card.__typename === "ItemCardInfo" && (
+          <>
+            <dt>分類</dt>
+            <dd>{ITEM_CATEGORY_LABELS[card.category]}</dd>
+            <dt>増減</dt>
+            <dd>{itemBonusesLabel(card.attackBonus, card.hitPointsBonus)}</dd>
           </>
         )}
       </dl>

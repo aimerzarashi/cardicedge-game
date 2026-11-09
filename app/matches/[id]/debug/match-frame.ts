@@ -1,6 +1,7 @@
 import type {
   CardRarity,
   CreatureElement,
+  ItemCategory,
   MatchEndReason,
   MatchParticipantKind,
   MatchPhase,
@@ -17,6 +18,9 @@ export type FrameCard = {
   elements?: CreatureElement[];
   attack?: number;
   hitPoints?: number;
+  category?: ItemCategory;
+  attackBonus?: number;
+  hitPointsBonus?: number;
 };
 
 export type FrameParticipant = {
@@ -42,7 +46,7 @@ export type FrameTerritory = {
   creature: {
     id: number;
     hitPoints: number;
-    card: { id: string; name: string };
+    card: { id: string; name: string; attack: number };
   };
 };
 
@@ -234,7 +238,7 @@ function applyFact(
             creature: {
               id: creature,
               hitPoints: card.hitPoints ?? 0,
-              card: { id: card.id, name: card.name },
+              card: { id: card.id, name: card.name, attack: card.attack ?? 0 },
             },
           },
         ],
@@ -292,7 +296,11 @@ function applyFact(
                 creature: {
                   id: creature,
                   hitPoints: invasion.hitPoints,
-                  card: { id: invasion.card.id, name: invasion.card.name },
+                  card: {
+                    id: invasion.card.id,
+                    name: invasion.card.name,
+                    attack: invasion.card.attack ?? 0,
+                  },
                 },
               }
             : territory,
