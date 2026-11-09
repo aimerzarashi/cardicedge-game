@@ -202,6 +202,10 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           <>
             {"・"}
             <Link href={`/matches/${room.match.id}`}>対戦の画面へ</Link>
+            {"・"}
+            <Link href={`/matches/${room.match.id}/debug`}>
+              デバッグの画面へ
+            </Link>
           </>
         )}
       </p>

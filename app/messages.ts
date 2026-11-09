@@ -217,6 +217,9 @@ export const CORE_UNAVAILABLE_OPERATION =
   "core に接続できません。時間をおいてもう一度操作してください";
 
 // 段階を足し忘れると型検査で止まるよう、core の段階の型で持つ。今の番の人が何をする段階か
+// 再生の途中で、操作を待っていない間の段階の表示
+export const MATCH_PHASE_NOT_WAITING = "進行中";
+
 export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   DRAWING: "カードを引く",
   DISCARDING: "手札を捨てる",
