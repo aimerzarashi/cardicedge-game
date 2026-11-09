@@ -4,6 +4,7 @@ import type {
   CardRarity,
   CardType,
   CreatureElement,
+  ItemCategory,
   MatchEndReason,
   MatchPhase,
   RoomStatus,
@@ -71,6 +72,26 @@ export const CARD_TYPE_LABELS: Record<
   ItemCardInfo: "アイテム",
   SpellCardInfo: "スペル",
 };
+
+// 種類の足し忘れを型検査で見つけるため、Record<ItemCategory, …> で持つ（CARD_TYPE_LABELS と同じ）
+export const ITEM_CATEGORY_LABELS: Record<ItemCategory, string> = {
+  WEAPON: "武器",
+  ARMOR: "防具",
+  SCROLL: "巻物",
+};
+
+// 符号つきで出す（下げるアイテムと見分けるため）。増減の無い項目は出さない
+export function itemBonusesLabel(
+  attackBonus: number,
+  hitPointsBonus: number,
+): string {
+  const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
+  const parts = [
+    ...(attackBonus !== 0 ? [`AT ${signed(attackBonus)}`] : []),
+    ...(hitPointsBonus !== 0 ? [`HP ${signed(hitPointsBonus)}`] : []),
+  ];
+  return parts.length > 0 ? parts.join("・") : "増減なし";
+}
 
 // 所持カードの絞り込みの選択肢（core の CardType。結果の種類は __typename で見分けるので CARD_TYPE_LABELS とは別）
 export const CARD_TYPE_FILTERS: { value: CardType; label: string }[] = [
@@ -228,6 +249,7 @@ export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   CHOOSING_PATH: "行き先を選ぶ",
   DEPLOYING: "クリーチャーを配置する",
   INVADING: "通行料を払うか侵略する",
+  ATTACKING: "攻める側がアイテムを選ぶ",
   DEFENDING: "守る側がアイテムを選ぶ",
   RELINQUISHING: "領地を手放す",
   ENDING: "ターンを終える",
@@ -279,6 +301,7 @@ export const MATCH_EVENT_MESSAGES = {
     `クリーチャー「${card}」で (${x}, ${y}) を侵略した（魔力 -${cost}）`,
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
+  itemSkipped: "アイテムを出さなかった",
   creatureStruck: (striker: string, damage: number, remaining: number) =>
     `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
   battleAttacker: "攻める側",

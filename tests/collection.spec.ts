@@ -49,3 +49,15 @@ test("無い・形の違う ID のカードは「見つからない」になる"
     await expect(page.getByText("このカードは見つかりません")).toBeVisible();
   }
 });
+
+test("アイテムのカードの詳細に、分類と AT・HP の増減が出る", async ({
+  page,
+}) => {
+  await login(page, seedPlayer.email, seedPlayer.password);
+  await expect(page.getByTestId("player-email")).toHaveText(seedPlayer.email);
+  // D は防具で AT -5・HP +25（local/core-master/master.sql）
+  await page.goto("/cards/00000000-0000-4000-8000-00000000000d");
+  await expect(page.locator("dl")).toHaveText(
+    /種類\s*アイテム\s*コスト\s*15\s*希少度\s*N\s*分類\s*防具\s*増減\s*AT -5・HP \+25/,
+  );
+});

@@ -148,7 +148,7 @@ describe("territoryMarks", () => {
     owner,
     level,
     toll: level * 60,
-    creature: { id, card: { name } },
+    creature: { id, hitPoints: 25, card: { name, attack: 30 } },
   });
 
   it("番号は core のクリーチャーの ID で、盤面から外れた番号は飛んだままにする", () => {
@@ -156,11 +156,13 @@ describe("territoryMarks", () => {
       territoryMarks([
         territory(1, 1, "ウルフ"),
         territory(0, 3, "ゴーレム", 2),
-      ]).map(({ number, level, toll, creature, color }) => ({
+      ]).map(({ number, level, toll, creature, attack, hitPoints, color }) => ({
         number,
         level,
         toll,
         creature,
+        attack,
+        hitPoints,
         color,
       })),
       [
@@ -169,6 +171,8 @@ describe("territoryMarks", () => {
           level: 1,
           toll: 60,
           creature: "ウルフ",
+          attack: 30,
+          hitPoints: 25,
           color: participantColor(1),
         },
         {
@@ -176,6 +180,8 @@ describe("territoryMarks", () => {
           level: 2,
           toll: 120,
           creature: "ゴーレム",
+          attack: 30,
+          hitPoints: 25,
           color: participantColor(0),
         },
       ],

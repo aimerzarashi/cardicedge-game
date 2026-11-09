@@ -72,6 +72,15 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
     new RegExp(`${creature}.*レベル 1.*価値 100.*通行料 60`),
     { timeout: 20_000 },
   );
+  // マスの表示は、ボタンで通行料と AT・HP を切り替える
+  await page.getByRole("button", { name: "AT・HP を表示" }).click();
+  await expect(page.getByTestId("territory-stats").first()).toHaveText(
+    /^⚔\d+ ♡\d+$/,
+  );
+  await expect(page.getByTestId("territory-toll")).toHaveCount(0);
+  await page.getByRole("button", { name: "通行料を表示" }).click();
+  await expect(page.getByTestId("territory-toll").first()).toBeVisible();
+  await expect(page.getByTestId("territory-stats")).toHaveCount(0);
   await expect(
     page.getByTestId("match-events").locator("li").first(),
   ).toBeVisible();
@@ -163,11 +172,13 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
   ).toBeVisible();
 
   await invade.first().click();
-  // クリーチャーを選ぶと、通行料の代わりにアイテムの選びが出る
+  // 選んだ時点で確定するので、次はアイテムの選びだけが出て、通行料は払えない
+  const noItem = page.getByRole("button", { name: "アイテムを出さずに攻める" });
+  await expect(noItem).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("match-phase")).toContainText("攻める側");
+  await expect(page.getByTestId("match-invasion")).toBeVisible();
   await expect(page.getByRole("button", { name: "通行料を払う" })).toBeHidden();
-  await page
-    .getByRole("button", { name: "アイテムを出さずに侵略する" })
-    .click();
+  await noItem.click();
 
   // NPC は守る操作をすぐ行い、戦闘の結果まで描かれる
   const events = page.getByTestId("match-events");

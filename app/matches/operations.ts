@@ -126,6 +126,24 @@ export const invadeMatchTerritoryMutation = graphql(`
   }
 `);
 
+export const attackMatchTerritoryMutation = graphql(`
+  mutation AttackMatchTerritory($input: AttackMatchTerritoryInput!) {
+    attackMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const payMatchTollMutation = graphql(`
   mutation PayMatchToll($input: PayMatchTollInput!) {
     payMatchToll(input: $input) {
