@@ -74,6 +74,20 @@ export const levelUpMatchTerritoryMutation = graphql(`
   }
 `);
 
+export const exchangeMatchCreatureMutation = graphql(`
+  mutation ExchangeMatchCreature($input: ExchangeMatchCreatureInput!) {
+    exchangeMatchCreature(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
 export const skipMatchTerritoryCommandMutation = graphql(`
   mutation SkipMatchTerritoryCommand($input: SkipMatchTerritoryCommandInput!) {
     skipMatchTerritoryCommand(input: $input) {

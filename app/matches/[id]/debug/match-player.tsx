@@ -40,6 +40,7 @@ import {
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
+  exchangeMatchCreature,
   invadeMatchTerritory,
   levelUpMatchTerritory,
   payMatchToll,
@@ -120,6 +121,13 @@ export type MatchPlayerOperations = {
     x: number;
     y: number;
     level: number;
+    magic: number;
+    name: string;
+  }[];
+  exchangeChoices: {
+    x: number;
+    y: number;
+    handIndex: number;
     magic: number;
     name: string;
   }[];
@@ -302,6 +310,21 @@ function Operations({
             >
               ({choice.x}, {choice.y}) の{choice.name}の土地をレベル{" "}
               {choice.level} にする（魔力 -{choice.magic}）
+            </MatchActionButton>
+          ))}
+          {operations.exchangeChoices.map((choice) => (
+            <MatchActionButton
+              key={`${choice.x},${choice.y},${choice.handIndex}`}
+              action={exchangeMatchCreature}
+              values={{
+                x: choice.x,
+                y: choice.y,
+                handIndex: choice.handIndex,
+              }}
+              {...actionProps}
+            >
+              ({choice.x}, {choice.y}) の{choice.name}を
+              {hand[choice.handIndex]?.name}と交換する（魔力 -{choice.magic}）
             </MatchActionButton>
           ))}
           <MatchActionButton

@@ -33,6 +33,14 @@ export const matchDebugQuery = graphql(`
           level
           magic
         }
+        exchangeChoices {
+          position {
+            x
+            y
+          }
+          handIndex
+          magic
+        }
         invasion {
           position {
             x
@@ -404,6 +412,50 @@ export const matchDebugEventsQuery = graphql(`
             }
             level
             magic
+          }
+          ... on MatchCreatureExchangedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            handIndex
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+              }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
+            }
+            creature
+            cost
+            returnedCard {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+              }
+              ... on ItemCardInfo {
+                category
+                attackBonus
+                hitPointsBonus
+              }
+            }
           }
           ... on MatchTerritoryCommandSkippedEvent {
             participant

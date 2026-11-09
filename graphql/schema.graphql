@@ -1151,6 +1151,44 @@ type EndMatchTurnSuccess {
 	revision: Int!
 }
 """
+通った自分の領地のクリーチャーを手札のクリーチャーと交換する入力
+"""
+input ExchangeMatchCreatureInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	領地の位置（Match.exchangeChoices の中から選ぶ。選べない組は ValidationErrors の FieldNotFound）
+	"""
+	position: BoardPositionInput!
+	"""
+	出す手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+}
+"""
+exchangeMatchCreature の結果（TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+"""
+union ExchangeMatchCreatureResult = ExchangeMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+クリーチャーを交換した（続けて止まったマスの行動が決まる。成功したら対戦の revision が進む）
+"""
+type ExchangeMatchCreatureSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
 入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
 """
 type FieldCountMismatch implements FieldError {
@@ -1481,6 +1519,10 @@ type Match {
 	"""
 	levelUpChoices: [MatchLevelUpChoice!]!
 	"""
+	今の番の人が選べるクリーチャーの交換（TERRITORY_COMMANDING のときだけ中身がある。手札のクリーチャーで、手持ちの魔力で払える分だけ）
+	"""
+	exchangeChoices: [MatchExchangeChoice!]!
+	"""
 	侵略しているクリーチャー（侵略してから戦闘が終わるまでだけ。ほかは null）
 	"""
 	invasion: MatchInvasion
@@ -1791,6 +1833,51 @@ type MatchCreatureDeployedEvent implements MatchEvent {
 	cost: Int!
 }
 """
+領地のクリーチャーを手札のクリーチャーと入れ替えた
+"""
+type MatchCreatureExchangedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	交換した参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	出した手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	領地に入ったカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
+	"""
+	領地に入ったクリーチャーの新しい ID（Match.territories の creature.id と同じ番号）
+	"""
+	creature: Int!
+	"""
+	払った魔力
+	"""
+	cost: Int!
+	"""
+	手札の最後に戻ったカード（性能は対戦を始めたときの写し）
+	"""
+	returnedCard: CardInfo!
+}
+"""
 戦闘の攻撃が 1 回当たった
 """
 type MatchCreatureStruckEvent implements MatchEvent {
@@ -1970,6 +2057,23 @@ type MatchEventList {
 対戦のイベントの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union MatchEventsResult = MatchEventList | MatchNotFoundError | PlayerNotRegisteredError
+"""
+クリーチャーを交換する選択肢 1 つ
+"""
+type MatchExchangeChoice {
+	"""
+	領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	出す手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	払う魔力（出すクリーチャーのコスト）
+	"""
+	magic: Int!
+}
 """
 全員に手札が配られた
 """
@@ -2889,6 +2993,10 @@ type Mutation {
 	通った自分の領地のレベルを上げる（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	levelUpMatchTerritory(input: LevelUpMatchTerritoryInput!): LevelUpMatchTerritoryResult!
+	"""
+	通った自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
+	"""
+	exchangeMatchCreature(input: ExchangeMatchCreatureInput!): ExchangeMatchCreatureResult!
 	"""
 	領地コマンドを使わず、止まったマスの行動に進む
 	"""

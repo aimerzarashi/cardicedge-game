@@ -34,6 +34,23 @@ describe("eventLine", () => {
     );
   });
 
+  it("交換したイベントは、位置・元のカード・出したカード・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(32, {
+          __typename: "MatchCreatureExchangedEvent",
+          participant: 0,
+          position: { x: 1, y: 0 },
+          card: { name: "ナイト" },
+          returnedCard: { name: "ゴブリン" },
+          cost: 40,
+        }),
+        names,
+      ),
+      "版 32 部屋用: 領地 (1, 0) の「ゴブリン」を「ナイト」に交換した（魔力 -40）",
+    );
+  });
+
   it("領地コマンドを使わなかったイベントを出す", () => {
     assert.equal(
       eventLine(

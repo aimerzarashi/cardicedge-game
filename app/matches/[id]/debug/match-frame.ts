@@ -120,6 +120,7 @@ export type PlayEvent = {
   returnedToHand?: boolean;
   territoryHitPoints?: number;
   level?: number;
+  returnedCard?: FrameCard;
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
@@ -382,6 +383,39 @@ function applyFact(
         territories: paid.territories.map((territory) =>
           samePosition(territory.position, position)
             ? { ...territory, level }
+            : territory,
+        ),
+      };
+    }
+    case "MatchCreatureExchangedEvent": {
+      const { card, position, creature, returnedCard } = event;
+      if (!card || !position || creature === undefined || !returnedCard) {
+        return frame;
+      }
+      const paid = updateParticipant(frame, seat, (participant) => ({
+        ...participant,
+        hand: [
+          ...withoutCard(participant.hand, event.handIndex ?? 0),
+          returnedCard,
+        ],
+        magic: participant.magic - (event.cost ?? 0),
+      }));
+      return {
+        ...paid,
+        territories: paid.territories.map((territory) =>
+          samePosition(territory.position, position)
+            ? {
+                ...territory,
+                creature: {
+                  id: creature,
+                  hitPoints: card.hitPoints ?? 0,
+                  card: {
+                    id: card.id,
+                    name: card.name,
+                    attack: card.attack ?? 0,
+                  },
+                },
+              }
             : territory,
         ),
       };
