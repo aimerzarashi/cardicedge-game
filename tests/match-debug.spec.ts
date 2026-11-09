@@ -22,8 +22,6 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await page.getByRole("button", { name: "公開する" }).click();
   await expect(page.getByTestId("room-status")).toHaveText("準備中");
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
-  await page.getByRole("link", { name: "デバッグの画面へ" }).click();
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
   await expect(page.getByTestId("match-frame")).toBeVisible();
   // フレームが変わるたびに、版と領地の数を記録する
@@ -114,10 +112,10 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await page.reload();
   await expect(frame).toHaveText(replayed ?? "");
 
-  // 部屋からもデバッグの画面へ移れる
+  // 部屋の「対戦の画面へ」からも、同じ画面へ戻れる
   const debugUrl = page.url();
   await page.getByRole("link", { name: "部屋に戻る" }).click();
   await expect(page).toHaveURL(/\/rooms\/[0-9a-f-]{36}$/);
-  await page.getByRole("link", { name: "デバッグの画面へ" }).click();
+  await page.getByRole("link", { name: "対戦の画面へ" }).click();
   await expect(page).toHaveURL(debugUrl);
 });

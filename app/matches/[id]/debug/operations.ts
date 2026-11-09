@@ -1,4 +1,4 @@
-// デバッグの画面だけが読む query。今の画面（../page.tsx・../../operations.ts）を変えないよう分ける
+// デバッグの画面が読む query。操作の mutation は ../../operations.ts
 import { graphql } from "@/graphql";
 
 export const matchDebugQuery = graphql(`
@@ -60,6 +60,10 @@ export const matchDebugQuery = graphql(`
           diceMin
           diceMax
           baseLandValue
+          maxHandCards
+          startingHandCards
+          tollPercentage
+          relinquishPercentage
         }
         board {
           width

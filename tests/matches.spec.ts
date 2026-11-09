@@ -23,7 +23,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await page.getByRole("button", { name: "公開する" }).click();
   await expect(page.getByTestId("room-status")).toHaveText("準備中");
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
   await expect(page.getByTestId("match-number")).toHaveText("1 戦目");
   // 順番は core が決める。NPC が先なら NPC の番は済んでいるので、自分の番の操作が出る
@@ -99,7 +99,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
     "目標の魔力 9500",
   );
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
   await expect(page.getByTestId("match-number")).toHaveText("2 戦目");
   await playMatchToEnd(page);
   await page.getByRole("button", { name: /を選ぶ$/ }).click();
@@ -151,7 +151,7 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   await page.getByRole("button", { name: "公開する" }).click();
   await expect(page.getByTestId("room-status")).toHaveText("準備中");
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
   const deploy = page.getByRole("button", { name: /を配置する$/ });
   const operations = matchOperations(page);
@@ -162,9 +162,11 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
     if (await deploy.first().isVisible()) {
       break;
     }
-    const revision = await page.locator("main").getAttribute("data-revision");
+    const revision = await page
+      .getByTestId("match-frame")
+      .getAttribute("data-revision");
     await operations.first().click();
-    await expect(page.locator("main")).not.toHaveAttribute(
+    await expect(page.getByTestId("match-frame")).not.toHaveAttribute(
       "data-revision",
       revision ?? "",
     );

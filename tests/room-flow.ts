@@ -115,10 +115,12 @@ export async function playMatchToEnd(page: Page) {
     if (await outcome.isVisible()) {
       return;
     }
-    const revision = await page.locator("main").getAttribute("data-revision");
+    const revision = await page
+      .getByTestId("match-frame")
+      .getAttribute("data-revision");
     await operations.first().click();
-    // 押したあとは画面が読み直されて revision が進む。進む前に次を押すと、古い revision で送ってしまう
-    await expect(page.locator("main")).not.toHaveAttribute(
+    // 押したあとは再生で revision が進む。進む前に次を押すと、古い revision で送ってしまう
+    await expect(page.getByTestId("match-frame")).not.toHaveAttribute(
       "data-revision",
       revision ?? "",
     );

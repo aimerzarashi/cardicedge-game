@@ -35,7 +35,7 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   await page.getByRole("button", { name: "準備完了" }).click();
 
   // プレイヤーは自分だけなので、自分の準備完了で全員がそろい、対戦が始まる。対戦の画面へ移る
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
   const matchUrl = page.url();
   await expect(page.getByTestId("match-round")).toHaveText("ラウンド 1 / 30");
   // 順番は core が決めるため、今の番は 2 人のどちらか、参加者の一覧（順番に並ぶ）は 2 人そろい今の番の印が 1 つあることだけを確かめる
@@ -65,6 +65,12 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   await expect(page.getByTestId("match-rules")).toContainText("目標の魔力9000");
   await expect(page.getByTestId("match-rules")).toContainText("手札の上限6");
   await expect(page.getByTestId("match-rules")).toContainText("配る枚数5");
+  await expect(page.getByTestId("match-rules")).toContainText(
+    "通行料の割合60%",
+  );
+  await expect(page.getByTestId("match-rules")).toContainText(
+    "手放すときの割合80%",
+  );
   // プレイヤーは拠点にいるので、拠点のマスに駒 1 が出る
   await expect(
     page.getByRole("button", { name: "(0, 0) のマス 拠点 駒 1" }),
@@ -94,7 +100,7 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   await expect(page.getByTestId("player-email")).toHaveText(seedPlayer.email);
   await page.goto(matchUrl);
   await expect(page.getByText("この対戦は見つかりません")).toBeVisible();
-  await page.goto("/matches/not-a-uuid");
+  await page.goto("/matches/not-a-uuid/debug");
   await expect(page.getByText("この対戦は見つかりません")).toBeVisible();
 });
 
@@ -115,7 +121,7 @@ test("公開前に決めなかったものは準備中に決められ、決め�
   await expect(page.getByRole("button", { name: "準備完了" })).toBeVisible();
   await page.getByRole("button", { name: "準備完了" }).click();
 
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
   // 準備完了のあとは、決めたものを選び直せない
   await page.goBack();
   await expect(page.getByTestId("participants")).toContainText("準備完了");

@@ -197,7 +197,7 @@ export async function declareRoomReady(
       ? after.data.room.match?.id
       : undefined;
   if (matchId && matchId !== previousId) {
-    redirect(`/matches/${matchId}`);
+    redirect(`/matches/${matchId}/debug`);
   }
   return state;
 }
