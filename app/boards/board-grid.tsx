@@ -23,6 +23,7 @@ import {
   tileText,
 } from "./board-paint";
 import {
+  boardShortcut,
   fitView,
   type Size,
   span,
@@ -94,6 +95,7 @@ export function BoardGrid({
   const [dragging, setDragging] = useState(false);
 
   const fitted = size ? fitView(size, width, height) : null;
+  const hasTerritories = territories !== undefined;
   const shown = view ?? fitted;
 
   // ホイールの既定のスクロールを止めるには passive でない listener が要り、React の onWheel では付けられないため DOM に付ける
@@ -133,6 +135,44 @@ export function BoardGrid({
     element.addEventListener("wheel", onWheel, { passive: false });
     return () => element.removeEventListener("wheel", onWheel);
   }, [size, width, height]);
+
+  useEffect(() => {
+    if (!size) {
+      return;
+    }
+    const zoomBy = (factor: number) => {
+      setAnimated(true);
+      setView((current) =>
+        zoomAt(
+          current ?? fitView(size, width, height),
+          factor,
+          size.width / 2,
+          size.height / 2,
+        ),
+      );
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      switch (boardShortcut(event)) {
+        case "zoomIn":
+          zoomBy(ZOOM_STEP);
+          break;
+        case "zoomOut":
+          zoomBy(1 / ZOOM_STEP);
+          break;
+        case "fit":
+          setAnimated(true);
+          setView(null);
+          break;
+        case "toggleStats":
+          if (hasTerritories) {
+            setShowsStats((current) => !current);
+          }
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [size, width, height, hasTerritories]);
 
   function zoom(factor: number) {
     if (!size || !shown) {
@@ -218,14 +258,26 @@ export function BoardGrid({
       style={{ border: "none", margin: 0, padding: 0, minInlineSize: 0 }}
     >
       <div>
-        <button type="button" onClick={() => zoom(ZOOM_STEP)}>
+        <button
+          type="button"
+          title="キー: Z"
+          aria-keyshortcuts="z"
+          onClick={() => zoom(ZOOM_STEP)}
+        >
           拡大
         </button>
-        <button type="button" onClick={() => zoom(1 / ZOOM_STEP)}>
+        <button
+          type="button"
+          title="キー: X"
+          aria-keyshortcuts="x"
+          onClick={() => zoom(1 / ZOOM_STEP)}
+        >
           縮小
         </button>
         <button
           type="button"
+          title="キー: 0"
+          aria-keyshortcuts="0"
           onClick={() => {
             setAnimated(true);
             setView(null);
@@ -235,7 +287,12 @@ export function BoardGrid({
         </button>
         {/* ボードの詳細の画面には領地が無いので、対戦の画面にだけ出す */}
         {territories && (
-          <button type="button" onClick={() => setShowsStats(!showsStats)}>
+          <button
+            type="button"
+            title="キー: T"
+            aria-keyshortcuts="t"
+            onClick={() => setShowsStats(!showsStats)}
+          >
             {showsStats ? "通行料を表示" : "AT・HP を表示"}
           </button>
         )}

@@ -81,6 +81,11 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await page.getByRole("button", { name: "通行料を表示" }).click();
   await expect(page.getByTestId("territory-toll").first()).toBeVisible();
   await expect(page.getByTestId("territory-stats")).toHaveCount(0);
+  // T のキーでも切り替わる
+  await page.keyboard.press("t");
+  await expect(page.getByTestId("territory-stats").first()).toBeVisible();
+  await page.keyboard.press("t");
+  await expect(page.getByTestId("territory-toll").first()).toBeVisible();
   await expect(
     page.getByTestId("match-events").locator("li").first(),
   ).toBeVisible();
