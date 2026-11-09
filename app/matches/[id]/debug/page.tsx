@@ -100,20 +100,23 @@ export default async function MatchDebugPage({
       <h1>
         対戦（デバッグ）
         {match.number !== null && match.number !== undefined && (
-          <> {matchNumberLabel(match.number)}</>
+          <>
+            {" "}
+            <span data-testid="match-number">
+              {matchNumberLabel(match.number)}
+            </span>
+          </>
         )}
       </h1>
       <p>
-        <Link href={`/matches/${match.id}`}>今の状態の画面へ</Link>
         {match.roomId && (
           <>
-            {"・"}
             <Link href={`/rooms/${match.roomId}`}>
               {MATCH_REVIEW_MESSAGES.backToRoom}
             </Link>
+            {"・"}
           </>
         )}
-        {"・"}
         <Link href="/rooms">部屋の一覧へ</Link>
       </p>
       <MatchPlayer
@@ -130,13 +133,29 @@ export default async function MatchDebugPage({
         }}
       >
         <h2>ルール</h2>
-        <dl style={RULES_STYLE}>
+        <dl data-testid="match-rules" style={RULES_STYLE}>
           {RULE_FIELDS.map((field) => (
             <div key={field} style={PAIR_STYLE}>
               <dt>{RULE_LABELS[field]}</dt>
               <dd style={{ margin: 0 }}>{match.rules[field]}</dd>
             </div>
           ))}
+          <div style={PAIR_STYLE}>
+            <dt>手札の上限</dt>
+            <dd style={{ margin: 0 }}>{match.rules.maxHandCards}</dd>
+          </div>
+          <div style={PAIR_STYLE}>
+            <dt>配る枚数</dt>
+            <dd style={{ margin: 0 }}>{match.rules.startingHandCards}</dd>
+          </div>
+          <div style={PAIR_STYLE}>
+            <dt>通行料の割合</dt>
+            <dd style={{ margin: 0 }}>{match.rules.tollPercentage}%</dd>
+          </div>
+          <div style={PAIR_STYLE}>
+            <dt>手放すときの割合</dt>
+            <dd style={{ margin: 0 }}>{match.rules.relinquishPercentage}%</dd>
+          </div>
         </dl>
       </MatchPlayer>
     </main>

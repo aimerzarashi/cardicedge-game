@@ -106,46 +106,23 @@ export function eventLine(event: MatchEventView, names: string[]): string {
   );
 }
 
-// 描画の間に変えるのは、コマの位置だけ。ほかの値は描き終えたあとに core の今の状態を読み直して出す
-export function movedPiece(
-  event: MatchEventView,
-): { seat: number; x: number; y: number } | undefined {
-  if (
-    event.__typename !== "MatchMovedEvent" ||
-    event.participant === undefined ||
-    event.to === undefined
-  ) {
-    return undefined;
-  }
-  return { seat: event.participant, x: event.to.x, y: event.to.y };
-}
-
 // 読んだイベントを、開いた時点の版まで（欄に入れるだけ）とそれより後（順に描画する）に分ける。
 // 開く前に起きたことは、今の状態として出ているため描画しない
-export function splitEvents(
-  events: MatchEventView[],
+export function splitEvents<T extends { revision: number }>(
+  events: T[],
   shownRevision: number,
-): { silent: MatchEventView[]; play: MatchEventView[] } {
+): { silent: T[]; play: T[] } {
   return {
     silent: events.filter((event) => event.revision <= shownRevision),
     play: events.filter((event) => event.revision > shownRevision),
   };
 }
 
-// 描画の続き。すでに読んだ版（取得済み・描画待ち）より後のものだけを足し、同じイベントを二度見せない
-export function appendNew(
-  queue: MatchEventView[],
-  events: MatchEventView[],
-): MatchEventView[] {
-  const last = queue.at(-1)?.revision ?? 0;
-  return [...queue, ...events.filter((event) => event.revision > last)];
-}
-
 // 欄に足す。同じ版は 1 つだけにする（差分の読み込みが重なって同じイベントを 2 回読んでも、欄に 2 つ並べないため）
-export function mergeShown(
-  shown: MatchEventView[],
-  events: MatchEventView[],
-): MatchEventView[] {
+export function mergeShown<T extends { revision: number }>(
+  shown: T[],
+  events: T[],
+): T[] {
   const known = new Set(shown.map((event) => event.revision));
   return [...shown, ...events.filter((event) => !known.has(event.revision))];
 }

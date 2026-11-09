@@ -19,7 +19,7 @@ import {
   RARITY_LABELS,
   SEAT_KIND_LABELS,
 } from "../../../messages";
-import { eventLine } from "../../match-events";
+import { eventLine, mergeShown, splitEvents } from "../../match-events";
 import {
   currentTurnText,
   participantPieces,
@@ -40,7 +40,6 @@ import {
   rollMatchDice,
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
-import { watchProgress } from "../match-live";
 import { loadMatchDebugEvents } from "./actions";
 import {
   applyEvent,
@@ -48,6 +47,7 @@ import {
   type MatchFrame,
   type PlayEvent,
 } from "./match-frame";
+import { watchProgress } from "./watch-progress";
 
 const LOAD_RETRY_MS = 2000;
 const COLUMNS_STYLE = {
@@ -64,6 +64,38 @@ const ROW_STYLE = {
   margin: "0 0 0.5rem",
 } as const;
 const LIST_STYLE = { margin: 0, padding: 0, listStyle: "none" } as const;
+const STATS_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "0.25rem 1rem",
+  margin: 0,
+} as const;
+const PAIR_STYLE = { display: "flex", gap: "0.25rem" } as const;
+const HAND_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "0.25rem 0.75rem",
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+} as const;
+
+// 盤面の枠・コマの番号と同じ色の印（色の意味は隣の文字でもわかるので、読み上げない）
+function ParticipantColorMark({ seat }: { seat: number }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        display: "inline-block",
+        width: "0.8em",
+        height: "0.8em",
+        marginRight: "0.3em",
+        border: "1px solid #10182b",
+        background: participantColor(seat),
+      }}
+    />
+  );
+}
 
 // 操作は描画ではなく入力なので、再生が追いついたときの match(id) の値で出す
 export type MatchPlayerOperations = {
@@ -78,10 +110,12 @@ function Operations({
   id,
   latest,
   operations,
+  connected,
 }: {
   id: string;
   latest: MatchFrame;
   operations: MatchPlayerOperations;
+  connected: boolean;
 }) {
   const actionProps = { id, revision: latest.revision };
   const hand = latest.participants[latest.currentParticipant ?? 0]?.hand ?? [];
@@ -102,7 +136,19 @@ function Operations({
     );
   }
   if (!operations.mine) {
-    return <p style={{ margin: "0 0 0.5rem" }}>他の参加者（NPC）の番です。</p>;
+    // 進みが Subscription で見えているときは、読み直すリンクは要らない（つながっていないときの逃げ道だけ出す）
+    return (
+      <p style={{ margin: "0 0 0.5rem" }}>
+        他の参加者（NPC）の番です。
+        {!connected && (
+          <>
+            {" "}
+            {/* Link は同じ URL だと読み直さないことがあるため、普通のリンクで読み込み直す */}
+            <a href={`/matches/${id}/debug`}>読み直す</a>
+          </>
+        )}
+      </p>
+    );
   }
   return (
     <div style={ROW_STYLE}>
@@ -223,18 +269,39 @@ function FrameView({
           <div style={ROW_STYLE}>
             <strong>対戦の結果</strong>
             <span>
-              勝った人: {winnerNames(frame.participants, frame.outcome.winners)}
+              勝った人:{" "}
+              <span data-testid="match-winners">
+                {winnerNames(frame.participants, frame.outcome.winners)}
+              </span>
             </span>
             <span>理由: {MATCH_END_REASON_LABELS[frame.outcome.reason]}</span>
-            <span>{MATCH_REVIEW_MESSAGES.rounds(frame.round)}</span>
+            <span data-testid="match-rounds">
+              {MATCH_REVIEW_MESSAGES.rounds(frame.round)}
+            </span>
           </div>
-          <ol style={LIST_STYLE}>
+          <ol data-testid="match-review" style={LIST_STYLE}>
             {reviewRows(frame.participants, frame.outcome.ranks).map((row) => (
-              <li key={row.seat}>
-                {MATCH_REVIEW_MESSAGES.rank(row.rank)} コマ {row.seat + 1}・
-                {row.name}・総魔力 {row.totalMagic}
-                {row.rewardReceived &&
-                  ` ・ ${MATCH_REVIEW_MESSAGES.rewardCards(row.rewardCards.join("、"))}`}
+              <li
+                key={row.seat}
+                data-testid="match-review-row"
+                style={{ marginBottom: "0.5rem" }}
+              >
+                <span data-testid="review-rank">
+                  {MATCH_REVIEW_MESSAGES.rank(row.rank)}
+                </span>{" "}
+                コマ {row.seat + 1}・{row.name}・総魔力 {row.totalMagic}
+                {" ・ "}
+                {!row.isPlayer ? (
+                  MATCH_REVIEW_MESSAGES.rewardNone
+                ) : row.rewardReceived ? (
+                  <span data-testid="review-reward-cards">
+                    {MATCH_REVIEW_MESSAGES.rewardCards(
+                      row.rewardCards.join("、"),
+                    )}
+                  </span>
+                ) : (
+                  MATCH_REVIEW_MESSAGES.rewardPending
+                )}
               </li>
             ))}
           </ol>
@@ -242,7 +309,7 @@ function FrameView({
       )}
 
       <h2>参加者</h2>
-      <ul style={LIST_STYLE}>
+      <ul data-testid="match-participants" style={LIST_STYLE}>
         {participantRows(frame.participants, frame.currentParticipant).map(
           (row) => {
             const participant = frame.participants[row.seat];
@@ -253,45 +320,74 @@ function FrameView({
                 style={{ marginBottom: "0.5rem" }}
               >
                 <p style={{ margin: 0 }}>
-                  <span
-                    aria-hidden
-                    style={{ color: participantColor(row.seat) }}
-                  >
-                    ■
-                  </span>
+                  <ParticipantColorMark seat={row.seat} />
                   コマ {row.piece}・{SEAT_KIND_LABELS[participant.kind]}・
                   {participant.avatar.name}
-                  {row.isCurrent && <strong>（今の番）</strong>}
+                  {row.isCurrent && (
+                    <strong data-testid="match-current-mark">（今の番）</strong>
+                  )}
                 </p>
-                <p style={{ margin: 0 }}>
-                  魔力{" "}
-                  <span data-testid="participant-magic">
-                    {participant.magic}
-                  </span>
-                  ・総魔力{" "}
-                  <span data-testid="participant-total-magic">
-                    {participant.totalMagic}
-                  </span>
-                  ・位置{" "}
-                  <span data-testid="participant-position">
-                    ({participant.position.x}, {participant.position.y})
-                  </span>
-                  ・通ったチェックポイント{" "}
-                  {participant.passedCheckpoints.length}・山札の残り{" "}
-                  {participant.drawPileCount}
-                </p>
-                <ul data-testid="participant-hand" style={LIST_STYLE}>
-                  {participant.hand.map((card, cardIndex) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、引いた順で区別する
-                    <li key={cardIndex}>
-                      <Link href={`/cards/${card.id}`}>{card.name}</Link>
-                      （コスト {card.cost}・{RARITY_LABELS[card.rarity]}
-                      {card.elements &&
-                        `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
-                      ）
-                    </li>
-                  ))}
-                </ul>
+                <dl style={STATS_STYLE}>
+                  <div style={PAIR_STYLE}>
+                    <dt>魔力</dt>
+                    <dd style={{ margin: 0 }} data-testid="participant-magic">
+                      {participant.magic}
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt>総魔力</dt>
+                    <dd
+                      style={{ margin: 0 }}
+                      data-testid="participant-total-magic"
+                    >
+                      {participant.totalMagic}
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt>位置</dt>
+                    <dd
+                      style={{ margin: 0 }}
+                      data-testid="participant-position"
+                    >
+                      ({participant.position.x}, {participant.position.y})
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt>通ったチェックポイント</dt>
+                    <dd
+                      style={{ margin: 0 }}
+                      data-testid="participant-checkpoints"
+                    >
+                      {participant.passedCheckpoints.length}
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt>山札の残り</dt>
+                    <dd
+                      style={{ margin: 0 }}
+                      data-testid="participant-draw-pile"
+                    >
+                      {participant.drawPileCount}
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt style={{ flexShrink: 0 }}>手札</dt>
+                    <dd style={{ margin: 0 }}>
+                      <ul data-testid="participant-hand" style={HAND_STYLE}>
+                        {participant.hand.map((card, cardIndex) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、引いた順で区別する
+                          <li key={cardIndex}>
+                            <Link href={`/cards/${card.id}`}>{card.name}</Link>
+                            （コスト {card.cost}・{RARITY_LABELS[card.rarity]}
+                            {card.elements &&
+                              `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
+                            ）
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                </dl>
               </li>
             );
           },
@@ -305,8 +401,10 @@ function FrameView({
         <ul data-testid="match-territories">
           {frame.territories.map((territory) => (
             <li key={territory.creature.id}>
+              <ParticipantColorMark seat={territory.owner} />
               {territory.creature.id} ({territory.position.x},{" "}
-              {territory.position.y}) コマ {territory.owner + 1}:{" "}
+              {territory.position.y}) コマ {territory.owner + 1}（
+              {frame.participants[territory.owner]?.avatar.name}）:{" "}
               <Link href={`/cards/${territory.creature.card.id}`}>
                 {territory.creature.card.name}
               </Link>
@@ -340,8 +438,11 @@ export function MatchPlayer({
 }) {
   const router = useRouter();
   const [frame, setFrame] = useState(latest);
+  // 開いた時点の版。それより前は今の状態として出ているので、欄に入れるだけで再生しない
+  const [opened] = useState(latest.revision);
+  const [connected, setConnected] = useState(false);
   const [target, setTarget] = useState(0);
-  const [fetched, setFetched] = useState(latest.revision);
+  const [fetched, setFetched] = useState(0);
   const [loading, setLoading] = useState(false);
   const [queue, setQueue] = useState<PlayEvent[]>([]);
   const [shown, setShown] = useState<PlayEvent[]>([]);
@@ -352,7 +453,7 @@ export function MatchPlayer({
       id,
       controller.signal,
       (next) => setTarget((current) => Math.max(current, next)),
-      () => {},
+      setConnected,
     );
     return () => controller.abort();
   }, [id]);
@@ -369,11 +470,13 @@ export function MatchPlayer({
         return;
       }
       const events = result.events.filter((event) => event.revision > fetched);
-      setQueue((current) => [...current, ...events]);
+      const { silent, play } = splitEvents(events, opened);
+      setShown((current) => mergeShown(current, silent));
+      setQueue((current) => [...current, ...play]);
       setFetched(events.at(-1)?.revision ?? goal);
       setLoading(false);
     }, retry);
-  }, [id, target, latest.revision, fetched, loading]);
+  }, [id, opened, target, latest.revision, fetched, loading]);
 
   useEffect(() => {
     const head = queue[0];
@@ -381,7 +484,7 @@ export function MatchPlayer({
     const timer = setTimeout(() => {
       setQueue((current) => current.slice(1));
       setFrame((current) => applyEvent(current, head, base));
-      setShown((current) => [head, ...current]);
+      setShown((current) => mergeShown(current, [head]));
       if (queue.length === 1) {
         router.refresh();
       }
@@ -404,7 +507,12 @@ export function MatchPlayer({
       />
       <div>
         {caughtUp ? (
-          <Operations id={id} latest={latest} operations={operations} />
+          <Operations
+            id={id}
+            latest={latest}
+            operations={operations}
+            connected={connected}
+          />
         ) : (
           <p data-testid="match-replaying" style={{ margin: "0 0 0.5rem" }}>
             再生しています…
@@ -412,14 +520,16 @@ export function MatchPlayer({
         )}
         <FrameView frame={frame} roundLimit={roundLimit} />
         {children}
-        <h2>再生したイベント</h2>
+        <h2>描画したイベント</h2>
         {shown.length === 0 ? (
           <p>まだありません</p>
         ) : (
           <ol data-testid="match-events" style={LIST_STYLE}>
-            {shown.map((event) => (
-              <li key={event.revision}>{eventLine(event, names)}</li>
-            ))}
+            {[...shown]
+              .sort((a, b) => b.revision - a.revision)
+              .map((event) => (
+                <li key={event.revision}>{eventLine(event, names)}</li>
+              ))}
           </ol>
         )}
       </div>

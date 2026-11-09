@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  appendNew,
   eventLine,
   type MatchEventView,
   mergeShown,
-  movedPiece,
   splitEvents,
 } from "./match-events.ts";
 
@@ -171,21 +169,6 @@ describe("eventLine", () => {
   });
 });
 
-describe("movedPiece", () => {
-  it("進んだイベントだけが、誰のコマをどこへ動かすかを返す", () => {
-    assert.deepEqual(
-      movedPiece(event(5, { participant: 1, to: { x: 3, y: 4 } })),
-      { seat: 1, x: 3, y: 4 },
-    );
-    assert.equal(
-      movedPiece(
-        event(6, { __typename: "MatchDiceRolledEvent", participant: 1 }),
-      ),
-      undefined,
-    );
-  });
-});
-
 describe("splitEvents", () => {
   it("開いた時点の版までは欄に入れるだけ、それより後を順に描画する", () => {
     const events = [event(3), event(4), event(5)];
@@ -197,16 +180,6 @@ describe("splitEvents", () => {
     assert.deepEqual(
       play.map((e) => e.revision),
       [5],
-    );
-  });
-});
-
-describe("appendNew", () => {
-  it("描画待ちの最後の版より後だけを足し、同じイベントを二度見せない", () => {
-    const queue = [event(5), event(6)];
-    assert.deepEqual(
-      appendNew(queue, [event(6), event(7)]).map((e) => e.revision),
-      [5, 6, 7],
     );
   });
 });
