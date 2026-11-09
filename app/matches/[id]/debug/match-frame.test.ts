@@ -264,6 +264,22 @@ describe("applyEvent", () => {
     );
   });
 
+  it("領地のレベルを上げると、魔力が減ってその領地のレベルだけが変わる", () => {
+    const other = { ...TERRITORY, position: { x: 2, y: 0 } };
+    const next = applyEvent(
+      frame({ territories: [TERRITORY, other] }),
+      event("MatchTerritoryLeveledUpEvent", {
+        position: TERRITORY.position,
+        level: 3,
+        magic: 300,
+      }),
+      BASE,
+    );
+    assert.equal(next.participants[1].magic, 300);
+    assert.equal(next.territories[0].level, 3);
+    assert.equal(next.territories[1].level, 1);
+  });
+
   it("元のフレームを書き換えない", () => {
     const before = frame();
     applyEvent(before, event("MatchMovedEvent", { to: { x: 1, y: 0 } }), BASE);

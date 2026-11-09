@@ -38,6 +38,7 @@ export type MatchEventView = {
     level?: number;
     card?: { name: string };
   };
+  level?: number;
   attackDelta?: number;
   hitPointsDelta?: number;
   attack?: number;
@@ -138,6 +139,15 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.magic ?? 0,
       );
+    case "MatchTerritoryLeveledUpEvent":
+      return m.territoryLeveledUp(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.level ?? 0,
+        event.magic ?? 0,
+      );
+    case "MatchTerritoryCommandSkippedEvent":
+      return m.territoryCommandSkipped;
     case "MatchTerritoryRelinquishedEvent":
       return m.territoryRelinquished(
         event.position?.x ?? 0,

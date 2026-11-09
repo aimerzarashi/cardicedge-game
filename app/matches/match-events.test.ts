@@ -18,6 +18,35 @@ const event = (
 });
 
 describe("eventLine", () => {
+  it("領地のレベルを上げたイベントは、位置・レベル・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(30, {
+          __typename: "MatchTerritoryLeveledUpEvent",
+          participant: 0,
+          position: { x: 2, y: 0 },
+          level: 3,
+          magic: 300,
+        }),
+        names,
+      ),
+      "版 30 部屋用: 領地 (2, 0) をレベル 3 に上げた（魔力 -300）",
+    );
+  });
+
+  it("領地コマンドを使わなかったイベントを出す", () => {
+    assert.equal(
+      eventLine(
+        event(31, {
+          __typename: "MatchTerritoryCommandSkippedEvent",
+          participant: 1,
+        }),
+        names,
+      ),
+      "版 31 ゴリガン: 領地コマンドを使わなかった",
+    );
+  });
+
   it("戦闘の始まりは、両方の効果を当てる前の AT・HP を出す", () => {
     assert.equal(
       eventLine(

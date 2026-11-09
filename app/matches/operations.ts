@@ -60,6 +60,28 @@ export const relinquishMatchTerritoryMutation = graphql(`
   }
 `);
 
+export const levelUpMatchTerritoryMutation = graphql(`
+  mutation LevelUpMatchTerritory($input: LevelUpMatchTerritoryInput!) {
+    levelUpMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const skipMatchTerritoryCommandMutation = graphql(`
+  mutation SkipMatchTerritoryCommand($input: SkipMatchTerritoryCommandInput!) {
+    skipMatchTerritoryCommand(input: $input) {
+      __typename
+    }
+  }
+`);
+
 export const rollMatchDiceMutation = graphql(`
   mutation RollMatchDice($input: RollMatchDiceInput!) {
     rollMatchDice(input: $input) {

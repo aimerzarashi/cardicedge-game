@@ -251,6 +251,7 @@ export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   INVADING: "通行料を払うか侵略する",
   ATTACKING: "攻める側がアイテムを選ぶ",
   DEFENDING: "守る側がアイテムを選ぶ",
+  TERRITORY_COMMANDING: "領地コマンド",
   RELINQUISHING: "領地を手放す",
   ENDING: "ターンを終える",
   ENDED: "対戦は終わりました",
@@ -330,6 +331,9 @@ export const MATCH_EVENT_MESSAGES = {
     `侵略に失敗した（「${card}」は${returnedToHand ? "手札に戻った" : "捨て札になった"}）`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
+  territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>
+    `領地 (${x}, ${y}) をレベル ${level} に上げた（魔力 -${magic}）`,
+  territoryCommandSkipped: "領地コマンドを使わなかった",
   territoryRelinquished: (x: number, y: number, magic: number) =>
     `領地 (${x}, ${y}) を手放した（魔力 +${magic}）`,
   magicDepleted: (magic: number) =>
