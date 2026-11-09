@@ -142,6 +142,22 @@ test("拡大・縮小・全体を表示のボタンで、表示の倍率が変�
   expect(await scaleOf(page)).toBeCloseTo(fitted, 3);
 });
 
+test("Z・X・0 のキーで、拡大・縮小・全体を表示ができる", async ({ page }) => {
+  await openBoards(page);
+  await page.getByRole("link", { name: "公開中A" }).click();
+  await expect(scale(page)).toHaveAttribute("data-scale", /.+/);
+  const fitted = await scaleOf(page);
+
+  await page.keyboard.press("x");
+  await expect.poll(() => scaleOf(page)).toBeLessThan(fitted);
+  const reduced = await scaleOf(page);
+  await page.keyboard.press("z");
+  await expect.poll(() => scaleOf(page)).toBeGreaterThan(reduced);
+  await page.keyboard.press("x");
+  await page.keyboard.press("0");
+  await expect.poll(() => scaleOf(page)).toBeCloseTo(fitted, 3);
+});
+
 test("使用不可のボードと、無いボードは、見つからないと表示する", async ({
   page,
 }) => {
