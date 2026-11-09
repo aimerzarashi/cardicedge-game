@@ -483,6 +483,13 @@ function FrameView({
           {frame.invasion.hitPoints}）
         </p>
       )}
+      {frame.battle && (
+        <p data-testid="match-battle">
+          戦闘: 攻める側 AT {frame.battle.attacker.attack}・HP{" "}
+          {frame.battle.attacker.hitPoints} ／ 守る側 AT{" "}
+          {frame.battle.defender.attack}・HP {frame.battle.defender.hitPoints}
+        </p>
+      )}
 
       <h2>領地</h2>
       {frame.territories.length === 0 ? (

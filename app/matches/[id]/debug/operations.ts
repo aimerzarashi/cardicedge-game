@@ -302,6 +302,42 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchItemSkippedEvent {
             participant
           }
+          ... on MatchBattleStartedEvent {
+            attacker {
+              attack
+              hitPoints
+            }
+            defender {
+              attack
+              hitPoints
+            }
+          }
+          ... on MatchBattleStatModifiedEvent {
+            side
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+            source {
+              __typename
+              ... on MatchAdjacentTerritoriesSource {
+                positions {
+                  x
+                  y
+                }
+              }
+              ... on MatchTerrainSource {
+                element
+                level
+              }
+              ... on MatchItemSource {
+                card {
+                  id
+                  name
+                }
+              }
+            }
+          }
           ... on MatchCreatureStruckEvent {
             striker
             damage
@@ -315,9 +351,11 @@ export const matchDebugEventsQuery = graphql(`
             }
             defeatedCreature
             creature
+            territoryHitPoints
           }
           ... on MatchInvasionRepelledEvent {
             participant
+            territoryHitPoints
             position {
               x
               y

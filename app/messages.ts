@@ -304,6 +304,25 @@ export const MATCH_EVENT_MESSAGES = {
   itemSkipped: "アイテムを出さなかった",
   creatureStruck: (striker: string, damage: number, remaining: number) =>
     `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
+  battleStarted: (
+    attackerAttack: number,
+    attackerHitPoints: number,
+    defenderAttack: number,
+    defenderHitPoints: number,
+  ) =>
+    `戦闘が始まった（攻める側 AT ${attackerAttack}・HP ${attackerHitPoints}、守る側 AT ${defenderAttack}・HP ${defenderHitPoints}）`,
+  battleStatModified: (
+    side: string,
+    source: string,
+    change: string,
+    attack: number,
+    hitPoints: number,
+  ) =>
+    `${side}に${source}: ${change} → AT ${attack}・HP ${hitPoints}${hitPoints === 0 ? "（破壊された）" : ""}`,
+  adjacentTerritoriesSource: (count: number) => `支援（隣の領地 ${count} つ）`,
+  terrainSource: (element: string, level: number) =>
+    `地形効果（${element}属性 レベル ${level}）`,
+  itemSource: (card: string) => `アイテム「${card}」`,
   battleAttacker: "攻める側",
   battleDefender: "守る側",
   territoryConquered: (x: number, y: number) => `(${x}, ${y}) を奪った`,

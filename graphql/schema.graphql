@@ -1464,6 +1464,15 @@ type Match {
 	number: Int
 }
 """
+支援（侵略先の隣にある、攻める側の領地）
+"""
+type MatchAdjacentTerritoriesSource {
+	"""
+	隣の領地の位置
+	"""
+	positions: [BoardPosition!]!
+}
+"""
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
 """
 type MatchAvatar {
@@ -1488,6 +1497,89 @@ enum MatchBattleSide {
 	守る側（領地の持ち主）
 	"""
 	DEFENDER
+}
+"""
+戦闘が始まった（効果を当てる前の両方の AT・HP）
+"""
+type MatchBattleStartedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	攻める側
+	"""
+	attacker: MatchBattleStats!
+	"""
+	守る側
+	"""
+	defender: MatchBattleStats!
+}
+"""
+効果 1 つが戦闘の AT・HP を変えた
+"""
+type MatchBattleStatModifiedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	効果を受けた側
+	"""
+	side: MatchBattleSide!
+	"""
+	何の効果か
+	"""
+	source: MatchBattleStatSource!
+	"""
+	AT の増減（下限の 0 で止まった後の実際の増減）
+	"""
+	attackDelta: Int!
+	"""
+	HP の増減（下限の 0 で止まった後の実際の増減）
+	"""
+	hitPointsDelta: Int!
+	"""
+	当てた後の AT
+	"""
+	attack: Int!
+	"""
+	当てた後の HP（0 ならその時点で破壊され、戦闘が終わる）
+	"""
+	hitPoints: Int!
+}
+"""
+戦闘の AT・HP を変えた効果の出どころ
+"""
+union MatchBattleStatSource = MatchAdjacentTerritoriesSource | MatchTerrainSource | MatchItemSource
+"""
+戦闘の中の AT・HP
+"""
+type MatchBattleStats {
+	"""
+	攻撃力
+	"""
+	attack: Int!
+	"""
+	体力
+	"""
+	hitPoints: Int!
 }
 """
 対戦の盤面。始めた時点のボードの写し（対戦が自分の写しを持つので、ボードのマスタが変わっても変わらない）。
@@ -1681,7 +1773,7 @@ type MatchCreatureStruckEvent implements MatchEvent {
 	"""
 	damage: Int!
 	"""
-	受けた側の残りの体力（0 なら倒れた）
+	受けた側の、効果で増えた分も含む残りの体力（0 なら倒れた）
 	"""
 	remainingHitPoints: Int!
 }
@@ -1906,6 +1998,10 @@ type MatchInvasionRepelledEvent implements MatchEvent {
 	手札に戻ったか（生きていれば true。倒れていれば捨て札になり false）
 	"""
 	returnedToHand: Boolean!
+	"""
+	領地のクリーチャーに残る体力（増えた分を超えたダメージだけが傷になる）
+	"""
+	territoryHitPoints: Int!
 }
 """
 戦闘にアイテムを出さなかった（攻める側も守る側も同じ）
@@ -1927,6 +2023,15 @@ type MatchItemSkippedEvent implements MatchEvent {
 	出さなかった参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
+}
+"""
+戦闘に出したアイテム
+"""
+type MatchItemSource {
+	"""
+	アイテムのカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
 }
 """
 戦闘に手札のアイテムを出した（攻める側も守る側も同じ。効果はまだ無い）
@@ -2373,6 +2478,19 @@ type MatchRules {
 	startingHandCards: Int!
 }
 """
+地形効果（効いた土地）
+"""
+type MatchTerrainSource {
+	"""
+	土地の属性
+	"""
+	element: BoardTileElement!
+	"""
+	土地のレベル
+	"""
+	level: Int!
+}
+"""
 領地（クリーチャーを配置した土地）
 """
 type MatchTerritory {
@@ -2437,6 +2555,10 @@ type MatchTerritoryConqueredEvent implements MatchEvent {
 	領地に入ったクリーチャーの新しい ID（Match.territories の creature.id と同じ番号）
 	"""
 	creature: Int!
+	"""
+	領地に入ったクリーチャーの体力
+	"""
+	territoryHitPoints: Int!
 }
 """
 止まった他人の領地を、手札のクリーチャーで侵略した
