@@ -32,10 +32,13 @@ import {
 import {
   chooseMatchPath,
   chooseMatchRewardPack,
+  defendMatchTerritory,
   deployMatchCreature,
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
+  invadeMatchTerritory,
+  payMatchToll,
   relinquishMatchTerritory,
   rollMatchDice,
 } from "../actions";
@@ -44,6 +47,7 @@ import { loadMatchDebugEvents } from "./actions";
 import {
   applyEvent,
   eventDurationMs,
+  type FrameCard,
   type MatchFrame,
   type PlayEvent,
 } from "./match-frame";
@@ -100,11 +104,106 @@ function ParticipantColorMark({ seat }: { seat: number }) {
 // 操作は描画ではなく入力なので、再生が追いついたときの match(id) の値で出す
 export type MatchPlayerOperations = {
   mine: boolean;
+  // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
+  awaitingParticipant: number | null;
   pathChoices: { x: number; y: number }[];
   deployChoices: number[];
+  invadeChoices: number[];
+  itemChoices: number[];
   relinquishChoices: { x: number; y: number; name: string; magic: number }[];
   rewardPacks: { key: string; name: string }[];
 };
+
+// アイテムは効果がまだ無く、コストを払って手札から無くなるだけ
+function itemName(hand: FrameCard[], handIndex: number): string {
+  return hand[handIndex]?.name ?? "";
+}
+
+// クリーチャーを選んでから、アイテムを選ぶと送る（配置と同じく、選ぶこと自体をボタンにするため）
+function InvadeOperations({
+  actionProps,
+  hand,
+  invadeChoices,
+  itemChoices,
+}: {
+  actionProps: { id: string; revision: number };
+  hand: FrameCard[];
+  invadeChoices: number[];
+  itemChoices: number[];
+}) {
+  const [creature, setCreature] = useState<number | null>(null);
+  if (creature === null) {
+    return (
+      <>
+        {invadeChoices.map((handIndex) => (
+          <button
+            key={handIndex}
+            type="button"
+            onClick={() => setCreature(handIndex)}
+          >
+            {hand[handIndex]?.name ?? ""}で侵略する
+          </button>
+        ))}
+        <MatchActionButton action={payMatchToll} {...actionProps}>
+          通行料を払う
+        </MatchActionButton>
+      </>
+    );
+  }
+  return (
+    <>
+      <span>{hand[creature]?.name ?? ""}で侵略:</span>
+      {itemChoices.map((itemHandIndex) => (
+        <MatchActionButton
+          key={itemHandIndex}
+          action={invadeMatchTerritory}
+          values={{ handIndex: creature, itemHandIndex }}
+          {...actionProps}
+        >
+          {itemName(hand, itemHandIndex)}を出して侵略する
+        </MatchActionButton>
+      ))}
+      <MatchActionButton
+        action={invadeMatchTerritory}
+        values={{ handIndex: creature }}
+        {...actionProps}
+      >
+        アイテムを出さずに侵略する
+      </MatchActionButton>
+      <button type="button" onClick={() => setCreature(null)}>
+        クリーチャーを選び直す
+      </button>
+    </>
+  );
+}
+
+function DefendOperations({
+  actionProps,
+  hand,
+  itemChoices,
+}: {
+  actionProps: { id: string; revision: number };
+  hand: FrameCard[];
+  itemChoices: number[];
+}) {
+  return (
+    <>
+      {itemChoices.map((itemHandIndex) => (
+        <MatchActionButton
+          key={itemHandIndex}
+          action={defendMatchTerritory}
+          values={{ itemHandIndex }}
+          {...actionProps}
+        >
+          {itemName(hand, itemHandIndex)}を出して戦闘に進む
+        </MatchActionButton>
+      ))}
+      <MatchActionButton action={defendMatchTerritory} {...actionProps}>
+        アイテムを出さずに戦闘に進む
+      </MatchActionButton>
+    </>
+  );
+}
 
 function Operations({
   id,
@@ -118,7 +217,8 @@ function Operations({
   connected: boolean;
 }) {
   const actionProps = { id, revision: latest.revision };
-  const hand = latest.participants[latest.currentParticipant ?? 0]?.hand ?? [];
+  const hand =
+    latest.participants[operations.awaitingParticipant ?? 0]?.hand ?? [];
   if (latest.outcome) {
     return (
       <div style={ROW_STYLE}>
@@ -201,6 +301,23 @@ function Operations({
         <MatchActionButton action={endMatchTurn} {...actionProps}>
           配置せずにターンを終える
         </MatchActionButton>
+      )}
+      {latest.phase === "INVADING" && (
+        <InvadeOperations
+          // 版が変わると手札の番号の意味も変わるので、選びを持ち越さない
+          key={latest.revision}
+          actionProps={actionProps}
+          hand={hand}
+          invadeChoices={operations.invadeChoices}
+          itemChoices={operations.itemChoices}
+        />
+      )}
+      {latest.phase === "DEFENDING" && (
+        <DefendOperations
+          actionProps={actionProps}
+          hand={hand}
+          itemChoices={operations.itemChoices}
+        />
       )}
       {latest.phase === "RELINQUISHING" &&
         operations.relinquishChoices.map((choice) => (
@@ -393,6 +510,14 @@ function FrameView({
           },
         )}
       </ul>
+
+      {frame.invasion && (
+        <p data-testid="match-invasion">
+          侵略: ({frame.invasion.position.x}, {frame.invasion.position.y}) に
+          {frame.invasion.card.name}（AT {frame.invasion.card.attack}・HP{" "}
+          {frame.invasion.hitPoints}）
+        </p>
+      )}
 
       <h2>領地</h2>
       {frame.territories.length === 0 ? (

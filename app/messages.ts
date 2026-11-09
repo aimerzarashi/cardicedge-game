@@ -151,6 +151,7 @@ const ROOM_FIELD_LABELS: Record<string, string> = {
   avatarId: "アバター",
   deckId: "デッキ",
   handIndex: "手札の番号",
+  itemHandIndex: "アイテム",
   to: "行き先",
 };
 
@@ -226,6 +227,8 @@ export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   ROLLING: "サイコロを振る",
   CHOOSING_PATH: "行き先を選ぶ",
   DEPLOYING: "クリーチャーを配置する",
+  INVADING: "通行料を払うか侵略する",
+  DEFENDING: "守る側がアイテムを選ぶ",
   RELINQUISHING: "領地を手放す",
   ENDING: "ターンを終える",
   ENDED: "対戦は終わりました",
@@ -272,6 +275,17 @@ export const MATCH_EVENT_MESSAGES = {
   lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
   creatureDeployed: (card: string, x: number, y: number, cost: number) =>
     `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
+  territoryInvaded: (card: string, x: number, y: number, cost: number) =>
+    `クリーチャー「${card}」で (${x}, ${y}) を侵略した（魔力 -${cost}）`,
+  itemUsed: (card: string, cost: number) =>
+    `アイテム「${card}」を出した（魔力 -${cost}）`,
+  creatureStruck: (striker: string, damage: number, remaining: number) =>
+    `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
+  battleAttacker: "攻める側",
+  battleDefender: "守る側",
+  territoryConquered: (x: number, y: number) => `(${x}, ${y}) を奪った`,
+  invasionRepelled: (card: string, returnedToHand: boolean) =>
+    `侵略に失敗した（「${card}」は${returnedToHand ? "手札に戻った" : "捨て札になった"}）`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryRelinquished: (x: number, y: number, magic: number) =>

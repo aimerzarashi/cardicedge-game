@@ -56,6 +56,7 @@ function frame(overrides: Partial<MatchFrame> = {}): MatchFrame {
     currentParticipant: 1,
     participants: [participant(1), participant(0)],
     territories: [],
+    invasion: null,
     outcome: null,
     ...overrides,
   };
@@ -75,7 +76,120 @@ function event(
   };
 }
 
+const INVASION = {
+  position: { x: 1, y: 0 },
+  card: { ...DRAGON, id: "c9", name: "ナイト" },
+  hitPoints: 20,
+};
+
 describe("applyEvent", () => {
+  it("侵略すると手札から抜けて魔力が減り、領地に入らず侵略の欄に出る", () => {
+    const next = applyEvent(
+      frame({ territories: [TERRITORY] }),
+      event("MatchTerritoryInvadedEvent", {
+        card: INVASION.card,
+        handIndex: 0,
+        position: INVASION.position,
+        cost: 30,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[1].hand, []);
+    assert.equal(next.participants[1].magic, 570);
+    assert.deepEqual(next.invasion, INVASION);
+    assert.deepEqual(next.territories, [TERRITORY]);
+  });
+
+  it("アイテムを出した人の手札から抜けて魔力が減る", () => {
+    const next = applyEvent(
+      frame(),
+      event("MatchItemUsedEvent", {
+        participant: 0,
+        handIndex: 0,
+        cost: 20,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[0].hand, []);
+    assert.equal(next.participants[0].magic, 580);
+    assert.equal(next.participants[1].magic, 600);
+  });
+
+  it("攻める側の攻撃で領地のクリーチャーの体力が、反撃で侵略しているクリーチャーの体力が変わる", () => {
+    const start = frame({ territories: [TERRITORY], invasion: INVASION });
+    const struck = applyEvent(
+      start,
+      event("MatchCreatureStruckEvent", {
+        striker: "ATTACKER",
+        remainingHitPoints: 5,
+      }),
+      BASE,
+    );
+    assert.equal(struck.territories[0].creature.hitPoints, 5);
+    assert.equal(struck.invasion?.hitPoints, 20);
+    const countered = applyEvent(
+      struck,
+      event("MatchCreatureStruckEvent", {
+        striker: "DEFENDER",
+        remainingHitPoints: 12,
+      }),
+      BASE,
+    );
+    assert.equal(countered.invasion?.hitPoints, 12);
+    assert.equal(countered.territories[0].creature.hitPoints, 5);
+  });
+
+  it("奪うと領地の持ち主とクリーチャーが変わり、レベルは残り、侵略の欄が消える", () => {
+    const next = applyEvent(
+      frame({
+        territories: [{ ...TERRITORY, owner: 0, level: 2 }],
+        invasion: { ...INVASION, hitPoints: 8 },
+      }),
+      event("MatchTerritoryConqueredEvent", {
+        position: INVASION.position,
+        creature: 7,
+      }),
+      BASE,
+    );
+    assert.equal(next.invasion, null);
+    assert.equal(next.territories[0].owner, 1);
+    assert.equal(next.territories[0].level, 2);
+    assert.deepEqual(next.territories[0].creature, {
+      id: 7,
+      hitPoints: 8,
+      card: { id: "c9", name: "ナイト" },
+    });
+  });
+
+  it("侵略に失敗して生きていれば手札の最後に戻り、倒れていれば戻らない", () => {
+    const returned = applyEvent(
+      frame({ invasion: INVASION }),
+      event("MatchInvasionRepelledEvent", {
+        card: INVASION.card,
+        returnedToHand: true,
+      }),
+      BASE,
+    );
+    assert.equal(returned.invasion, null);
+    assert.deepEqual(
+      returned.participants[1].hand.map((card) => card.id),
+      ["c1", "c9"],
+    );
+    const destroyed = applyEvent(
+      frame({ invasion: INVASION }),
+      event("MatchInvasionRepelledEvent", {
+        card: INVASION.card,
+        returnedToHand: false,
+      }),
+      BASE,
+    );
+    assert.equal(destroyed.invasion, null);
+    assert.deepEqual(
+      destroyed.participants[1].hand.map((card) => card.id),
+      ["c1"],
+    );
+  });
+
   it("元のフレームを書き換えない", () => {
     const before = frame();
     applyEvent(before, event("MatchMovedEvent", { to: { x: 1, y: 0 } }), BASE);

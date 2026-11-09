@@ -107,3 +107,47 @@ export const chooseMatchRewardPackMutation = graphql(`
     }
   }
 `);
+
+export const invadeMatchTerritoryMutation = graphql(`
+  mutation InvadeMatchTerritory($input: InvadeMatchTerritoryInput!) {
+    invadeMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
+export const payMatchTollMutation = graphql(`
+  mutation PayMatchToll($input: PayMatchTollInput!) {
+    payMatchToll(input: $input) {
+      __typename
+    }
+  }
+`);
+
+export const defendMatchTerritoryMutation = graphql(`
+  mutation DefendMatchTerritory($input: DefendMatchTerritoryInput!) {
+    defendMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);

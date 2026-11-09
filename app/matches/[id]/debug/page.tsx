@@ -73,10 +73,14 @@ export default async function MatchDebugPage({
     currentParticipant: match.currentParticipant ?? null,
     participants: match.participants,
     territories: match.territories,
+    invasion: match.invasion ?? null,
     outcome: match.outcome ?? null,
   };
   const operations: MatchPlayerOperations = {
-    mine: isMyTurn(match.participants, match.currentParticipant, playerId),
+    mine: isMyTurn(match.participants, match.awaitingParticipant, playerId),
+    awaitingParticipant: match.awaitingParticipant ?? null,
+    invadeChoices: match.invadeChoices,
+    itemChoices: match.itemChoices,
     pathChoices: match.pathChoices,
     deployChoices: match.deployChoices,
     relinquishChoices: match.relinquishChoices.map((position) => {

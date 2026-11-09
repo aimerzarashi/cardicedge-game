@@ -18,6 +18,10 @@ export type MatchEventView = {
   position?: { x: number; y: number };
   cost?: number;
   owner?: number;
+  striker?: "ATTACKER" | "DEFENDER";
+  damage?: number;
+  remainingHitPoints?: number;
+  returnedToHand?: boolean;
 };
 
 function nameOf(names: string[], seat: number): string {
@@ -47,6 +51,31 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.x ?? 0,
         event.position?.y ?? 0,
         event.cost ?? 0,
+      );
+    case "MatchTerritoryInvadedEvent":
+      return m.territoryInvaded(
+        event.card?.name ?? "",
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.cost ?? 0,
+      );
+    case "MatchItemUsedEvent":
+      return m.itemUsed(event.card?.name ?? "", event.cost ?? 0);
+    case "MatchCreatureStruckEvent":
+      return m.creatureStruck(
+        event.striker === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+        event.damage ?? 0,
+        event.remainingHitPoints ?? 0,
+      );
+    case "MatchTerritoryConqueredEvent":
+      return m.territoryConquered(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+      );
+    case "MatchInvasionRepelledEvent":
+      return m.invasionRepelled(
+        event.card?.name ?? "",
+        event.returnedToHand ?? false,
       );
     case "MatchTollPaidEvent":
       return m.tollPaid(

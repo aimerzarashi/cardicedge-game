@@ -11,10 +11,13 @@ import {
 import {
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
+  defendMatchTerritoryMutation,
   deployMatchCreatureMutation,
   discardMatchCardMutation,
   drawMatchCardMutation,
   endMatchTurnMutation,
+  invadeMatchTerritoryMutation,
+  payMatchTollMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
 } from "../operations";
@@ -166,6 +169,63 @@ export async function relinquishMatchTerritory(
   });
   return result.ok
     ? finish(result.data.relinquishMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function invadeMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(invadeMatchTerritoryMutation, {
+    input: {
+      id,
+      revision,
+      handIndex,
+      itemHandIndex: integer(form, "itemHandIndex"),
+    },
+  });
+  return result.ok
+    ? finish(result.data.invadeMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function payMatchToll(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(payMatchTollMutation, {
+    input: { id, revision },
+  });
+  return result.ok
+    ? finish(result.data.payMatchToll)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function defendMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(defendMatchTerritoryMutation, {
+    input: { id, revision, itemHandIndex: integer(form, "itemHandIndex") },
+  });
+  return result.ok
+    ? finish(result.data.defendMatchTerritory)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

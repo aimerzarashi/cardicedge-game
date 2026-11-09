@@ -19,9 +19,28 @@ export const matchDebugQuery = graphql(`
           y
         }
         deployChoices
+        invadeChoices
+        itemChoices
         relinquishChoices {
           x
           y
+        }
+        invasion {
+          position {
+            x
+            y
+          }
+          card {
+            __typename
+            id
+            name
+            cost
+            rarity
+            elements
+            attack
+            hitPoints
+          }
+          hitPoints
         }
         territories {
           position {
@@ -123,6 +142,7 @@ export const matchDebugQuery = graphql(`
           }
         }
         currentParticipant
+        awaitingParticipant
       }
     }
   }
@@ -209,6 +229,78 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             cost
+          }
+          ... on MatchTerritoryInvadedEvent {
+            participant
+            handIndex
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+              }
+            }
+            position {
+              x
+              y
+            }
+            cost
+          }
+          ... on MatchItemUsedEvent {
+            participant
+            handIndex
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+              }
+            }
+            cost
+          }
+          ... on MatchCreatureStruckEvent {
+            striker
+            damage
+            remainingHitPoints
+          }
+          ... on MatchTerritoryConqueredEvent {
+            participant
+            position {
+              x
+              y
+            }
+            defeatedCreature
+            creature
+          }
+          ... on MatchInvasionRepelledEvent {
+            participant
+            position {
+              x
+              y
+            }
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+              }
+            }
+            returnedToHand
           }
           ... on MatchTollPaidEvent {
             participant
