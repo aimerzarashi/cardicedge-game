@@ -60,7 +60,7 @@ function sleep(ms: number, signal: AbortSignal): Promise<void> {
 // ブラウザから /game/graphql へ直接つなぐ（game のサーバーで中継すると、長い通信を接続の数だけ抱えるため）。
 // JWT は better-auth の入口で、Cookie のセッションからもらう。つなぐたびに取り直すので、期限が切れて切れても
 // つなぎ直せば新しいものになる。complete（対戦が終わった・無い・参加していない）で閉じたときだけ、つなぎ直さない
-async function watchProgress(
+export async function watchProgress(
   id: string,
   signal: AbortSignal,
   onProgress: (revision: number) => void,

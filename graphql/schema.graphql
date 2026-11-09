@@ -1368,6 +1368,10 @@ type MatchCardDiscardedEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	捨てた参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
@@ -1393,6 +1397,10 @@ type MatchCardDrawnEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	引いた参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
@@ -1413,6 +1421,10 @@ type MatchCheckpointPassedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	通った参加者（Match.participants の何番目か）
 	"""
@@ -1438,6 +1450,10 @@ type MatchCreatedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 }
 """
 止まった空き地に、手札のクリーチャーを配置した（そのままターンを終える）
@@ -1451,6 +1467,10 @@ type MatchCreatureDeployedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	配置した参加者（Match.participants の何番目か）
 	"""
@@ -1488,6 +1508,10 @@ type MatchDecksShuffledEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 }
 """
 盤面に配置したクリーチャー 1 体（対戦の中の実体。戦闘の傷等はこの 1 体の今の状態として持つ）
@@ -1518,6 +1542,10 @@ type MatchDiceRolledEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	振った参加者（Match.participants の何番目か）
 	"""
@@ -1553,6 +1581,10 @@ type MatchEndedEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	勝った参加者（Match.participants の何番目か）。魔力が同じならすべて
 	"""
 	winners: [Int!]!
@@ -1578,6 +1610,29 @@ interface MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+}
+"""
+このイベントで変わった、描画に要る値のうち、イベントの事実からは出せず core の決まりで決まるもの。
+画面がイベントの再生で描くときに、計算せずに当てられるように返す。
+保存するイベントの payload には持たない（読むときにイベントを順に当てて計算する）
+"""
+type MatchEventChanges {
+	"""
+	このイベントの後の段階。操作を待っていない間（始まる前・移動の途中）は null
+	"""
+	phase: MatchPhase
+	"""
+	総魔力が変わった参加者だけ
+	"""
+	totalMagics: [MatchTotalMagicChange!]!
+	"""
+	価値か通行料が変わった領地だけ（できた順。無くなった領地は入らない）
+	"""
+	territoryValues: [MatchTerritoryValue!]!
 }
 """
 指した版より後の対戦のイベント
@@ -1605,6 +1660,10 @@ type MatchHandsDealtEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	全員に配った枚数（山札が足りなければ、ある分だけ）
 	"""
 	cards: Int!
@@ -1621,6 +1680,10 @@ type MatchLapCompletedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	周回を終えた参加者（Match.participants の何番目か）
 	"""
@@ -1643,6 +1706,10 @@ type MatchMagicDepletedEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	枯渇した参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
@@ -1663,6 +1730,10 @@ type MatchMovedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	進んだ参加者（Match.participants の何番目か）
 	"""
@@ -1929,6 +2000,10 @@ type MatchRewardDrawnEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	引いた参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
@@ -1966,6 +2041,10 @@ type MatchRewardsCompletedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 }
 """
 対戦の決まり（盤面や部屋によらず、ゲーム全体で同じ値）
@@ -2034,6 +2113,10 @@ type MatchTerritoryRelinquishedEvent implements MatchEvent {
 	"""
 	occurredAt: DateTime!
 	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
 	手放した参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
@@ -2051,6 +2134,23 @@ type MatchTerritoryRelinquishedEvent implements MatchEvent {
 	magic: Int!
 }
 """
+領地の価値と通行料
+"""
+type MatchTerritoryValue {
+	"""
+	領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	土地の価値（連鎖を含む）
+	"""
+	value: Int!
+	"""
+	他人が止まったときに払う通行料
+	"""
+	toll: Int!
+}
+"""
 他人の領地に止まって通行料を払った（足りなくても全額を払い、魔力は負になる）
 """
 type MatchTollPaidEvent implements MatchEvent {
@@ -2062,6 +2162,10 @@ type MatchTollPaidEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	払った参加者（Match.participants の何番目か）
 	"""
@@ -2080,6 +2184,19 @@ type MatchTollPaidEvent implements MatchEvent {
 	magic: Int!
 }
 """
+総魔力が変わった参加者
+"""
+type MatchTotalMagicChange {
+	"""
+	参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	変わった後の総魔力
+	"""
+	totalMagic: Int!
+}
+"""
 ターンを終えた
 """
 type MatchTurnEndedEvent implements MatchEvent {
@@ -2091,6 +2208,10 @@ type MatchTurnEndedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	ターンを終えた参加者（Match.participants の何番目か）
 	"""
@@ -2108,6 +2229,10 @@ type MatchTurnOrderDecidedEvent implements MatchEvent {
 	起きた時刻
 	"""
 	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 	"""
 	参加者の番号（Match.participants の何番目か）を、順番の早い順に並べたもの
 	"""

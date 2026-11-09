@@ -289,6 +289,8 @@ export default async function MatchPage({
           </>
         )}
         <Link href="/rooms">部屋の一覧へ</Link>
+        {"・"}
+        <Link href={`/matches/${match.id}/debug`}>デバッグの画面へ</Link>
       </p>
       <MatchLive
         id={match.id}
