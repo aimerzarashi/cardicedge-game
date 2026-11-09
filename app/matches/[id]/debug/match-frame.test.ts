@@ -280,6 +280,33 @@ describe("applyEvent", () => {
     assert.equal(next.territories[1].level, 1);
   });
 
+  it("クリーチャーを交換すると、手札と魔力と領地のクリーチャーが変わり、レベルは残る", () => {
+    const returned = { ...DRAGON, id: "c8", name: "ゴブリン" };
+    const next = applyEvent(
+      frame({ territories: [{ ...TERRITORY, level: 2 }] }),
+      event("MatchCreatureExchangedEvent", {
+        position: TERRITORY.position,
+        handIndex: 0,
+        card: DRAGON,
+        creature: 9,
+        cost: 30,
+        returnedCard: returned,
+      }),
+      BASE,
+    );
+    assert.deepEqual(
+      next.participants[1].hand.map((card) => card.id),
+      ["c8"],
+    );
+    assert.equal(next.participants[1].magic, 570);
+    assert.equal(next.territories[0].level, 2);
+    assert.deepEqual(next.territories[0].creature, {
+      id: 9,
+      hitPoints: 20,
+      card: { id: "c1", name: "ドラゴン", attack: 30 },
+    });
+  });
+
   it("元のフレームを書き換えない", () => {
     const before = frame();
     applyEvent(before, event("MatchMovedEvent", { to: { x: 1, y: 0 } }), BASE);

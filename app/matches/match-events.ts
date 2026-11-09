@@ -39,6 +39,7 @@ export type MatchEventView = {
     card?: { name: string };
   };
   level?: number;
+  returnedCard?: { name: string };
   attackDelta?: number;
   hitPointsDelta?: number;
   attack?: number;
@@ -145,6 +146,14 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.level ?? 0,
         event.magic ?? 0,
+      );
+    case "MatchCreatureExchangedEvent":
+      return m.creatureExchanged(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.card?.name ?? "",
+        event.returnedCard?.name ?? "",
+        event.cost ?? 0,
       );
     case "MatchTerritoryCommandSkippedEvent":
       return m.territoryCommandSkipped;

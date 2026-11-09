@@ -333,6 +333,14 @@ export const MATCH_EVENT_MESSAGES = {
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>
     `領地 (${x}, ${y}) をレベル ${level} に上げた（魔力 -${magic}）`,
+  creatureExchanged: (
+    x: number,
+    y: number,
+    card: string,
+    returned: string,
+    cost: number,
+  ) =>
+    `領地 (${x}, ${y}) の「${returned}」を「${card}」に交換した（魔力 -${cost}）`,
   territoryCommandSkipped: "領地コマンドを使わなかった",
   territoryRelinquished: (x: number, y: number, magic: number) =>
     `領地 (${x}, ${y}) を手放した（魔力 +${magic}）`,
