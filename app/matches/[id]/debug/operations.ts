@@ -25,6 +25,14 @@ export const matchDebugQuery = graphql(`
           x
           y
         }
+        levelUpChoices {
+          position {
+            x
+            y
+          }
+          level
+          magic
+        }
         invasion {
           position {
             x
@@ -387,6 +395,18 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             magic
+          }
+          ... on MatchTerritoryLeveledUpEvent {
+            participant
+            position {
+              x
+              y
+            }
+            level
+            magic
+          }
+          ... on MatchTerritoryCommandSkippedEvent {
+            participant
           }
           ... on MatchTerritoryRelinquishedEvent {
             participant

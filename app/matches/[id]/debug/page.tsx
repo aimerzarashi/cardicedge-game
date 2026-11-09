@@ -97,6 +97,18 @@ export default async function MatchDebugPage({
         magic: territory?.relinquishMagic ?? 0,
       };
     }),
+    levelUpChoices: match.levelUpChoices.map((choice) => ({
+      x: choice.position.x,
+      y: choice.position.y,
+      level: choice.level,
+      magic: choice.magic,
+      name:
+        match.territories.find(
+          (candidate) =>
+            candidate.position.x === choice.position.x &&
+            candidate.position.y === choice.position.y,
+        )?.creature.card.name ?? "",
+    })),
     rewardPacks: match.rewardPacks,
   };
   const base = match.board.tiles.find((tile) => tile.__typename === "BaseTile");

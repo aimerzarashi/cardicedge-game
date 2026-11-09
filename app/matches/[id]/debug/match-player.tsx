@@ -41,9 +41,11 @@ import {
   drawMatchCard,
   endMatchTurn,
   invadeMatchTerritory,
+  levelUpMatchTerritory,
   payMatchToll,
   relinquishMatchTerritory,
   rollMatchDice,
+  skipMatchTerritoryCommand,
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
 import { loadMatchDebugEvents } from "./actions";
@@ -114,6 +116,13 @@ export type MatchPlayerOperations = {
   invadeChoices: number[];
   itemChoices: number[];
   relinquishChoices: { x: number; y: number; name: string; magic: number }[];
+  levelUpChoices: {
+    x: number;
+    y: number;
+    level: number;
+    magic: number;
+    name: string;
+  }[];
   rewardPacks: { key: string; name: string }[];
 };
 
@@ -281,6 +290,27 @@ function Operations({
           itemChoices={operations.itemChoices}
           verb="戦闘に進む"
         />
+      )}
+      {latest.phase === "TERRITORY_COMMANDING" && (
+        <>
+          {operations.levelUpChoices.map((choice) => (
+            <MatchActionButton
+              key={`${choice.x},${choice.y},${choice.level}`}
+              action={levelUpMatchTerritory}
+              values={{ x: choice.x, y: choice.y, level: choice.level }}
+              {...actionProps}
+            >
+              ({choice.x}, {choice.y}) の{choice.name}の土地をレベル{" "}
+              {choice.level} にする（魔力 -{choice.magic}）
+            </MatchActionButton>
+          ))}
+          <MatchActionButton
+            action={skipMatchTerritoryCommand}
+            {...actionProps}
+          >
+            領地コマンドを使わない
+          </MatchActionButton>
+        </>
       )}
       {latest.phase === "RELINQUISHING" &&
         operations.relinquishChoices.map((choice) => (

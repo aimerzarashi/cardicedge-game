@@ -119,6 +119,7 @@ export type PlayEvent = {
   remainingHitPoints?: number;
   returnedToHand?: boolean;
   territoryHitPoints?: number;
+  level?: number;
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
@@ -368,6 +369,22 @@ function applyFact(
         ...participant,
         magic: participant.magic + magic,
       }));
+    }
+    case "MatchTerritoryLeveledUpEvent": {
+      const { position, level } = event;
+      if (!position || level === undefined) return frame;
+      const paid = updateParticipant(frame, seat, (participant) => ({
+        ...participant,
+        magic: participant.magic - magic,
+      }));
+      return {
+        ...paid,
+        territories: paid.territories.map((territory) =>
+          samePosition(territory.position, position)
+            ? { ...territory, level }
+            : territory,
+        ),
+      };
     }
     case "MatchTerritoryRelinquishedEvent": {
       const position = event.position;
