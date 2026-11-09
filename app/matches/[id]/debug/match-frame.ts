@@ -57,6 +57,14 @@ export type FrameInvasion = {
   hitPoints: number;
 };
 
+export type FrameBattleStats = { attack: number; hitPoints: number };
+
+// 戦闘が始まってから終わるまでの両方の AT・HP。効果と攻撃の結果を core の値のまま持つ
+export type FrameBattle = {
+  attacker: FrameBattleStats;
+  defender: FrameBattleStats;
+};
+
 // 画面に映すものすべて。表示はこのフレームだけから作る
 export type MatchFrame = {
   revision: number;
@@ -69,6 +77,7 @@ export type MatchFrame = {
   participants: FrameParticipant[];
   territories: FrameTerritory[];
   invasion: FrameInvasion | null;
+  battle: FrameBattle | null;
   outcome: {
     winners: number[];
     ranks: number[];
@@ -109,6 +118,12 @@ export type PlayEvent = {
   striker?: "ATTACKER" | "DEFENDER";
   remainingHitPoints?: number;
   returnedToHand?: boolean;
+  territoryHitPoints?: number;
+  attacker?: FrameBattleStats;
+  defender?: FrameBattleStats;
+  side?: "ATTACKER" | "DEFENDER";
+  attack?: number;
+  hitPoints?: number;
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -262,23 +277,35 @@ function applyFact(
         hand: withoutCard(participant.hand, event.handIndex ?? 0),
         magic: participant.magic - (event.cost ?? 0),
       }));
-    case "MatchCreatureStruckEvent": {
-      const invasion = frame.invasion;
-      const remaining = event.remainingHitPoints ?? 0;
-      if (!invasion) return frame;
-      if (event.striker === "DEFENDER") {
-        return { ...frame, invasion: { ...invasion, hitPoints: remaining } };
+    case "MatchBattleStartedEvent": {
+      const { attacker, defender } = event;
+      if (!attacker || !defender) return frame;
+      return { ...frame, battle: { attacker, defender } };
+    }
+    case "MatchBattleStatModifiedEvent": {
+      const { battle } = frame;
+      const { attack, hitPoints, side } = event;
+      if (!battle || attack === undefined || hitPoints === undefined) {
+        return frame;
       }
       return {
         ...frame,
-        territories: frame.territories.map((territory) =>
-          samePosition(territory.position, invasion.position)
-            ? {
-                ...territory,
-                creature: { ...territory.creature, hitPoints: remaining },
-              }
-            : territory,
-        ),
+        battle:
+          side === "DEFENDER"
+            ? { ...battle, defender: { attack, hitPoints } }
+            : { ...battle, attacker: { attack, hitPoints } },
+      };
+    }
+    case "MatchCreatureStruckEvent": {
+      const battle = frame.battle;
+      if (!battle) return frame;
+      const hitPoints = event.remainingHitPoints ?? 0;
+      return {
+        ...frame,
+        battle:
+          event.striker === "DEFENDER"
+            ? { ...battle, attacker: { ...battle.attacker, hitPoints } }
+            : { ...battle, defender: { ...battle.defender, hitPoints } },
       };
     }
     case "MatchTerritoryConqueredEvent": {
@@ -288,6 +315,7 @@ function applyFact(
       return {
         ...frame,
         invasion: null,
+        battle: null,
         territories: frame.territories.map((territory) =>
           samePosition(territory.position, position)
             ? {
@@ -295,7 +323,7 @@ function applyFact(
                 owner: seat,
                 creature: {
                   id: creature,
-                  hitPoints: invasion.hitPoints,
+                  hitPoints: event.territoryHitPoints ?? 0,
                   card: {
                     id: invasion.card.id,
                     name: invasion.card.name,
@@ -308,8 +336,23 @@ function applyFact(
       };
     }
     case "MatchInvasionRepelledEvent": {
-      const card = event.card;
-      const cleared = { ...frame, invasion: null };
+      const { card, position } = event;
+      const cleared = {
+        ...frame,
+        invasion: null,
+        battle: null,
+        territories: frame.territories.map((territory) =>
+          position && samePosition(territory.position, position)
+            ? {
+                ...territory,
+                creature: {
+                  ...territory.creature,
+                  hitPoints: event.territoryHitPoints ?? 0,
+                },
+              }
+            : territory,
+        ),
+      };
       if (!card || !event.returnedToHand) return cleared;
       return updateParticipant(cleared, seat, (participant) => ({
         ...participant,

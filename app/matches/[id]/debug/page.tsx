@@ -74,6 +74,8 @@ export default async function MatchDebugPage({
     participants: match.participants,
     territories: match.territories,
     invasion: match.invasion ?? null,
+    // 戦闘は 1 回の操作の中で終わるので、開いた時点の状態には無い
+    battle: null,
     outcome: match.outcome ?? null,
   };
   const operations: MatchPlayerOperations = {

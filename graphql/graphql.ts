@@ -539,6 +539,16 @@ export type MatchDebugEventsQueryVariables = Exact<{
 
 export type MatchDebugEventsQuery = { matchEvents:
     | { __typename: 'MatchEventList', events: Array<
+        | { __typename: 'MatchBattleStartedEvent', revision: number, attacker: { attack: number, hitPoints: number }, defender: { attack: number, hitPoints: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchBattleStatModifiedEvent', side: MatchBattleSide, attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number, revision: number, source:
+            | { __typename: 'MatchAdjacentTerritoriesSource', positions: Array<{ x: number, y: number }> }
+            | { __typename: 'MatchItemSource', card:
+                | { id: string, name: string }
+                | { id: string, name: string }
+                | { id: string, name: string }
+               }
+            | { __typename: 'MatchTerrainSource', element: BoardTileElement, level: number }
+          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCardDiscardedEvent', participant: number, handIndex: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
@@ -561,7 +571,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchEndedEvent', winners: Array<number>, ranks: Array<number>, reason: MatchEndReason, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchInvasionRepelledEvent', participant: number, returnedToHand: boolean, revision: number, position: { x: number, y: number }, card:
+        | { __typename: 'MatchInvasionRepelledEvent', participant: number, territoryHitPoints: number, returnedToHand: boolean, revision: number, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
@@ -581,7 +591,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { name: string }
           >, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchRewardsCompletedEvent', revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchTerritoryConqueredEvent', participant: number, defeatedCreature: number, creature: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchTerritoryConqueredEvent', participant: number, defeatedCreature: number, creature: number, territoryHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchTerritoryInvadedEvent', participant: number, handIndex: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
@@ -1665,6 +1675,42 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
         ... on MatchItemSkippedEvent {
           participant
         }
+        ... on MatchBattleStartedEvent {
+          attacker {
+            attack
+            hitPoints
+          }
+          defender {
+            attack
+            hitPoints
+          }
+        }
+        ... on MatchBattleStatModifiedEvent {
+          side
+          attackDelta
+          hitPointsDelta
+          attack
+          hitPoints
+          source {
+            __typename
+            ... on MatchAdjacentTerritoriesSource {
+              positions {
+                x
+                y
+              }
+            }
+            ... on MatchTerrainSource {
+              element
+              level
+            }
+            ... on MatchItemSource {
+              card {
+                id
+                name
+              }
+            }
+          }
+        }
         ... on MatchCreatureStruckEvent {
           striker
           damage
@@ -1678,9 +1724,11 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
           }
           defeatedCreature
           creature
+          territoryHitPoints
         }
         ... on MatchInvasionRepelledEvent {
           participant
+          territoryHitPoints
           position {
             x
             y

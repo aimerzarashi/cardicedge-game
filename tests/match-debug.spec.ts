@@ -183,6 +183,7 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
   // NPC は守る操作をすぐ行い、戦闘の結果まで描かれる
   const events = page.getByTestId("match-events");
   await expect(events).toContainText("を侵略した", { timeout: 20_000 });
+  await expect(events).toContainText("戦闘が始まった");
   await expect(events).toContainText("攻める側の攻撃");
   await expect(events).toContainText(/を奪った|侵略に失敗した/);
   await expect(page.getByTestId("match-invasion")).toBeHidden();

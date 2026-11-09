@@ -18,6 +18,69 @@ const event = (
 });
 
 describe("eventLine", () => {
+  it("戦闘の始まりは、両方の効果を当てる前の AT・HP を出す", () => {
+    assert.equal(
+      eventLine(
+        event(20, {
+          __typename: "MatchBattleStartedEvent",
+          attacker: { attack: 30, hitPoints: 40 },
+          defender: { attack: 20, hitPoints: 35 },
+        }),
+        names,
+      ),
+      "版 20 戦闘が始まった（攻める側 AT 30・HP 40、守る側 AT 20・HP 35）",
+    );
+  });
+
+  for (const [name, source, side, change, delta, stats] of [
+    [
+      "支援",
+      {
+        __typename: "MatchAdjacentTerritoriesSource",
+        positions: [
+          { x: 1, y: 0 },
+          { x: 3, y: 0 },
+        ],
+      },
+      "ATTACKER",
+      "攻める側に支援（隣の領地 2 つ）: AT +20 → AT 50・HP 40",
+      { attackDelta: 20, hitPointsDelta: 0 },
+      { attack: 50, hitPoints: 40 },
+    ],
+    [
+      "地形効果",
+      { __typename: "MatchTerrainSource", element: "FIRE", level: 2 },
+      "DEFENDER",
+      "守る側に地形効果（火属性 レベル 2）: HP +20 → AT 20・HP 60",
+      { attackDelta: 0, hitPointsDelta: 20 },
+      { attack: 20, hitPoints: 60 },
+    ],
+    [
+      "アイテムで HP が 0",
+      { __typename: "MatchItemSource", card: { name: "呪いの指輪" } },
+      "ATTACKER",
+      "攻める側にアイテム「呪いの指輪」: HP -40 → AT 30・HP 0（破壊された）",
+      { attackDelta: 0, hitPointsDelta: -40 },
+      { attack: 30, hitPoints: 0 },
+    ],
+  ] as const) {
+    it(`効果のイベントは、${name}の増減と当てた後の値を出す`, () => {
+      assert.equal(
+        eventLine(
+          event(21, {
+            __typename: "MatchBattleStatModifiedEvent",
+            side,
+            source: source as MatchEventView["source"],
+            ...delta,
+            ...stats,
+          }),
+          names,
+        ),
+        `版 21 ${change}`,
+      );
+    });
+  }
+
   it("進んだイベントは、版・アバターの名前・行き先を出す", () => {
     assert.equal(
       eventLine(event(15, { participant: 1, to: { x: 1, y: 0 } }), names),

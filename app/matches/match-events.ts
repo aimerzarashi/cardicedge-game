@@ -1,4 +1,10 @@
-import { MATCH_END_REASON_LABELS, MATCH_EVENT_MESSAGES } from "../messages.ts";
+import type { BoardTileElement } from "@/graphql/graphql";
+import { ELEMENT_LABELS } from "../boards/board-layout.ts";
+import {
+  itemBonusesLabel,
+  MATCH_END_REASON_LABELS,
+  MATCH_EVENT_MESSAGES,
+} from "../messages.ts";
 
 // core の MatchEvent の種類ごとの型を、画面が使う項目だけの形で受ける（__typename で見分ける）
 export type MatchEventView = {
@@ -22,10 +28,41 @@ export type MatchEventView = {
   damage?: number;
   remainingHitPoints?: number;
   returnedToHand?: boolean;
+  attacker?: { attack: number; hitPoints: number };
+  defender?: { attack: number; hitPoints: number };
+  side?: "ATTACKER" | "DEFENDER";
+  source?: {
+    __typename?: string;
+    positions?: { x: number; y: number }[];
+    element?: BoardTileElement;
+    level?: number;
+    card?: { name: string };
+  };
+  attackDelta?: number;
+  hitPointsDelta?: number;
+  attack?: number;
+  hitPoints?: number;
 };
 
 function nameOf(names: string[], seat: number): string {
   return names[seat] ?? `参加者 ${seat + 1}`;
+}
+
+function battleStatSourceLabel(source: MatchEventView["source"]): string {
+  const m = MATCH_EVENT_MESSAGES;
+  switch (source?.__typename) {
+    case "MatchAdjacentTerritoriesSource":
+      return m.adjacentTerritoriesSource(source.positions?.length ?? 0);
+    case "MatchTerrainSource":
+      return m.terrainSource(
+        source.element ? ELEMENT_LABELS[source.element] : "",
+        source.level ?? 0,
+      );
+    case "MatchItemSource":
+      return m.itemSource(source.card?.name ?? "");
+    default:
+      return m.unknown;
+  }
 }
 
 function body(event: MatchEventView, names: string[]): string {
@@ -63,6 +100,21 @@ function body(event: MatchEventView, names: string[]): string {
       return m.itemUsed(event.card?.name ?? "", event.cost ?? 0);
     case "MatchItemSkippedEvent":
       return m.itemSkipped;
+    case "MatchBattleStartedEvent":
+      return m.battleStarted(
+        event.attacker?.attack ?? 0,
+        event.attacker?.hitPoints ?? 0,
+        event.defender?.attack ?? 0,
+        event.defender?.hitPoints ?? 0,
+      );
+    case "MatchBattleStatModifiedEvent":
+      return m.battleStatModified(
+        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+        battleStatSourceLabel(event.source),
+        itemBonusesLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
+        event.attack ?? 0,
+        event.hitPoints ?? 0,
+      );
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
         event.striker === "DEFENDER" ? m.battleDefender : m.battleAttacker,
