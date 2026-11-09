@@ -46,6 +46,13 @@ export type FrameTerritory = {
   };
 };
 
+// 戦闘が終わるまでの、侵略しているクリーチャー。領地には倒してから入る
+export type FrameInvasion = {
+  position: Position;
+  card: FrameCard;
+  hitPoints: number;
+};
+
 // 画面に映すものすべて。表示はこのフレームだけから作る
 export type MatchFrame = {
   revision: number;
@@ -57,6 +64,7 @@ export type MatchFrame = {
   currentParticipant: number | null;
   participants: FrameParticipant[];
   territories: FrameTerritory[];
+  invasion: FrameInvasion | null;
   outcome: {
     winners: number[];
     ranks: number[];
@@ -94,6 +102,9 @@ export type PlayEvent = {
   reason?: MatchEndReason;
   pack?: string;
   rewardCards?: { name: string }[];
+  striker?: "ATTACKER" | "DEFENDER";
+  remainingHitPoints?: number;
+  returnedToHand?: boolean;
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -228,6 +239,74 @@ function applyFact(
           },
         ],
       };
+    }
+    case "MatchTerritoryInvadedEvent": {
+      const { card, position } = event;
+      if (!card || !position) return frame;
+      return {
+        ...updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          hand: withoutCard(participant.hand, event.handIndex ?? 0),
+          magic: participant.magic - (event.cost ?? 0),
+        })),
+        invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
+      };
+    }
+    case "MatchItemUsedEvent":
+      return updateParticipant(frame, seat, (participant) => ({
+        ...participant,
+        hand: withoutCard(participant.hand, event.handIndex ?? 0),
+        magic: participant.magic - (event.cost ?? 0),
+      }));
+    case "MatchCreatureStruckEvent": {
+      const invasion = frame.invasion;
+      const remaining = event.remainingHitPoints ?? 0;
+      if (!invasion) return frame;
+      if (event.striker === "DEFENDER") {
+        return { ...frame, invasion: { ...invasion, hitPoints: remaining } };
+      }
+      return {
+        ...frame,
+        territories: frame.territories.map((territory) =>
+          samePosition(territory.position, invasion.position)
+            ? {
+                ...territory,
+                creature: { ...territory.creature, hitPoints: remaining },
+              }
+            : territory,
+        ),
+      };
+    }
+    case "MatchTerritoryConqueredEvent": {
+      const { invasion } = frame;
+      const { position, creature } = event;
+      if (!invasion || !position || creature === undefined) return frame;
+      return {
+        ...frame,
+        invasion: null,
+        territories: frame.territories.map((territory) =>
+          samePosition(territory.position, position)
+            ? {
+                ...territory,
+                owner: seat,
+                creature: {
+                  id: creature,
+                  hitPoints: invasion.hitPoints,
+                  card: { id: invasion.card.id, name: invasion.card.name },
+                },
+              }
+            : territory,
+        ),
+      };
+    }
+    case "MatchInvasionRepelledEvent": {
+      const card = event.card;
+      const cleared = { ...frame, invasion: null };
+      if (!card || !event.returnedToHand) return cleared;
+      return updateParticipant(cleared, seat, (participant) => ({
+        ...participant,
+        hand: [...participant.hand, card],
+      }));
     }
     case "MatchTollPaidEvent": {
       const paid = updateParticipant(frame, seat, (participant) => ({

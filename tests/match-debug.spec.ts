@@ -119,3 +119,60 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await page.getByRole("link", { name: "対戦の画面へ" }).click();
   await expect(page).toHaveURL(debugUrl);
 });
+
+test("他人の領地に止まると通行料か侵略かを選べ、侵略すると戦闘の結果まで順に描かれる", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(180_000);
+  await openNewRoom(page, request, "match-invade");
+  await decideSeats(page);
+  // 土地が 6 つ続く 1 本道なので、NPC の領地に止まれる
+  await decideRules(page, undefined, "公開中D");
+  await decidePlayerSeat(page);
+  await decideNpcSeat(page);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
+
+  const frame = page.getByTestId("match-frame");
+  const invade = page.getByRole("button", { name: /で侵略する$/ });
+  const skipDeploy = page.getByRole("button", {
+    name: "配置せずにターンを終える",
+  });
+  const operations = matchOperations(page);
+  // 自分の領地を作らないので、NPC に侵略されず、止まるのは NPC の領地だけになる
+  for (let step = 0; step < 150; step++) {
+    await expect(invade.or(operations).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await invade.first().isVisible()) {
+      break;
+    }
+    const button = (await skipDeploy.isVisible())
+      ? skipDeploy
+      : operations.first();
+    const revision = await frame.getAttribute("data-revision");
+    await button.click();
+    await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
+  }
+  await expect(page.getByTestId("match-phase")).toContainText("侵略");
+  await expect(
+    page.getByRole("button", { name: "通行料を払う" }),
+  ).toBeVisible();
+
+  await invade.first().click();
+  // クリーチャーを選ぶと、通行料の代わりにアイテムの選びが出る
+  await expect(page.getByRole("button", { name: "通行料を払う" })).toBeHidden();
+  await page
+    .getByRole("button", { name: "アイテムを出さずに侵略する" })
+    .click();
+
+  // NPC は守る操作をすぐ行い、戦闘の結果まで描かれる
+  const events = page.getByTestId("match-events");
+  await expect(events).toContainText("を侵略した", { timeout: 20_000 });
+  await expect(events).toContainText("攻める側の攻撃");
+  await expect(events).toContainText(/を奪った|侵略に失敗した/);
+  await expect(page.getByTestId("match-invasion")).toBeHidden();
+});

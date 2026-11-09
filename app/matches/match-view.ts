@@ -73,16 +73,16 @@ export function territoryMarks(
   }));
 }
 
-// 自分の番か。currentParticipant の参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
+// 自分の操作を待っているか。待っている参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
 export function isMyTurn(
   participants: { playerId?: string | null }[],
-  currentParticipant: number | null | undefined,
+  awaitingParticipant: number | null | undefined,
   playerId: string,
 ): boolean {
-  if (currentParticipant === null || currentParticipant === undefined) {
+  if (awaitingParticipant === null || awaitingParticipant === undefined) {
     return false;
   }
-  return participants[currentParticipant]?.playerId === playerId;
+  return participants[awaitingParticipant]?.playerId === playerId;
 }
 
 // winners は participants の何番目か（複数ありうる）。存在しない番号は飛ばす

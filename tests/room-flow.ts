@@ -99,7 +99,11 @@ export function matchOperations(page: Page) {
   const roll = page.getByRole("button", { name: "サイコロを振る" });
   const choose = page.getByRole("button", { name: /へ進む$/ });
   const end = page.getByRole("button", { name: "ターンを終える" });
-  return draw.or(discard).or(roll).or(choose).or(end);
+  const payToll = page.getByRole("button", { name: "通行料を払う" });
+  const defend = page.getByRole("button", {
+    name: "アイテムを出さずに戦闘に進む",
+  });
+  return draw.or(discard).or(roll).or(choose).or(end).or(payToll).or(defend);
 }
 
 // 対戦の画面で、結果が出るまで自分の番の操作を押し続ける（順番は core が決める。NPC の番は core のポリシーが進める）
