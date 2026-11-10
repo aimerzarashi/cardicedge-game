@@ -1,4 +1,5 @@
 import type {
+  BoardTileElement,
   CardRarity,
   CreatureElement,
   ItemCategory,
@@ -78,6 +79,8 @@ export type MatchFrame = {
   territories: FrameTerritory[];
   invasion: FrameInvasion | null;
   battle: FrameBattle | null;
+  // 開いた後に属性が変わった土地（盤面のマスの属性より優先する）
+  landElements: { position: Position; element: BoardTileElement }[];
   outcome: {
     winners: number[];
     ranks: number[];
@@ -121,6 +124,7 @@ export type PlayEvent = {
   territoryHitPoints?: number;
   level?: number;
   returnedCard?: FrameCard;
+  element?: BoardTileElement;
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
@@ -385,6 +389,22 @@ function applyFact(
             ? { ...territory, level }
             : territory,
         ),
+      };
+    }
+    case "MatchLandElementChangedEvent": {
+      const { position, element } = event;
+      if (!position || !element) return frame;
+      return {
+        ...updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          magic: participant.magic - magic,
+        })),
+        landElements: [
+          ...frame.landElements.filter(
+            (changed) => !samePosition(changed.position, position),
+          ),
+          { position, element },
+        ],
       };
     }
     case "MatchCreatureExchangedEvent": {

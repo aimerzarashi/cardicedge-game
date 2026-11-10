@@ -76,6 +76,8 @@ export default async function MatchDebugPage({
     invasion: match.invasion ?? null,
     // 戦闘は 1 回の操作の中で終わるので、開いた時点の状態には無い
     battle: null,
+    // 開いた時点の属性は盤面のマスが持つので、ここには開いた後に変わった分だけを足す
+    landElements: [],
     outcome: match.outcome ?? null,
   };
   const operations: MatchPlayerOperations = {
@@ -113,6 +115,18 @@ export default async function MatchDebugPage({
       x: choice.position.x,
       y: choice.position.y,
       handIndex: choice.handIndex,
+      magic: choice.magic,
+      name:
+        match.territories.find(
+          (candidate) =>
+            candidate.position.x === choice.position.x &&
+            candidate.position.y === choice.position.y,
+        )?.creature.card.name ?? "",
+    })),
+    elementChangeChoices: match.elementChangeChoices.map((choice) => ({
+      x: choice.position.x,
+      y: choice.position.y,
+      element: choice.element,
       magic: choice.magic,
       name:
         match.territories.find(

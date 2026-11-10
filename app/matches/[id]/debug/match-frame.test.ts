@@ -63,6 +63,7 @@ function frame(overrides: Partial<MatchFrame> = {}): MatchFrame {
     territories: [],
     invasion: null,
     battle: null,
+    landElements: [],
     outcome: null,
     ...overrides,
   };
@@ -305,6 +306,28 @@ describe("applyEvent", () => {
       hitPoints: 20,
       card: { id: "c1", name: "ドラゴン", attack: 30 },
     });
+  });
+
+  it("土地の属性を変えると、魔力が減り、その位置の属性だけが置き換わる", () => {
+    const next = applyEvent(
+      frame({
+        landElements: [
+          { position: { x: 1, y: 0 }, element: "WIND" as const },
+          { position: { x: 2, y: 0 }, element: "EARTH" as const },
+        ],
+      }),
+      event("MatchLandElementChangedEvent", {
+        position: { x: 1, y: 0 },
+        element: "WATER",
+        magic: 200,
+      }),
+      BASE,
+    );
+    assert.equal(next.participants[1].magic, 400);
+    assert.deepEqual(next.landElements, [
+      { position: { x: 2, y: 0 }, element: "EARTH" },
+      { position: { x: 1, y: 0 }, element: "WATER" },
+    ]);
   });
 
   it("元のフレームを書き換えない", () => {

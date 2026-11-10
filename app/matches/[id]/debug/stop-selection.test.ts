@@ -4,7 +4,11 @@ import { choicesAt, selectableTerritories } from "./stop-selection.ts";
 
 const A = { x: 1, y: 0 };
 const B = { x: 2, y: 0 };
-const choices = { levelUpChoices: [A, A, B], exchangeChoices: [B, B] };
+const choices = {
+  levelUpChoices: [A, A, B],
+  exchangeChoices: [B, B],
+  elementChangeChoices: [A],
+};
 
 describe("selectableTerritories", () => {
   it("領地を選ぶ順番では、そのコマンドの選択肢の位置を重ねずに返す", () => {
@@ -15,6 +19,13 @@ describe("selectableTerritories", () => {
     assert.deepEqual(
       selectableTerritories({ command: "exchange", position: null }, choices),
       [B],
+    );
+    assert.deepEqual(
+      selectableTerritories(
+        { command: "elementChange", position: null },
+        choices,
+      ),
+      [A],
     );
   });
 

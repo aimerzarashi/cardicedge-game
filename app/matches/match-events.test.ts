@@ -34,6 +34,22 @@ describe("eventLine", () => {
     );
   });
 
+  it("土地の属性を変えたイベントは、位置・属性・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(33, {
+          __typename: "MatchLandElementChangedEvent",
+          participant: 0,
+          position: { x: 1, y: 0 },
+          element: "WATER",
+          magic: 200,
+        }),
+        names,
+      ),
+      "版 33 部屋用: 領地 (1, 0) の土地を水属性に変えた（魔力 -200）",
+    );
+  });
+
   it("交換したイベントは、位置・元のカード・出したカード・払った魔力を出す", () => {
     assert.equal(
       eventLine(
