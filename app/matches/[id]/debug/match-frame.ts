@@ -57,6 +57,8 @@ export type FrameInvasion = {
   position: Position;
   card: FrameCard;
   hitPoints: number;
+  // 移動で侵略したときだけ持つ。元の領地の位置（動いたクリーチャーは戦闘の間もそこにいる）
+  from?: Position;
 };
 
 export type FrameBattleStats = { attack: number; hitPoints: number };
@@ -127,6 +129,9 @@ export type PlayEvent = {
   territoryHitPoints?: number;
   level?: number;
   returnedCard?: FrameCard;
+  from?: Position;
+  returnedTo?: Position | null;
+  returnedHitPoints?: number | null;
   element?: BoardTileElement;
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
@@ -329,6 +334,32 @@ function applyFact(
       const { invasion } = frame;
       const { position, creature } = event;
       if (!invasion || !position || creature === undefined) return frame;
+      if (invasion.from) {
+        // 動いたクリーチャーは同じ 1 体のまま移り、元の土地は空き地になる
+        const origin = invasion.from;
+        const mover = frame.territories.find((territory) =>
+          samePosition(territory.position, origin),
+        );
+        return {
+          ...frame,
+          invasion: null,
+          battle: null,
+          territories: frame.territories
+            .filter((territory) => !samePosition(territory.position, origin))
+            .map((territory) =>
+              samePosition(territory.position, position) && mover
+                ? {
+                    ...territory,
+                    owner: seat,
+                    creature: {
+                      ...mover.creature,
+                      hitPoints: event.territoryHitPoints ?? 0,
+                    },
+                  }
+                : territory,
+            ),
+        };
+      }
       return {
         ...frame,
         invasion: null,
@@ -370,6 +401,29 @@ function applyFact(
             : territory,
         ),
       };
+      const origin = frame.invasion?.from;
+      if (origin) {
+        // 移動で侵略したときは、生き残れば元の領地に戻り（傷は残る）、倒れれば元の土地が空き地になる
+        const { returnedTo, returnedHitPoints } = event;
+        return {
+          ...cleared,
+          territories: returnedTo
+            ? cleared.territories.map((territory) =>
+                samePosition(territory.position, origin)
+                  ? {
+                      ...territory,
+                      creature: {
+                        ...territory.creature,
+                        hitPoints: returnedHitPoints ?? 0,
+                      },
+                    }
+                  : territory,
+              )
+            : cleared.territories.filter(
+                (territory) => !samePosition(territory.position, origin),
+              ),
+        };
+      }
       if (!card || !event.returnedToHand) return cleared;
       return updateParticipant(cleared, seat, (participant) => ({
         ...participant,
@@ -406,6 +460,45 @@ function applyFact(
             ? { ...territory, level }
             : territory,
         ),
+      };
+    }
+    case "MatchCreatureMovedEvent": {
+      const { from, to } = event;
+      if (!from || !to) return frame;
+      return {
+        ...frame,
+        territories: frame.territories.map((territory) =>
+          samePosition(territory.position, from)
+            ? { ...territory, position: to, level: landLevelAt(frame, to) }
+            : territory,
+        ),
+      };
+    }
+    case "MatchTerritoryInvadedByMoveEvent": {
+      const { from, position } = event;
+      const origin = from
+        ? frame.territories.find((territory) =>
+            samePosition(territory.position, from),
+          )
+        : undefined;
+      if (!from || !position || !origin) return frame;
+      const card: FrameCard = {
+        __typename: "CreatureCardInfo",
+        id: origin.creature.card.id,
+        name: origin.creature.card.name,
+        cost: 0,
+        rarity: "NORMAL" as FrameCard["rarity"],
+        attack: origin.creature.card.attack,
+        hitPoints: origin.creature.hitPoints,
+      };
+      return {
+        ...frame,
+        invasion: {
+          position,
+          card,
+          hitPoints: origin.creature.hitPoints,
+          from,
+        },
       };
     }
     case "MatchLandElementChangedEvent": {

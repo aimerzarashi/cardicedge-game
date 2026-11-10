@@ -329,6 +329,16 @@ export const MATCH_EVENT_MESSAGES = {
   territoryConquered: (x: number, y: number) => `(${x}, ${y}) を奪った`,
   invasionRepelled: (card: string, returnedToHand: boolean) =>
     `侵略に失敗した（「${card}」は${returnedToHand ? "手札に戻った" : "捨て札になった"}）`,
+  movedInvasionRepelled: (card: string, returnedTo: boolean) =>
+    `侵略に失敗した（「${card}」は${returnedTo ? "元の領地に戻った" : "倒れて、元の土地は空き地になった"}）`,
+  creatureMoved: (fromX: number, fromY: number, toX: number, toY: number) =>
+    `(${fromX}, ${fromY}) のクリーチャーを (${toX}, ${toY}) へ動かした`,
+  territoryInvadedByMove: (
+    fromX: number,
+    fromY: number,
+    x: number,
+    y: number,
+  ) => `(${fromX}, ${fromY}) のクリーチャーを動かして (${x}, ${y}) を侵略した`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>

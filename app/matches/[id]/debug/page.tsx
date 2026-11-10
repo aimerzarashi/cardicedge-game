@@ -136,6 +136,17 @@ export default async function MatchDebugPage({
             candidate.position.y === choice.position.y,
         )?.creature.card.name ?? "",
     })),
+    moveChoices: match.moveChoices.map((choice) => ({
+      x: choice.from.x,
+      y: choice.from.y,
+      to: choice.to,
+      name:
+        match.territories.find(
+          (candidate) =>
+            candidate.position.x === choice.from.x &&
+            candidate.position.y === choice.from.y,
+        )?.creature.card.name ?? "",
+    })),
     rewardPacks: match.rewardPacks,
   };
   const base = match.board.tiles.find((tile) => tile.__typename === "BaseTile");

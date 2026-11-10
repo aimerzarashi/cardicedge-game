@@ -1573,6 +1573,10 @@ type Match {
 	"""
 	elementChangeChoices: [MatchElementChangeChoice!]!
 	"""
+	今の番の人が選べるクリーチャーの移動（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。ちょうど移動の歩数だけ進んで届く空き地か他人の領地）
+	"""
+	moveChoices: [MatchMoveChoice!]!
+	"""
 	侵略しているクリーチャー（侵略してから戦闘が終わるまでだけ。ほかは null）
 	"""
 	invasion: MatchInvasion
@@ -1928,6 +1932,39 @@ type MatchCreatureExchangedEvent implements MatchEvent {
 	returnedCard: CardInfo!
 }
 """
+通った自分の領地のクリーチャーを空き地へ動かした（行き先が領地になり、元の土地は空き地になる。土地のレベルはどちらも土地に残る）
+"""
+type MatchCreatureMovedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	動かした参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	元の領地の位置
+	"""
+	from: BoardPosition!
+	"""
+	行き先
+	"""
+	to: BoardPosition!
+	"""
+	動いたクリーチャーの ID（同じ 1 体のまま）
+	"""
+	creature: Int!
+}
+"""
 戦闘の攻撃が 1 回当たった
 """
 type MatchCreatureStruckEvent implements MatchEvent {
@@ -2215,6 +2252,14 @@ type MatchInvasionRepelledEvent implements MatchEvent {
 	領地のクリーチャーに残る体力（増えた分を超えたダメージだけが傷になる）
 	"""
 	territoryHitPoints: Int!
+	"""
+	移動で侵略して生き残ったときだけ。戻った元の領地の位置（倒れたときは null で、元の土地は空き地になる）
+	"""
+	returnedTo: BoardPosition
+	"""
+	移動で侵略して生き残ったときだけ。戻ったクリーチャーの体力
+	"""
+	returnedHitPoints: Int
 }
 """
 戦闘にアイテムを出さなかった（攻める側も守る側も同じ）
@@ -2391,6 +2436,19 @@ type MatchMagicDepletedEvent implements MatchEvent {
 	与えられた魔力（開始時の魔力）
 	"""
 	magic: Int!
+}
+"""
+クリーチャーを動かす選択肢 1 つ
+"""
+type MatchMoveChoice {
+	"""
+	動かすクリーチャーのいる領地の位置
+	"""
+	from: BoardPosition!
+	"""
+	行き先（空き地か他人の領地）
+	"""
+	to: BoardPosition!
 }
 """
 1 マス進んだ
@@ -2841,6 +2899,39 @@ type MatchTerritoryConqueredEvent implements MatchEvent {
 	territoryHitPoints: Int!
 }
 """
+通った自分の領地のクリーチャーを他人の領地へ動かし、侵略した（続けてアイテムを選び、戦闘する）
+"""
+type MatchTerritoryInvadedByMoveEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	動かした参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	元の領地の位置
+	"""
+	from: BoardPosition!
+	"""
+	攻める領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	動いたクリーチャーの ID
+	"""
+	creature: Int!
+}
+"""
 止まった他人の領地を、手札のクリーチャーで侵略した
 """
 type MatchTerritoryInvadedEvent implements MatchEvent {
@@ -3052,6 +3143,44 @@ type MatchTurnOrderDecidedEvent implements MatchEvent {
 me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredError
 """
 union MeResult = Player | PlayerNotRegisteredError
+"""
+通った自分の領地のクリーチャーを動かす入力
+"""
+input MoveMatchCreatureInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	動かすクリーチャーのいる領地の位置
+	"""
+	from: BoardPositionInput!
+	"""
+	行き先（Match.moveChoices の中から選ぶ。選べない組は ValidationErrors の FieldNotFound・項目名 to）
+	"""
+	to: BoardPositionInput!
+}
+"""
+moveMatchCreature の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+"""
+union MoveMatchCreatureResult = MoveMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+クリーチャーを動かした（他人の領地へなら続けて攻める段階になる。成功したら対戦の revision が進む）
+"""
+type MoveMatchCreatureSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
 type Mutation {
 	"""
 	ログイン中のプレイヤーのアバターを作る。上限の数は AvatarLimitReachedError の max で返す
@@ -3089,6 +3218,10 @@ type Mutation {
 	通った自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	exchangeMatchCreature(input: ExchangeMatchCreatureInput!): ExchangeMatchCreatureResult!
+	"""
+	通った自分の領地のクリーチャーを動かす（領地コマンド。空き地へならそのまま止まったマスの決まりに進み、他人の領地へなら侵略と同じ戦闘をする）
+	"""
+	moveMatchCreature(input: MoveMatchCreatureInput!): MoveMatchCreatureResult!
 	"""
 	通った自分の領地の土地の属性を変える（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""

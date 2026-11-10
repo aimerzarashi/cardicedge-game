@@ -46,6 +46,7 @@ import {
   exchangeMatchCreature,
   invadeMatchTerritory,
   levelUpMatchTerritory,
+  moveMatchCreature,
   payMatchToll,
   relinquishMatchTerritory,
   rollMatchDice,
@@ -63,6 +64,7 @@ import {
   choicesAt,
   type StopSelection,
   selectableTerritories,
+  selectTile,
 } from "./stop-selection";
 import { watchProgress } from "./watch-progress";
 
@@ -143,6 +145,12 @@ export type MatchPlayerOperations = {
     y: number;
     element: BoardTileElement;
     magic: number;
+    name: string;
+  }[];
+  moveChoices: {
+    x: number;
+    y: number;
+    to: { x: number; y: number };
     name: string;
   }[];
   rewardPacks: { key: string; name: string }[];
@@ -231,6 +239,16 @@ function StopOperations({
             属性変更
           </button>
         )}
+        {operations.moveChoices.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              onSelect({ command: "move", position: null, to: null })
+            }
+          >
+            クリーチャー移動
+          </button>
+        )}
         {phase === "DEPLOYING" && operations.deployChoices.length > 0 && (
           <button type="button" onClick={() => onSelect({ command: "deploy" })}>
             配置
@@ -294,6 +312,43 @@ function StopOperations({
         <span data-testid="territory-command-prompt">
           盤面の印の付いた領地を選んでください
         </span>
+        {back}
+      </>
+    );
+  }
+  if (selection.command === "move") {
+    const { to } = selection;
+    const choice = operations.moveChoices.find(
+      (candidate) =>
+        candidate.x === position.x &&
+        candidate.y === position.y &&
+        candidate.to.x === to?.x &&
+        candidate.to.y === to?.y,
+    );
+    if (to === null || choice === undefined) {
+      return (
+        <>
+          <span data-testid="territory-command-prompt">
+            盤面の印の付いた行き先を選んでください
+          </span>
+          {back}
+        </>
+      );
+    }
+    return (
+      <>
+        <MatchActionButton
+          action={moveMatchCreature}
+          values={{
+            fromX: choice.x,
+            fromY: choice.y,
+            toX: choice.to.x,
+            toY: choice.to.y,
+          }}
+          {...actionProps}
+        >
+          {choice.name}を ({choice.to.x}, {choice.to.y}) へ動かす
+        </MatchActionButton>
         {back}
       </>
     );
@@ -813,8 +868,8 @@ export function MatchPlayer({
         pieces={participantPieces(frame.participants)}
         selectable={selectable}
         onTile={(position) => {
-          if (selection && "position" in selection) {
-            setSelection({ ...selection, position });
+          if (selection) {
+            setSelection(selectTile(selection, position));
           }
         }}
       />

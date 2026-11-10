@@ -374,6 +374,98 @@ describe("applyEvent", () => {
     ]);
   });
 
+  it("空き地へ動かすと、領地が行き先へ移り、行き先の土地のレベルになる", () => {
+    const next = applyEvent(
+      frame({
+        territories: [TERRITORY],
+        landLevels: [{ position: { x: 1, y: 0 }, level: 3 }],
+      }),
+      event("MatchCreatureMovedEvent", {
+        from: TERRITORY.position,
+        to: { x: 2, y: 0 },
+        creature: 1,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.territories, [
+      { ...TERRITORY, position: { x: 2, y: 0 }, level: 1 },
+    ]);
+  });
+
+  it("移動で侵略して奪うと、同じクリーチャーが移り、元の土地が空く", () => {
+    const own = { ...TERRITORY, owner: 1 };
+    const other = {
+      ...TERRITORY,
+      position: { x: 2, y: 0 },
+      owner: 0,
+      creature: {
+        id: 2,
+        hitPoints: 10,
+        card: { id: "c2", name: "敵", attack: 5 },
+      },
+    };
+    const invaded = applyEvent(
+      frame({ territories: [own, other] }),
+      event("MatchTerritoryInvadedByMoveEvent", {
+        from: own.position,
+        position: other.position,
+        creature: 1,
+      }),
+      BASE,
+    );
+    assert.deepEqual(invaded.invasion?.from, own.position);
+    const conquered = applyEvent(
+      invaded,
+      event("MatchTerritoryConqueredEvent", {
+        position: other.position,
+        creature: 1,
+        territoryHitPoints: 18,
+      }),
+      BASE,
+    );
+    assert.equal(conquered.invasion, null);
+    assert.deepEqual(conquered.territories, [
+      { ...other, owner: 1, creature: { ...own.creature, hitPoints: 18 } },
+    ]);
+  });
+
+  it("移動で侵略して生き残ると元の領地に戻り、倒れると元の土地が空く", () => {
+    const own = { ...TERRITORY, owner: 1 };
+    const invasion = {
+      ...INVASION,
+      position: { x: 2, y: 0 },
+      from: own.position,
+    };
+    const returned = applyEvent(
+      frame({ territories: [own], invasion }),
+      event("MatchInvasionRepelledEvent", {
+        card: INVASION.card,
+        position: { x: 2, y: 0 },
+        returnedToHand: false,
+        returnedTo: own.position,
+        returnedHitPoints: 7,
+      }),
+      BASE,
+    );
+    assert.equal(returned.territories[0].creature.hitPoints, 7);
+    assert.deepEqual(
+      returned.participants[1].hand.map((card) => card.id),
+      ["c1"],
+    );
+    const destroyed = applyEvent(
+      frame({ territories: [own], invasion }),
+      event("MatchInvasionRepelledEvent", {
+        card: INVASION.card,
+        position: { x: 2, y: 0 },
+        returnedToHand: false,
+        returnedTo: null,
+        returnedHitPoints: null,
+      }),
+      BASE,
+    );
+    assert.deepEqual(destroyed.territories, []);
+  });
+
   it("元のフレームを書き換えない", () => {
     const before = frame();
     applyEvent(before, event("MatchMovedEvent", { to: { x: 1, y: 0 } }), BASE);

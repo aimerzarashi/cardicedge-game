@@ -50,6 +50,55 @@ describe("eventLine", () => {
     );
   });
 
+  it("動かしたイベントと、移動で侵略したイベントを出す", () => {
+    assert.equal(
+      eventLine(
+        event(34, {
+          __typename: "MatchCreatureMovedEvent",
+          participant: 0,
+          from: { x: 1, y: 0 },
+          to: { x: 2, y: 0 },
+        }),
+        names,
+      ),
+      "版 34 部屋用: (1, 0) のクリーチャーを (2, 0) へ動かした",
+    );
+    assert.equal(
+      eventLine(
+        event(35, {
+          __typename: "MatchTerritoryInvadedByMoveEvent",
+          participant: 0,
+          from: { x: 1, y: 0 },
+          position: { x: 2, y: 0 },
+        }),
+        names,
+      ),
+      "版 35 部屋用: (1, 0) のクリーチャーを動かして (2, 0) を侵略した",
+    );
+  });
+
+  it("移動で侵略して失敗したイベントは、元の領地に戻ったか倒れたかを出す", () => {
+    const repelled = (returnedTo: { x: number; y: number } | null) =>
+      eventLine(
+        event(36, {
+          __typename: "MatchInvasionRepelledEvent",
+          participant: 0,
+          card: { name: "ナイト" },
+          returnedToHand: false,
+          returnedTo,
+        }),
+        names,
+      );
+    assert.equal(
+      repelled({ x: 1, y: 0 }),
+      "版 36 部屋用: 侵略に失敗した（「ナイト」は元の領地に戻った）",
+    );
+    assert.equal(
+      repelled(null),
+      "版 36 部屋用: 侵略に失敗した（「ナイト」は捨て札になった）",
+    );
+  });
+
   it("交換したイベントは、位置・元のカード・出したカード・払った魔力を出す", () => {
     assert.equal(
       eventLine(
