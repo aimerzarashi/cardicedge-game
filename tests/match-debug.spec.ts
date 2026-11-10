@@ -47,13 +47,14 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
 
   const frame = page.getByTestId("match-frame");
   const replaying = page.getByTestId("match-replaying");
+  const chooseDeploy = page.getByRole("button", { name: "配置", exact: true });
   const deploy = page.getByRole("button", { name: /を配置する$/ });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
-    await expect(deploy.or(operations).first()).toBeVisible({
+    await expect(chooseDeploy.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await deploy.first().isVisible()) {
+    if (await chooseDeploy.isVisible()) {
       break;
     }
     const revision = await frame.getAttribute("data-revision");
@@ -64,6 +65,8 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await expect(replaying).toBeHidden();
   await expect(page.getByTestId("match-phase")).toContainText("配置");
 
+  await chooseDeploy.click();
+  await expect(deploy.first()).toBeVisible();
   const label = (await deploy.first().textContent()) ?? "";
   const creature = label.replace(/を配置する$/, "");
   await deploy.first().click();
@@ -151,22 +154,19 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
   const frame = page.getByTestId("match-frame");
+  const chooseInvade = page.getByRole("button", { name: "侵略", exact: true });
   const invade = page.getByRole("button", { name: /で侵略する$/ });
-  const skipDeploy = page.getByRole("button", {
-    name: "配置せずにターンを終える",
-  });
+  const endTurn = page.getByRole("button", { name: "ターンを終える" });
   const operations = matchOperations(page);
   // 自分の領地を作らないので、NPC に侵略されず、止まるのは NPC の領地だけになる
   for (let step = 0; step < 150; step++) {
-    await expect(invade.or(operations).first()).toBeVisible({
+    await expect(chooseInvade.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await invade.first().isVisible()) {
+    if (await chooseInvade.isVisible()) {
       break;
     }
-    const button = (await skipDeploy.isVisible())
-      ? skipDeploy
-      : operations.first();
+    const button = (await endTurn.isVisible()) ? endTurn : operations.first();
     const revision = await frame.getAttribute("data-revision");
     await button.click();
     await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
@@ -176,6 +176,7 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
     page.getByRole("button", { name: "通行料を払う" }),
   ).toBeVisible();
 
+  await chooseInvade.click();
   await invade.first().click();
   // 選んだ時点で確定するので、次はアイテムの選びだけが出て、通行料は払えない
   const noItem = page.getByRole("button", { name: "アイテムを出さずに攻める" });

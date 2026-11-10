@@ -46,7 +46,6 @@ import {
   payMatchToll,
   relinquishMatchTerritory,
   rollMatchDice,
-  skipMatchTerritoryCommand,
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
 import { loadMatchDebugEvents } from "./actions";
@@ -57,6 +56,11 @@ import {
   type MatchFrame,
   type PlayEvent,
 } from "./match-frame";
+import {
+  choicesAt,
+  type StopSelection,
+  selectableTerritories,
+} from "./stop-selection";
 import { watchProgress } from "./watch-progress";
 
 const LOAD_RETRY_MS = 2000;
@@ -167,16 +171,163 @@ function ItemOperations({
   );
 }
 
+// 止まった後の選択。1 つ目で何をするかを選び、領地コマンドは盤面で領地を選んでから手札・レベルを選ぶ。選べないものは出さない（2026-11-09 オーナー）
+function StopOperations({
+  phase,
+  actionProps,
+  hand,
+  operations,
+  selection,
+  onSelect,
+}: {
+  phase: "DEPLOYING" | "INVADING" | "TERRITORY_COMMANDING";
+  actionProps: { id: string; revision: number };
+  hand: FrameCard[];
+  operations: MatchPlayerOperations;
+  selection: StopSelection | null;
+  onSelect: (selection: StopSelection | null) => void;
+}) {
+  const back = (
+    <button type="button" onClick={() => onSelect(null)}>
+      選び直す
+    </button>
+  );
+  if (selection === null) {
+    return (
+      <>
+        {operations.levelUpChoices.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onSelect({ command: "levelUp", position: null })}
+          >
+            土地レベルアップ
+          </button>
+        )}
+        {operations.exchangeChoices.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onSelect({ command: "exchange", position: null })}
+          >
+            クリーチャー交換
+          </button>
+        )}
+        {phase === "DEPLOYING" && operations.deployChoices.length > 0 && (
+          <button type="button" onClick={() => onSelect({ command: "deploy" })}>
+            配置
+          </button>
+        )}
+        {phase === "INVADING" && operations.invadeChoices.length > 0 && (
+          <button type="button" onClick={() => onSelect({ command: "invade" })}>
+            侵略
+          </button>
+        )}
+        {phase === "INVADING" ? (
+          <MatchActionButton action={payMatchToll} {...actionProps}>
+            通行料を払う
+          </MatchActionButton>
+        ) : (
+          <MatchActionButton action={endMatchTurn} {...actionProps}>
+            ターンを終える
+          </MatchActionButton>
+        )}
+      </>
+    );
+  }
+  if (selection.command === "deploy") {
+    return (
+      <>
+        {operations.deployChoices.map((handIndex) => (
+          <MatchActionButton
+            key={handIndex}
+            action={deployMatchCreature}
+            values={{ handIndex }}
+            {...actionProps}
+          >
+            {hand[handIndex]?.name ?? ""}を配置する
+          </MatchActionButton>
+        ))}
+        {back}
+      </>
+    );
+  }
+  if (selection.command === "invade") {
+    return (
+      <>
+        {operations.invadeChoices.map((handIndex) => (
+          <MatchActionButton
+            key={handIndex}
+            action={invadeMatchTerritory}
+            values={{ handIndex }}
+            {...actionProps}
+          >
+            {hand[handIndex]?.name ?? ""}で侵略する
+          </MatchActionButton>
+        ))}
+        {back}
+      </>
+    );
+  }
+  const { position } = selection;
+  if (position === null) {
+    return (
+      <>
+        <span data-testid="territory-command-prompt">
+          盤面の印の付いた領地を選んでください
+        </span>
+        {back}
+      </>
+    );
+  }
+  if (selection.command === "levelUp") {
+    return (
+      <>
+        {choicesAt(operations.levelUpChoices, position).map((choice) => (
+          <MatchActionButton
+            key={choice.level}
+            action={levelUpMatchTerritory}
+            values={{ x: choice.x, y: choice.y, level: choice.level }}
+            {...actionProps}
+          >
+            {choice.name}の土地をレベル {choice.level} にする（魔力 -
+            {choice.magic}）
+          </MatchActionButton>
+        ))}
+        {back}
+      </>
+    );
+  }
+  return (
+    <>
+      {choicesAt(operations.exchangeChoices, position).map((choice) => (
+        <MatchActionButton
+          key={choice.handIndex}
+          action={exchangeMatchCreature}
+          values={{ x: choice.x, y: choice.y, handIndex: choice.handIndex }}
+          {...actionProps}
+        >
+          {choice.name}を{hand[choice.handIndex]?.name ?? ""}と交換する（魔力 -
+          {choice.magic}）
+        </MatchActionButton>
+      ))}
+      {back}
+    </>
+  );
+}
+
 function Operations({
   id,
   latest,
   operations,
   connected,
+  selection,
+  onSelect,
 }: {
   id: string;
   latest: MatchFrame;
   operations: MatchPlayerOperations;
   connected: boolean;
+  selection: StopSelection | null;
+  onSelect: (selection: StopSelection | null) => void;
 }) {
   const actionProps = { id, revision: latest.revision };
   const hand =
@@ -248,38 +399,17 @@ function Operations({
             ({position.x}, {position.y}) へ進む
           </MatchActionButton>
         ))}
-      {latest.phase === "DEPLOYING" &&
-        operations.deployChoices.map((handIndex) => (
-          <MatchActionButton
-            key={handIndex}
-            action={deployMatchCreature}
-            values={{ handIndex }}
-            {...actionProps}
-          >
-            {hand[handIndex]?.name ?? ""}を配置する
-          </MatchActionButton>
-        ))}
-      {latest.phase === "DEPLOYING" && (
-        <MatchActionButton action={endMatchTurn} {...actionProps}>
-          配置せずにターンを終える
-        </MatchActionButton>
-      )}
-      {latest.phase === "INVADING" && (
-        <>
-          {operations.invadeChoices.map((handIndex) => (
-            <MatchActionButton
-              key={handIndex}
-              action={invadeMatchTerritory}
-              values={{ handIndex }}
-              {...actionProps}
-            >
-              {hand[handIndex]?.name ?? ""}で侵略する
-            </MatchActionButton>
-          ))}
-          <MatchActionButton action={payMatchToll} {...actionProps}>
-            通行料を払う
-          </MatchActionButton>
-        </>
+      {(latest.phase === "DEPLOYING" ||
+        latest.phase === "INVADING" ||
+        latest.phase === "TERRITORY_COMMANDING") && (
+        <StopOperations
+          phase={latest.phase}
+          actionProps={actionProps}
+          hand={hand}
+          operations={operations}
+          selection={selection}
+          onSelect={onSelect}
+        />
       )}
       {latest.phase === "ATTACKING" && (
         <ItemOperations
@@ -298,42 +428,6 @@ function Operations({
           itemChoices={operations.itemChoices}
           verb="戦闘に進む"
         />
-      )}
-      {latest.phase === "TERRITORY_COMMANDING" && (
-        <>
-          {operations.levelUpChoices.map((choice) => (
-            <MatchActionButton
-              key={`${choice.x},${choice.y},${choice.level}`}
-              action={levelUpMatchTerritory}
-              values={{ x: choice.x, y: choice.y, level: choice.level }}
-              {...actionProps}
-            >
-              ({choice.x}, {choice.y}) の{choice.name}の土地をレベル{" "}
-              {choice.level} にする（魔力 -{choice.magic}）
-            </MatchActionButton>
-          ))}
-          {operations.exchangeChoices.map((choice) => (
-            <MatchActionButton
-              key={`${choice.x},${choice.y},${choice.handIndex}`}
-              action={exchangeMatchCreature}
-              values={{
-                x: choice.x,
-                y: choice.y,
-                handIndex: choice.handIndex,
-              }}
-              {...actionProps}
-            >
-              ({choice.x}, {choice.y}) の{choice.name}を
-              {hand[choice.handIndex]?.name}と交換する（魔力 -{choice.magic}）
-            </MatchActionButton>
-          ))}
-          <MatchActionButton
-            action={skipMatchTerritoryCommand}
-            {...actionProps}
-          >
-            領地コマンドを使わない
-          </MatchActionButton>
-        </>
       )}
       {latest.phase === "RELINQUISHING" &&
         operations.relinquishChoices.map((choice) => (
@@ -589,6 +683,13 @@ export function MatchPlayer({
 }) {
   const router = useRouter();
   const [frame, setFrame] = useState(latest);
+  // 選んでいる途中のことは、対戦が進んだら捨てる（前の版の選択肢で送らないため）
+  const [selection, setSelection] = useState<StopSelection | null>(null);
+  const [selectedAt, setSelectedAt] = useState(latest.revision);
+  if (selectedAt !== latest.revision) {
+    setSelectedAt(latest.revision);
+    setSelection(null);
+  }
   // 開いた時点の版。それより前は今の状態として出ているので、欄に入れるだけで再生しない
   const [opened] = useState(latest.revision);
   const [connected, setConnected] = useState(false);
@@ -645,6 +746,9 @@ export function MatchPlayer({
 
   // 再生が最新の版に届くまで、操作は出さない（コマが着く前に次の操作をさせないため）
   const caughtUp = queue.length === 0 && frame.revision === latest.revision;
+  const selectable = caughtUp
+    ? selectableTerritories(selection, operations)
+    : [];
   const names = frame.participants.map(
     (participant) => participant.avatar.name,
   );
@@ -655,6 +759,12 @@ export function MatchPlayer({
         {...board}
         territories={territoryMarks(frame.territories)}
         pieces={participantPieces(frame.participants)}
+        selectable={selectable}
+        onTile={(position) => {
+          if (selection && "position" in selection) {
+            setSelection({ ...selection, position });
+          }
+        }}
       />
       <div>
         {caughtUp ? (
@@ -663,6 +773,8 @@ export function MatchPlayer({
             latest={latest}
             operations={operations}
             connected={connected}
+            selection={selection}
+            onSelect={setSelection}
           />
         ) : (
           <p data-testid="match-replaying" style={{ margin: "0 0 0.5rem" }}>

@@ -23,7 +23,6 @@ import {
   payMatchTollMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
-  skipMatchTerritoryCommandMutation,
 } from "../operations";
 
 export type MatchActionState = { error?: string };
@@ -225,23 +224,6 @@ export async function exchangeMatchCreature(
   });
   return result.ok
     ? finish(result.data.exchangeMatchCreature)
-    : { error: CORE_UNAVAILABLE_OPERATION };
-}
-
-export async function skipMatchTerritoryCommand(
-  _previous: MatchActionState,
-  form: FormData,
-): Promise<MatchActionState> {
-  const id = text(form, "id");
-  const revision = integer(form, "revision");
-  if (id === undefined || revision === undefined) {
-    return BAD_FORM;
-  }
-  const result = await callCore(skipMatchTerritoryCommandMutation, {
-    input: { id, revision },
-  });
-  return result.ok
-    ? finish(result.data.skipMatchTerritoryCommand)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

@@ -457,9 +457,6 @@ export const matchDebugEventsQuery = graphql(`
               }
             }
           }
-          ... on MatchTerritoryCommandSkippedEvent {
-            participant
-          }
           ... on MatchTerritoryRelinquishedEvent {
             participant
             position {

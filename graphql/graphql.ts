@@ -315,7 +315,7 @@ export type MatchPhase =
   | 'RELINQUISHING'
   /** サイコロを振る段階（rollMatchDice） */
   | 'ROLLING'
-  /** 止まった後のステップ 1。通った自分の領地に領地コマンドを実行する（levelUpMatchTerritory）か、使わない（skipMatchTerritoryCommand）。通った自分の領地が無ければ入らない */
+  /** 止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchTerritory・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは DEPLOYING・INVADING の中で領地コマンドを選ぶ */
   | 'TERRITORY_COMMANDING';
 
 /** 止まった他人の領地の通行料を払う入力 */
@@ -404,14 +404,6 @@ export type RoomStatus =
   | 'PLAYING'
   /** 準備中（公開した後、全員の準備完了まで）。公開前に決めなかったものを、担当の人が決める */
   | 'PREPARING';
-
-/** 領地コマンドを使わない入力 */
-export type SkipMatchTerritoryCommandInput = {
-  /** 対戦の公開用の ID */
-  id: string;
-  /** 画面が見ていた対戦の revision */
-  revision: number;
-};
 
 /** スターターの配布の状態 */
 export type StarterGrantStatus =
@@ -634,7 +626,6 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { name: string }
           >, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchRewardsCompletedEvent', revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchTerritoryCommandSkippedEvent', participant: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchTerritoryConqueredEvent', participant: number, defeatedCreature: number, creature: number, territoryHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchTerritoryInvadedEvent', participant: number, handIndex: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, id: string, name: string, cost: number, rarity: CardRarity }
@@ -783,20 +774,6 @@ export type ExchangeMatchCreatureMutation = { exchangeMatchCreature:
         | { __typename: 'FieldTooLong', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
-   };
-
-export type SkipMatchTerritoryCommandMutationVariables = Exact<{
-  input: SkipMatchTerritoryCommandInput;
-}>;
-
-
-export type SkipMatchTerritoryCommandMutation = { skipMatchTerritoryCommand:
-    | { __typename: 'MatchNotFoundError' }
-    | { __typename: 'MatchNotYourTurnError' }
-    | { __typename: 'MatchPhaseNotAllowedError' }
-    | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'RevisionConflictError' }
-    | { __typename: 'SkipMatchTerritoryCommandSuccess' }
    };
 
 export type RollMatchDiceMutationVariables = Exact<{
@@ -1937,9 +1914,6 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
           }
         }
-        ... on MatchTerritoryCommandSkippedEvent {
-          participant
-        }
         ... on MatchTerritoryRelinquishedEvent {
           participant
           position {
@@ -2076,13 +2050,6 @@ export const ExchangeMatchCreatureDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<ExchangeMatchCreatureMutation, ExchangeMatchCreatureMutationVariables>;
-export const SkipMatchTerritoryCommandDocument = new TypedDocumentString(`
-    mutation SkipMatchTerritoryCommand($input: SkipMatchTerritoryCommandInput!) {
-  skipMatchTerritoryCommand(input: $input) {
-    __typename
-  }
-}
-    `) as unknown as TypedDocumentString<SkipMatchTerritoryCommandMutation, SkipMatchTerritoryCommandMutationVariables>;
 export const RollMatchDiceDocument = new TypedDocumentString(`
     mutation RollMatchDice($input: RollMatchDiceInput!) {
   rollMatchDice(input: $input) {
