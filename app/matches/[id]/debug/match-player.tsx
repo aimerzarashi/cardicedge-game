@@ -806,6 +806,10 @@ export function MatchPlayer({
             : tile;
         })}
         territories={territoryMarks(frame.territories)}
+        landLevels={frame.landLevels.map((land) => ({
+          ...land.position,
+          level: land.level,
+        }))}
         pieces={participantPieces(frame.participants)}
         selectable={selectable}
         onTile={(position) => {

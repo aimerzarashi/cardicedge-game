@@ -546,7 +546,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, relinquishChoices: Array<{ x: number, y: number }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, relinquishChoices: Array<{ x: number, y: number }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -1520,6 +1520,13 @@ export const MatchDebugDocument = new TypedDocumentString(`
       relinquishChoices {
         x
         y
+      }
+      landLevels {
+        position {
+          x
+          y
+        }
+        level
       }
       levelUpChoices {
         position {

@@ -76,6 +76,7 @@ export default async function MatchDebugPage({
     invasion: match.invasion ?? null,
     // 戦闘は 1 回の操作の中で終わるので、開いた時点の状態には無い
     battle: null,
+    landLevels: match.landLevels,
     // 開いた時点の属性は盤面のマスが持つので、ここには開いた後に変わった分だけを足す
     landElements: [],
     outcome: match.outcome ?? null,

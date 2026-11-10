@@ -1557,6 +1557,10 @@ type Match {
 	"""
 	relinquishChoices: [BoardPosition!]!
 	"""
+	レベルを上げた土地（空き地を含む。上げた順。無い土地はレベル 1。レベルは領地ではなく土地のもので、クリーチャーがいなくなっても残る）
+	"""
+	landLevels: [MatchLandLevel!]!
+	"""
 	今の番の人が選べるレベルアップ（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手持ちの魔力で払える分だけ）
 	"""
 	levelUpChoices: [MatchLevelUpChoice!]!
@@ -2307,6 +2311,19 @@ type MatchLandElementChangedEvent implements MatchEvent {
 	払った魔力
 	"""
 	magic: Int!
+}
+"""
+土地のレベル
+"""
+type MatchLandLevel {
+	"""
+	土地の位置
+	"""
+	position: BoardPosition!
+	"""
+	レベル（2 以上）
+	"""
+	level: Int!
 }
 """
 全チェックポイントに印を付けて拠点に入り、周回を終えて魔力が増えた
