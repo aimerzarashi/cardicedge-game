@@ -28,6 +28,24 @@ export const discardMatchCardMutation = graphql(`
   }
 `);
 
+export const useMatchSpellMutation = graphql(`
+  mutation UseMatchSpell($input: UseMatchSpellInput!) {
+    useMatchSpell(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
 export const deployMatchCreatureMutation = graphql(`
   mutation DeployMatchCreature($input: DeployMatchCreatureInput!) {
     deployMatchCreature(input: $input) {

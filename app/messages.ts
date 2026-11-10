@@ -93,6 +93,18 @@ export function itemBonusesLabel(
   return parts.length > 0 ? parts.join("・") : "増減なし";
 }
 
+// スペルの効果の表示。種類は core が返した __typename で見分け、効果なし（null）は「なし」（studio の messages.ts と同じ）
+export function spellEffectLabel(
+  effect: { __typename?: string; count?: number } | null | undefined,
+): string {
+  switch (effect?.__typename) {
+    case "SpellDrawCardsEffect":
+      return `カードを ${effect.count} 枚引く`;
+    default:
+      return "なし";
+  }
+}
+
 // 所持カードの絞り込みの選択肢（core の CardType。結果の種類は __typename で見分けるので CARD_TYPE_LABELS とは別）
 export const CARD_TYPE_FILTERS: { value: CardType; label: string }[] = [
   { value: "CREATURE", label: "クリーチャー" },
@@ -303,6 +315,8 @@ export const MATCH_EVENT_MESSAGES = {
     `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
   territoryInvaded: (card: string, x: number, y: number, cost: number) =>
     `クリーチャー「${card}」で (${x}, ${y}) を侵略した（魔力 -${cost}）`,
+  spellUsed: (card: string, cost: number) =>
+    `スペル「${card}」を使った（魔力 -${cost}）`,
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
   itemSkipped: "アイテムを出さなかった",

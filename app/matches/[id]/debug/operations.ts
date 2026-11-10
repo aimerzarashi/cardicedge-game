@@ -18,6 +18,7 @@ export const matchDebugQuery = graphql(`
           x
           y
         }
+        spellChoices
         deployChoices
         invadeChoices
         itemChoices
@@ -177,6 +178,14 @@ export const matchDebugQuery = graphql(`
               attackBonus
               hitPointsBonus
             }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on SpellDrawCardsEffect {
+                  count
+                }
+              }
+            }
           }
           drawPileCount
           discardPile {
@@ -248,6 +257,26 @@ export const matchDebugEventsQuery = graphql(`
                 attackBonus
                 hitPointsBonus
               }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
+              }
+            }
+          }
+          ... on MatchSpellUsedEvent {
+            participant
+            handIndex
+            cost
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
             }
           }
           ... on MatchDiscardPileShuffledEvent {
@@ -277,6 +306,14 @@ export const matchDebugEventsQuery = graphql(`
                 attackBonus
                 hitPointsBonus
               }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
+              }
             }
           }
           ... on MatchCreatureDeployedEvent {
@@ -298,6 +335,14 @@ export const matchDebugEventsQuery = graphql(`
                 category
                 attackBonus
                 hitPointsBonus
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
               }
             }
             creature
@@ -327,6 +372,14 @@ export const matchDebugEventsQuery = graphql(`
                 attackBonus
                 hitPointsBonus
               }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
+              }
             }
             position {
               x
@@ -353,6 +406,14 @@ export const matchDebugEventsQuery = graphql(`
                 category
                 attackBonus
                 hitPointsBonus
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
               }
             }
             cost
@@ -440,6 +501,14 @@ export const matchDebugEventsQuery = graphql(`
                 attackBonus
                 hitPointsBonus
               }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
+              }
             }
             returnedToHand
           }
@@ -518,6 +587,14 @@ export const matchDebugEventsQuery = graphql(`
                 attackBonus
                 hitPointsBonus
               }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
+              }
             }
             creature
             cost
@@ -537,6 +614,14 @@ export const matchDebugEventsQuery = graphql(`
                 category
                 attackBonus
                 hitPointsBonus
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                }
               }
             }
           }

@@ -22,6 +22,7 @@ import {
   MATCH_REVIEW_MESSAGES,
   RARITY_LABELS,
   SEAT_KIND_LABELS,
+  spellEffectLabel,
 } from "../../../messages";
 import { eventLine, mergeShown, splitEvents } from "../../match-events";
 import {
@@ -50,6 +51,7 @@ import {
   payMatchToll,
   relinquishMatchTerritory,
   rollMatchDice,
+  useMatchSpell,
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
 import { loadMatchDebugEvents } from "./actions";
@@ -122,6 +124,8 @@ export type MatchPlayerOperations = {
   // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
   awaitingParticipant: number | null;
   pathChoices: { x: number; y: number }[];
+  // 振る前に使えるスペルの手札の番号（core の spellChoices）
+  spellChoices: number[];
   deployChoices: number[];
   invadeChoices: number[];
   itemChoices: number[];
@@ -476,6 +480,17 @@ function Operations({
             {card.name}を捨てる
           </MatchActionButton>
         ))}
+      {latest.phase === "ROLLING" &&
+        operations.spellChoices.map((handIndex) => (
+          <MatchActionButton
+            key={handIndex}
+            action={useMatchSpell}
+            values={{ handIndex }}
+            {...actionProps}
+          >
+            {hand[handIndex]?.name}を使う
+          </MatchActionButton>
+        ))}
       {latest.phase === "ROLLING" && (
         <MatchActionButton action={rollMatchDice} {...actionProps}>
           サイコロを振る
@@ -722,6 +737,8 @@ function FrameView({
                               `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}・移動 ${card.movement}`}
                             {card.category &&
                               `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
+                            {card.__typename === "SpellCardInfo" &&
+                              `・${spellEffectLabel(card.effect)}`}
                             ）
                           </li>
                         ))}

@@ -87,6 +87,7 @@ export default async function MatchDebugPage({
     invadeChoices: match.invadeChoices,
     itemChoices: match.itemChoices,
     pathChoices: match.pathChoices,
+    spellChoices: match.spellChoices,
     deployChoices: match.deployChoices,
     relinquishChoices: match.relinquishChoices.map((position) => {
       const territory = match.territories.find(

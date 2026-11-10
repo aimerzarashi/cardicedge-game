@@ -23,6 +23,8 @@ export type FrameCard = {
   category?: ItemCategory;
   attackBonus?: number;
   hitPointsBonus?: number;
+  // スペルの効果（効果なしは null）
+  effect?: { __typename: string; count?: number } | null;
 };
 
 export type FrameParticipant = {
@@ -389,6 +391,17 @@ function applyFact(
         invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
       };
     }
+    case "MatchSpellUsedEvent":
+      // 使ったスペルは捨て札に入る。効果は続くイベント（引いたカード等）で当たる
+      return discarded(
+        updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          hand: withoutCard(participant.hand, event.handIndex ?? 0),
+          magic: participant.magic - (event.cost ?? 0),
+        })),
+        seat,
+        event.card,
+      );
     case "MatchItemUsedEvent":
       return discarded(
         updateParticipant(frame, seat, (participant) => ({

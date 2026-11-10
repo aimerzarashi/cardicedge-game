@@ -1,9 +1,9 @@
 import { login, seedPlayer, signUpAndVerify } from "./account";
 import { expect, test } from "./fixtures";
 
-// マスタ（local/core-master/master.sql）のスターターデッキは 火（A 4・B 3）と 水（A 2・B 3・C 2）で、所持品はデッキを作れる枚数
-// （カードごとに多いほうの枚数。A 4・B 3・C 2。startergrant の collectionOf）。A・B・C はすべてクリーチャーで、性能は
-// A（10・N）・B（20・S）・C（30・R）
+// マスタ（local/core-master/master.sql）のスターターデッキは 火（A 4・B 3）と 水（A 2・B 3・C 1・E 1）で、所持品はデッキを作れる枚数
+// （カードごとに多いほうの枚数。A 4・B 3・C 1・E 1。startergrant の collectionOf）。A・B・C はクリーチャーで、性能は
+// A（10・N）・B（20・S）・C（30・R）。E はスペル（10・N・カードを 1 枚引く）
 
 test("スターターを受け取ると所持カードに枚数つきで出て、種類で絞れ、カード名から詳細へ移れる", async ({
   page,
@@ -19,12 +19,13 @@ test("スターターを受け取ると所持カードに枚数つきで出て�
   const rows = page.locator("tbody tr");
   await expect(async () => {
     await page.reload();
-    await expect(rows).toHaveCount(3, { timeout: 1000 });
+    await expect(rows).toHaveCount(4, { timeout: 1000 });
   }).toPass({ timeout: 30_000 });
 
   await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*10\s*N\s*4/);
   await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*20\s*S\s*3/);
-  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*2/);
+  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*1/);
+  await expect(rows.nth(3)).toHaveText(/E\s*スペル\s*10\s*N\s*1/);
 
   await page.getByLabel("アイテム").check();
   await page.getByRole("button", { name: "絞り込む" }).click();
@@ -59,5 +60,15 @@ test("アイテムのカードの詳細に、分類と AT・HP の増減が出�
   await page.goto("/cards/00000000-0000-4000-8000-00000000000d");
   await expect(page.locator("dl")).toHaveText(
     /種類\s*アイテム\s*コスト\s*15\s*希少度\s*N\s*分類\s*防具\s*増減\s*AT -5・HP \+25/,
+  );
+});
+
+test("スペルのカードの詳細に、効果が出る", async ({ page }) => {
+  await login(page, seedPlayer.email, seedPlayer.password);
+  await expect(page.getByTestId("player-email")).toHaveText(seedPlayer.email);
+  // E はカードを 1 枚引くスペル（local/core-master/master.sql）
+  await page.goto("/cards/00000000-0000-4000-8000-00000000000e");
+  await expect(page.locator("dl")).toHaveText(
+    /種類\s*スペル\s*コスト\s*10\s*希少度\s*N\s*効果\s*カードを 1 枚引く/,
   );
 });
