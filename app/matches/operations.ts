@@ -88,14 +88,6 @@ export const exchangeMatchCreatureMutation = graphql(`
   }
 `);
 
-export const skipMatchTerritoryCommandMutation = graphql(`
-  mutation SkipMatchTerritoryCommand($input: SkipMatchTerritoryCommandInput!) {
-    skipMatchTerritoryCommand(input: $input) {
-      __typename
-    }
-  }
-`);
-
 export const rollMatchDiceMutation = graphql(`
   mutation RollMatchDice($input: RollMatchDiceInput!) {
     rollMatchDice(input: $input) {

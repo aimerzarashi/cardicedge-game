@@ -35,7 +35,7 @@ import {
 } from "./board-view";
 
 // ボードを斜め見下ろしで見せる格子。studio の app/boards/board-grid.tsx から写したもの（片方を変えたらもう片方もそろえる）。
-// 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
+// 写したあとの違いは、つながりを押す操作（onConnection）を持たないことと、
 // マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
 // 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
@@ -63,6 +63,8 @@ export function BoardGrid({
   pairs,
   pieces = [],
   territories,
+  selectable = [],
+  onTile,
 }: {
   width: number;
   height: number;
@@ -70,6 +72,9 @@ export function BoardGrid({
   pairs: Pair[];
   pieces?: Piece[];
   territories?: TerritoryMark[];
+  // 押せるマス（印を付ける）。ほかのマスは押せない
+  selectable?: Position[];
+  onTile?: (position: Position) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   // 見るだけの切り替えなのでイベントにせず、ここで持つ（開き直すと通行料の表示に戻る）
@@ -88,6 +93,7 @@ export function BoardGrid({
     from: View;
     moved: boolean;
   } | null>(null);
+  const suppressClick = useRef(false);
 
   // 拡大・縮小・全体を表示は、新しい倍率と位置へなめらかに動かす（カメラワーク）。最初に開いたときは収まる位置にそのまま出し、
   // ドラッグの最中は指やマウスにそのまま付いてくるよう遅らせない
@@ -212,6 +218,13 @@ export function BoardGrid({
   }
 
   function pointerEnd() {
+    if (drag.current?.moved) {
+      // ドラッグの後に続く click をマスを押した扱いにしない。click が来なかった場合に残らないよう、すぐ戻す
+      suppressClick.current = true;
+      setTimeout(() => {
+        suppressClick.current = false;
+      }, 0);
+    }
     drag.current = null;
     setDragging(false);
   }
@@ -237,6 +250,13 @@ export function BoardGrid({
                 (territory) => territory.x === x && territory.y === y,
               )}
               showsStats={showsStats}
+              onSelect={
+                selectable.some(
+                  (position) => position.x === x && position.y === y,
+                )
+                  ? onTile
+                  : undefined
+              }
             />
           ) : (
             <span key={key} />
@@ -304,6 +324,12 @@ export function BoardGrid({
         onPointerMove={pointerMove}
         onPointerUp={pointerEnd}
         onPointerCancel={pointerEnd}
+        onClickCapture={(event) => {
+          if (suppressClick.current) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+        }}
         style={{
           position: "relative",
           height: "28rem",
@@ -373,7 +399,15 @@ export function BoardGrid({
   );
 }
 
-// 表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している
+// 押せるマスの印。土地の属性の色とぶつからないよう、枠で見せる
+const SELECTABLE_TILE = {
+  outline: "4px solid #ffe066",
+  outlineOffset: 2,
+  zIndex: 1,
+  cursor: "pointer",
+};
+
+// ふだんは表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している。領地を選ぶ順番でだけ押せる
 function TileButton({
   position,
   tile,
@@ -381,6 +415,7 @@ function TileButton({
   pieces,
   territory,
   showsStats,
+  onSelect,
 }: {
   position: Position;
   tile: Tile;
@@ -389,6 +424,7 @@ function TileButton({
   pieces: Piece[];
   territory: TerritoryMark | undefined;
   showsStats: boolean;
+  onSelect: ((position: Position) => void) | undefined;
 }) {
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
@@ -399,10 +435,13 @@ function TileButton({
     <button
       type="button"
       aria-label={`${tileName(position, tile, pair)}${territoryName}${pieceNames && ` ${pieceNames}`}`}
-      disabled
+      disabled={onSelect === undefined}
+      data-selectable={onSelect !== undefined ? "true" : undefined}
+      onClick={() => onSelect?.(position)}
       style={{
         ...paint(tile),
         ...tileSide(territory?.color, territory?.level),
+        ...(onSelect !== undefined ? SELECTABLE_TILE : {}),
         position: "relative",
         padding: 0,
         display: "flex",

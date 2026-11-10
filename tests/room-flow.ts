@@ -106,15 +106,11 @@ export function matchOperations(page: Page) {
   const defend = page.getByRole("button", {
     name: "アイテムを出さずに戦闘に進む",
   });
-  const skipCommand = page.getByRole("button", {
-    name: "領地コマンドを使わない",
-  });
   return draw
     .or(discard)
     .or(roll)
     .or(choose)
     .or(end)
-    .or(skipCommand)
     .or(payToll)
     .or(attack)
     .or(defend);

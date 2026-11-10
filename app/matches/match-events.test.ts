@@ -51,19 +51,6 @@ describe("eventLine", () => {
     );
   });
 
-  it("領地コマンドを使わなかったイベントを出す", () => {
-    assert.equal(
-      eventLine(
-        event(31, {
-          __typename: "MatchTerritoryCommandSkippedEvent",
-          participant: 1,
-        }),
-        names,
-      ),
-      "版 31 ゴリガン: 領地コマンドを使わなかった",
-    );
-  });
-
   it("戦闘の始まりは、両方の効果を当てる前の AT・HP を出す", () => {
     assert.equal(
       eventLine(

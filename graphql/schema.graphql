@@ -1172,7 +1172,7 @@ input ExchangeMatchCreatureInput {
 	handIndex: Int!
 }
 """
-exchangeMatchCreature の結果（TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+exchangeMatchCreature の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
 """
 union ExchangeMatchCreatureResult = ExchangeMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -1429,7 +1429,7 @@ input LevelUpMatchTerritoryInput {
 	level: Int!
 }
 """
-levelUpMatchTerritory の結果（TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+levelUpMatchTerritory の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
 """
 union LevelUpMatchTerritoryResult = LevelUpMatchTerritorySuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -1515,11 +1515,11 @@ type Match {
 	"""
 	relinquishChoices: [BoardPosition!]!
 	"""
-	今の番の人が選べるレベルアップ（TERRITORY_COMMANDING のときだけ中身がある。手持ちの魔力で払える分だけ）
+	今の番の人が選べるレベルアップ（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手持ちの魔力で払える分だけ）
 	"""
 	levelUpChoices: [MatchLevelUpChoice!]!
 	"""
-	今の番の人が選べるクリーチャーの交換（TERRITORY_COMMANDING のときだけ中身がある。手札のクリーチャーで、手持ちの魔力で払える分だけ）
+	今の番の人が選べるクリーチャーの交換（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手札のクリーチャーで、手持ちの魔力で払える分だけ）
 	"""
 	exchangeChoices: [MatchExchangeChoice!]!
 	"""
@@ -2430,7 +2430,7 @@ enum MatchPhase {
 	"""
 	DEPLOYING
 	"""
-	止まった後のステップ 1。通った自分の領地に領地コマンドを実行する（levelUpMatchTerritory）か、使わない（skipMatchTerritoryCommand）。通った自分の領地が無ければ入らない
+	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchTerritory・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは DEPLOYING・INVADING の中で領地コマンドを選ぶ
 	"""
 	TERRITORY_COMMANDING
 	"""
@@ -2689,27 +2689,6 @@ type MatchTerritory {
 	手放したときに受け取る魔力
 	"""
 	relinquishMagic: Int!
-}
-"""
-領地コマンドを使わなかった
-"""
-type MatchTerritoryCommandSkippedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	使わなかった参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
 }
 """
 守る側のクリーチャーを倒して土地を奪った（土地のレベルは引き継ぐ）
@@ -2997,10 +2976,6 @@ type Mutation {
 	通った自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	exchangeMatchCreature(input: ExchangeMatchCreatureInput!): ExchangeMatchCreatureResult!
-	"""
-	領地コマンドを使わず、止まったマスの行動に進む
-	"""
-	skipMatchTerritoryCommand(input: SkipMatchTerritoryCommandInput!): SkipMatchTerritoryCommandResult!
 	"""
 	止まった他人の領地を、手札のクリーチャーで侵略する（選んだ時点で確定し、コストの分の魔力を払う）
 	"""
@@ -3965,36 +3940,6 @@ type ShrineTile implements BoardTile {
 	行
 	"""
 	y: Int!
-}
-"""
-領地コマンドを使わない入力
-"""
-input SkipMatchTerritoryCommandInput {
-	"""
-	対戦の公開用の ID
-	"""
-	id: UUID!
-	"""
-	画面が見ていた対戦の revision
-	"""
-	revision: Int!
-}
-"""
-skipMatchTerritoryCommand の結果（TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
-"""
-union SkipMatchTerritoryCommandResult = SkipMatchTerritoryCommandSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
-"""
-領地コマンドを使わなかった（止まったマスの行動に進む。成功したら対戦の revision が進む）
-"""
-type SkipMatchTerritoryCommandSuccess {
-	"""
-	対戦の公開用の ID
-	"""
-	id: UUID!
-	"""
-	操作した後の対戦の revision
-	"""
-	revision: Int!
 }
 """
 スペル

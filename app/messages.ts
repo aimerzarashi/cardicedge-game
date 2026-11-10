@@ -341,7 +341,6 @@ export const MATCH_EVENT_MESSAGES = {
     cost: number,
   ) =>
     `領地 (${x}, ${y}) の「${returned}」を「${card}」に交換した（魔力 -${cost}）`,
-  territoryCommandSkipped: "領地コマンドを使わなかった",
   territoryRelinquished: (x: number, y: number, magic: number) =>
     `領地 (${x}, ${y}) を手放した（魔力 +${magic}）`,
   magicDepleted: (magic: number) =>

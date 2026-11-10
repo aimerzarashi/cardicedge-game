@@ -155,8 +155,6 @@ function body(event: MatchEventView, names: string[]): string {
         event.returnedCard?.name ?? "",
         event.cost ?? 0,
       );
-    case "MatchTerritoryCommandSkippedEvent":
-      return m.territoryCommandSkipped;
     case "MatchTerritoryRelinquishedEvent":
       return m.territoryRelinquished(
         event.position?.x ?? 0,

@@ -153,13 +153,14 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   await page.getByRole("button", { name: "準備完了" }).click();
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
+  const chooseDeploy = page.getByRole("button", { name: "配置", exact: true });
   const deploy = page.getByRole("button", { name: /を配置する$/ });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
-    await expect(deploy.or(operations).first()).toBeVisible({
+    await expect(chooseDeploy.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await deploy.first().isVisible()) {
+    if (await chooseDeploy.isVisible()) {
       break;
     }
     const revision = await page
@@ -172,8 +173,10 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
     );
   }
   await expect(
-    page.getByRole("button", { name: "配置せずにターンを終える" }),
+    page.getByRole("button", { name: "ターンを終える" }),
   ).toBeVisible();
+  await chooseDeploy.click();
+  await expect(deploy.first()).toBeVisible();
   const label = (await deploy.first().textContent()) ?? "";
   const creature = label.replace(/を配置する$/, "");
 
