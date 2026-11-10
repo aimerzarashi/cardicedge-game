@@ -41,6 +41,14 @@ export const matchDebugQuery = graphql(`
           handIndex
           magic
         }
+        elementChangeChoices {
+          position {
+            x
+            y
+          }
+          element
+          magic
+        }
         invasion {
           position {
             x
@@ -411,6 +419,15 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             level
+            magic
+          }
+          ... on MatchLandElementChangedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            element
             magic
           }
           ... on MatchCreatureExchangedEvent {

@@ -40,6 +40,7 @@ export type MatchEventView = {
   };
   level?: number;
   returnedCard?: { name: string };
+  element?: BoardTileElement;
   attackDelta?: number;
   hitPointsDelta?: number;
   attack?: number;
@@ -145,6 +146,13 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.x ?? 0,
         event.position?.y ?? 0,
         event.level ?? 0,
+        event.magic ?? 0,
+      );
+    case "MatchLandElementChangedEvent":
+      return m.landElementChanged(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.element ? ELEMENT_LABELS[event.element] : "",
         event.magic ?? 0,
       );
     case "MatchCreatureExchangedEvent":

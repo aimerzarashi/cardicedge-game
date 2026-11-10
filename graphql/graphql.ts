@@ -60,6 +60,18 @@ export type CardType =
   /** スペル */
   | 'SPELL';
 
+/** 通った自分の領地の土地の属性を変える入力 */
+export type ChangeMatchLandElementInput = {
+  /** 変えた後の属性 */
+  element: BoardTileElement;
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 領地の位置（Match.elementChangeChoices の中から選ぶ。選べない組は ValidationErrors の FieldNotFound） */
+  position: BoardPositionInput;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
 /** 対戦ルールを決める入力。8 つの値の名前と決まりは、ボードの既定のルールと同じ */
 export type ChangeRoomMatchRulesInput = {
   /** 土地の基本の値（1 以上。レベルと連鎖の倍率を掛ける元） */
@@ -534,7 +546,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, relinquishChoices: Array<{ x: number, y: number }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, relinquishChoices: Array<{ x: number, y: number }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -617,6 +629,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchLandElementChangedEvent', participant: number, element: BoardTileElement, magic: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicDepletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
@@ -735,6 +748,30 @@ export type LevelUpMatchTerritoryMutationVariables = Exact<{
 
 export type LevelUpMatchTerritoryMutation = { levelUpMatchTerritory:
     | { __typename: 'LevelUpMatchTerritorySuccess' }
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
+export type ChangeMatchLandElementMutationVariables = Exact<{
+  input: ChangeMatchLandElementInput;
+}>;
+
+
+export type ChangeMatchLandElementMutation = { changeMatchLandElement:
+    | { __typename: 'ChangeMatchLandElementSuccess' }
     | { __typename: 'MatchNotFoundError' }
     | { __typename: 'MatchNotYourTurnError' }
     | { __typename: 'MatchPhaseNotAllowedError' }
@@ -1499,6 +1536,14 @@ export const MatchDebugDocument = new TypedDocumentString(`
         handIndex
         magic
       }
+      elementChangeChoices {
+        position {
+          x
+          y
+        }
+        element
+        magic
+      }
       invasion {
         position {
           x
@@ -1870,6 +1915,15 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
           level
           magic
         }
+        ... on MatchLandElementChangedEvent {
+          participant
+          position {
+            x
+            y
+          }
+          element
+          magic
+        }
         ... on MatchCreatureExchangedEvent {
           participant
           position {
@@ -2037,6 +2091,19 @@ export const LevelUpMatchTerritoryDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<LevelUpMatchTerritoryMutation, LevelUpMatchTerritoryMutationVariables>;
+export const ChangeMatchLandElementDocument = new TypedDocumentString(`
+    mutation ChangeMatchLandElement($input: ChangeMatchLandElementInput!) {
+  changeMatchLandElement(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<ChangeMatchLandElementMutation, ChangeMatchLandElementMutationVariables>;
 export const ExchangeMatchCreatureDocument = new TypedDocumentString(`
     mutation ExchangeMatchCreature($input: ExchangeMatchCreatureInput!) {
   exchangeMatchCreature(input: $input) {

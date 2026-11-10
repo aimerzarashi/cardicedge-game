@@ -5,12 +5,22 @@ type Position = { x: number; y: number };
 export type StopSelection =
   | { command: "deploy" }
   | { command: "invade" }
-  | { command: "levelUp" | "exchange"; position: Position | null };
+  | {
+      command: "levelUp" | "exchange" | "elementChange";
+      position: Position | null;
+    };
 
 type TerritoryChoices = {
   levelUpChoices: Position[];
   exchangeChoices: Position[];
+  elementChangeChoices: Position[];
 };
+
+const CHOICES_OF = {
+  levelUp: "levelUpChoices",
+  exchange: "exchangeChoices",
+  elementChange: "elementChangeChoices",
+} as const;
 
 // 領地を選ぶ順番のときに、盤面で押せる領地（core が返した選択肢の位置を、重ねずに返す）
 export function selectableTerritories(
@@ -19,15 +29,12 @@ export function selectableTerritories(
 ): Position[] {
   if (
     selection === null ||
-    (selection.command !== "levelUp" && selection.command !== "exchange") ||
+    !("position" in selection) ||
     selection.position !== null
   ) {
     return [];
   }
-  const candidates =
-    selection.command === "levelUp"
-      ? choices.levelUpChoices
-      : choices.exchangeChoices;
+  const candidates = choices[CHOICES_OF[selection.command]];
   return candidates.filter(
     (position, index) =>
       candidates.findIndex(

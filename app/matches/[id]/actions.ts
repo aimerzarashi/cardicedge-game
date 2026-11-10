@@ -1,7 +1,9 @@
 "use server";
 
 import { refresh } from "next/cache";
+import type { BoardTileElement } from "@/graphql/graphql";
 import { callCore } from "@/lib/core";
+import { ELEMENT_LABELS } from "../../boards/board-layout";
 import {
   CORE_UNAVAILABLE_OPERATION,
   type FieldErrorValue,
@@ -10,6 +12,7 @@ import {
 } from "../../messages";
 import {
   attackMatchTerritoryMutation,
+  changeMatchLandElementMutation,
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
   defendMatchTerritoryMutation,
@@ -39,6 +42,11 @@ function finish(outcome: Outcome): MatchActionState {
     return { error: outcome.errors.map(fieldErrorMessage).join("。") };
   }
   return { error: matchErrorMessage(outcome.__typename) };
+}
+
+// 属性の名前の形だけを確かめる（変えられる属性かは core が判定する）
+function isBoardTileElement(value: string): value is BoardTileElement {
+  return value in ELEMENT_LABELS;
 }
 
 // 中身の正誤は core が判定するため、ここでは形（文字列・整数であること）だけを確かめる
@@ -198,6 +206,33 @@ export async function levelUpMatchTerritory(
   });
   return result.ok
     ? finish(result.data.levelUpMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function changeMatchLandElement(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  const element = text(form, "element");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined ||
+    element === undefined ||
+    !isBoardTileElement(element)
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(changeMatchLandElementMutation, {
+    input: { id, revision, position: { x, y }, element },
+  });
+  return result.ok
+    ? finish(result.data.changeMatchLandElement)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

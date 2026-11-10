@@ -8,7 +8,9 @@ import {
   useEffect,
   useState,
 } from "react";
+import type { BoardTileElement } from "@/graphql/graphql";
 import { BoardGrid } from "../../../boards/board-grid";
+import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
 import {
   elementsLabel,
@@ -33,6 +35,7 @@ import {
 } from "../../match-view";
 import {
   attackMatchTerritory,
+  changeMatchLandElement,
   chooseMatchPath,
   chooseMatchRewardPack,
   defendMatchTerritory,
@@ -135,6 +138,13 @@ export type MatchPlayerOperations = {
     magic: number;
     name: string;
   }[];
+  elementChangeChoices: {
+    x: number;
+    y: number;
+    element: BoardTileElement;
+    magic: number;
+    name: string;
+  }[];
   rewardPacks: { key: string; name: string }[];
 };
 
@@ -211,6 +221,16 @@ function StopOperations({
             クリーチャー交換
           </button>
         )}
+        {operations.elementChangeChoices.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              onSelect({ command: "elementChange", position: null })
+            }
+          >
+            属性変更
+          </button>
+        )}
         {phase === "DEPLOYING" && operations.deployChoices.length > 0 && (
           <button type="button" onClick={() => onSelect({ command: "deploy" })}>
             配置
@@ -274,6 +294,24 @@ function StopOperations({
         <span data-testid="territory-command-prompt">
           盤面の印の付いた領地を選んでください
         </span>
+        {back}
+      </>
+    );
+  }
+  if (selection.command === "elementChange") {
+    return (
+      <>
+        {choicesAt(operations.elementChangeChoices, position).map((choice) => (
+          <MatchActionButton
+            key={choice.element}
+            action={changeMatchLandElement}
+            values={{ x: choice.x, y: choice.y, element: choice.element }}
+            {...actionProps}
+          >
+            {choice.name}の土地を{ELEMENT_LABELS[choice.element]}
+            属性にする（魔力 -{choice.magic}）
+          </MatchActionButton>
+        ))}
         {back}
       </>
     );
@@ -757,6 +795,16 @@ export function MatchPlayer({
     <div style={COLUMNS_STYLE}>
       <BoardGrid
         {...board}
+        tiles={board.tiles.map((tile) => {
+          const changed = frame.landElements.find(
+            (candidate) =>
+              candidate.position.x === tile.x &&
+              candidate.position.y === tile.y,
+          );
+          return changed && tile.__typename === "LandTile"
+            ? { ...tile, element: changed.element }
+            : tile;
+        })}
         territories={territoryMarks(frame.territories)}
         pieces={participantPieces(frame.participants)}
         selectable={selectable}
