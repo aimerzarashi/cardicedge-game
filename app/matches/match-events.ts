@@ -18,6 +18,8 @@ export type MatchEventView = {
   magic?: number;
   cards?: number;
   drawPileCount?: number;
+  dice?: number[];
+  count?: number;
   order?: number[];
   winners?: number[];
   reason?: keyof typeof MATCH_END_REASON_LABELS;
@@ -201,7 +203,11 @@ function body(event: MatchEventView, names: string[]): string {
     case "MatchMagicDepletedEvent":
       return m.magicDepleted(event.magic ?? 0);
     case "MatchDiceRolledEvent":
-      return m.diceRolled(event.value ?? 0);
+      return m.diceRolled(event.value ?? 0, event.dice ?? []);
+    case "MatchMagicGainedEvent":
+      return m.magicGained(event.magic ?? 0);
+    case "MatchDiceCountChangedEvent":
+      return m.diceCountChanged(event.count ?? 0);
     case "MatchMovedEvent":
       return m.moved(event.to?.x ?? 0, event.to?.y ?? 0);
     case "MatchCheckpointPassedEvent":

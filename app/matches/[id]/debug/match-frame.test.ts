@@ -58,6 +58,7 @@ function frame(overrides: Partial<MatchFrame> = {}): MatchFrame {
     round: 1,
     phase: ROLLING,
     dice: null,
+    diceFaces: [],
     remainingSteps: 0,
     currentParticipant: 1,
     participants: [participant(1), participant(0)],
@@ -521,6 +522,27 @@ describe("applyEvent", () => {
     assert.deepEqual(next.participants[1].discardPile, [
       { id: "c1", name: "ドラゴン" },
     ]);
+  });
+
+  it("スペルで魔力を得ると、その人の魔力だけが増える", () => {
+    const next = applyEvent(
+      frame(),
+      event("MatchMagicGainedEvent", { magic: 200 }),
+      BASE,
+    );
+    assert.equal(next.participants[1].magic, 800);
+    assert.equal(next.participants[0].magic, 600);
+  });
+
+  it("複数のサイコロを振ると、合計が残りの歩数になり、1 個ずつの目も残る", () => {
+    const next = applyEvent(
+      frame(),
+      event("MatchDiceRolledEvent", { value: 8, dice: [3, 5] }, null),
+      BASE,
+    );
+    assert.equal(next.dice, 8);
+    assert.equal(next.remainingSteps, 8);
+    assert.deepEqual(next.diceFaces, [3, 5]);
   });
 
   it("スペルを使うと手札から抜けて捨て札に入り、魔力が減る", () => {

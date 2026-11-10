@@ -202,6 +202,46 @@ describe("eventLine", () => {
     );
   });
 
+  it("魔力を得たイベントと、サイコロの個数が変わったイベントを出す", () => {
+    assert.equal(
+      eventLine(
+        event(19, {
+          __typename: "MatchMagicGainedEvent",
+          participant: 0,
+          magic: 200,
+        }),
+        names,
+      ),
+      "版 19 部屋用: 魔力を得た（魔力 +200）",
+    );
+    assert.equal(
+      eventLine(
+        event(20, {
+          __typename: "MatchDiceCountChangedEvent",
+          participant: 0,
+          count: 2,
+        }),
+        names,
+      ),
+      "版 20 部屋用: このターンはサイコロを 2 個同時に振る",
+    );
+  });
+
+  it("複数のサイコロを振ったイベントは、1 個ずつの目と合計を出す", () => {
+    assert.equal(
+      eventLine(
+        event(21, {
+          __typename: "MatchDiceRolledEvent",
+          participant: 0,
+          value: 8,
+          dice: [3, 5],
+        }),
+        names,
+      ),
+      "版 21 部屋用: サイコロ 3 + 5 = 8",
+    );
+  });
+
   it("スペルを使ったイベントは、スペルの名前と払った魔力を出す", () => {
     assert.equal(
       eventLine(

@@ -184,6 +184,12 @@ export const matchDebugQuery = graphql(`
                 ... on SpellDrawCardsEffect {
                   count
                 }
+                ... on SpellGainMagicEffect {
+                  perLap
+                }
+                ... on SpellRollDiceEffect {
+                  count
+                }
               }
             }
           }
@@ -263,6 +269,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -312,6 +324,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -340,6 +358,12 @@ export const matchDebugEventsQuery = graphql(`
                 effect {
                   __typename
                   ... on SpellDrawCardsEffect {
+                    count
+                  }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
                     count
                   }
                 }
@@ -378,6 +402,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -411,6 +441,12 @@ export const matchDebugEventsQuery = graphql(`
                 effect {
                   __typename
                   ... on SpellDrawCardsEffect {
+                    count
+                  }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
                     count
                   }
                 }
@@ -507,6 +543,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -593,6 +635,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -621,6 +669,12 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellDrawCardsEffect {
                     count
                   }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
                 }
               }
             }
@@ -641,6 +695,15 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchDiceRolledEvent {
             participant
             value
+            dice
+          }
+          ... on MatchMagicGainedEvent {
+            participant
+            magic
+          }
+          ... on MatchDiceCountChangedEvent {
+            participant
+            count
           }
           ... on MatchMovedEvent {
             participant

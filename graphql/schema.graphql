@@ -2032,6 +2032,31 @@ type MatchDeployedCreature {
 	hitPoints: Int!
 }
 """
+スペルの効果で、このターンに振るサイコロの個数が変わった（count 個を同時に振り、合計の分だけ進む）
+"""
+type MatchDiceCountChangedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	使った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	このターンに振るサイコロの個数（2 以上）
+	"""
+	count: Int!
+}
+"""
 サイコロを振った
 """
 type MatchDiceRolledEvent implements MatchEvent {
@@ -2052,9 +2077,13 @@ type MatchDiceRolledEvent implements MatchEvent {
 	"""
 	participant: Int!
 	"""
-	出た目
+	出た目（複数のサイコロを同時に振ったときは合計。進む歩数）
 	"""
 	value: Int!
+	"""
+	複数のサイコロを同時に振ったときの 1 個ずつの目（振った順。合計が value）。1 個のときは空
+	"""
+	dice: [Int!]!
 }
 """
 山札が空のまま引くときに、捨て札を混ぜて山札にした（並びは見せない）
@@ -2484,6 +2513,31 @@ type MatchMagicDepletedEvent implements MatchEvent {
 	participant: Int!
 	"""
 	与えられた魔力（開始時の魔力）
+	"""
+	magic: Int!
+}
+"""
+スペルの効果で魔力を得た
+"""
+type MatchMagicGainedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	得た参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	得た魔力
 	"""
 	magic: Int!
 }
@@ -4319,7 +4373,25 @@ type SpellDrawCardsEffect {
 """
 スペルの効果（種類は __typename で見分ける）
 """
-union SpellEffect = SpellDrawCardsEffect
+union SpellEffect = SpellDrawCardsEffect | SpellGainMagicEffect | SpellRollDiceEffect
+"""
+魔力を得る効果（使った人が（周回数 + 1）× perLap の魔力を得る。周回数はその対戦で周回を終えた回数）
+"""
+type SpellGainMagicEffect {
+	"""
+	周回数 1 つあたりの魔力（1 以上）
+	"""
+	perLap: Int!
+}
+"""
+サイコロを複数振る効果（使った人は、そのターンのサイコロを count 個同時に振り、合計の分だけ進む）
+"""
+type SpellRollDiceEffect {
+	"""
+	振るサイコロの個数（2 以上）
+	"""
+	count: Int!
+}
 """
 スターターの配布の状態
 """

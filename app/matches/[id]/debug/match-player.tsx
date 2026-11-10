@@ -588,7 +588,11 @@ function FrameView({
         <span>
           サイコロの目:{" "}
           <span data-testid="match-dice">
-            {frame.dice ?? "まだ振っていません"}
+            {frame.dice === null
+              ? "まだ振っていません"
+              : frame.diceFaces.length > 1
+                ? `${frame.diceFaces.join(" + ")} = ${frame.dice}`
+                : frame.dice}
           </span>
         </span>
         <span>
