@@ -8,6 +8,7 @@ import {
   ITEM_CATEGORY_LABELS,
   itemBonusesLabel,
   RARITY_LABELS,
+  spellEffectLabel,
 } from "../../messages";
 
 const cardQuery = graphql(`
@@ -30,6 +31,14 @@ const cardQuery = graphql(`
         category
         attackBonus
         hitPointsBonus
+      }
+      ... on SpellCardInfo {
+        effect {
+          __typename
+          ... on SpellDrawCardsEffect {
+            count
+          }
+        }
       }
     }
   }
@@ -118,6 +127,12 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{ITEM_CATEGORY_LABELS[card.category]}</dd>
             <dt>増減</dt>
             <dd>{itemBonusesLabel(card.attackBonus, card.hitPointsBonus)}</dd>
+          </>
+        )}
+        {card.__typename === "SpellCardInfo" && (
+          <>
+            <dt>効果</dt>
+            <dd>{spellEffectLabel(card.effect)}</dd>
           </>
         )}
       </dl>

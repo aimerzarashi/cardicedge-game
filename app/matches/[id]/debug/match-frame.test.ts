@@ -523,6 +523,29 @@ describe("applyEvent", () => {
     ]);
   });
 
+  it("スペルを使うと手札から抜けて捨て札に入り、魔力が減る", () => {
+    const next = applyEvent(
+      frame(),
+      event("MatchSpellUsedEvent", {
+        handIndex: 0,
+        card: {
+          ...DRAGON,
+          __typename: "SpellCardInfo",
+          id: "s1",
+          name: "ホープ",
+        },
+        cost: 40,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[1].hand, []);
+    assert.deepEqual(next.participants[1].discardPile, [
+      { id: "s1", name: "ホープ" },
+    ]);
+    assert.equal(next.participants[1].magic, 560);
+    assert.equal(next.participants[0].magic, 600);
+  });
+
   it("捨て札を混ぜると捨て札が空になり、その枚数が山札になる", () => {
     const discarded = frame();
     discarded.participants[1] = {

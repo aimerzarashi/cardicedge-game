@@ -106,6 +106,8 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.cost ?? 0,
       );
+    case "MatchSpellUsedEvent":
+      return m.spellUsed(event.card?.name ?? "", event.cost ?? 0);
     case "MatchItemUsedEvent":
       return m.itemUsed(event.card?.name ?? "", event.cost ?? 0);
     case "MatchItemSkippedEvent":

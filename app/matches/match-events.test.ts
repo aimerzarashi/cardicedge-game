@@ -202,6 +202,21 @@ describe("eventLine", () => {
     );
   });
 
+  it("スペルを使ったイベントは、スペルの名前と払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(18, {
+          __typename: "MatchSpellUsedEvent",
+          participant: 0,
+          card: { name: "ホープ" },
+          cost: 40,
+        }),
+        names,
+      ),
+      "版 18 部屋用: スペル「ホープ」を使った（魔力 -40）",
+    );
+  });
+
   it("通行料は、受け取った人の名前・位置・払った魔力を出す", () => {
     assert.equal(
       eventLine(

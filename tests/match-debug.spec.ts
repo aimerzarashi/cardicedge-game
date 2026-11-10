@@ -6,6 +6,8 @@ import {
   decideSeats,
   matchOperations,
   openNewRoom,
+  reloadUntilVisible,
+  seatItem,
 } from "./room-flow";
 
 test("デバッグの画面は、再生が追いつくまで操作を出さず、配置まで進めると領地が出て、最後のフレームが開き直した状態と同じになり、部屋からも開ける", async ({
@@ -193,4 +195,56 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
   await expect(events).toContainText("攻める側の攻撃");
   await expect(events).toContainText(/を奪った|侵略に失敗した/);
   await expect(page.getByTestId("match-invasion")).toBeHidden();
+});
+
+test("振る前に手札のスペルを使うと、コストを払ってカードを引き、そのターンはもう使えない", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+  await openNewRoom(page, request, "match-spell");
+  await decideSeats(page);
+  await decideRules(page);
+  // 水のデッキに、カードを 1 枚引くスペル E（コスト 10）が 1 枚入っている（local/core-master/master.sql）
+  await reloadUntilVisible(page, seatItem(page, 0).getByLabel("デッキ"));
+  await seatItem(page, 0).getByLabel("デッキ").selectOption({ label: "水" });
+  await seatItem(page, 0)
+    .getByRole("button", { name: "席 1 を決める" })
+    .click();
+  await expect(seatItem(page, 0)).toContainText("デッキ: 水");
+  await decideNpcSeat(page);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
+
+  const frame = page.getByTestId("match-frame");
+  const useSpell = page.getByRole("button", { name: "Eを使う" });
+  const operations = matchOperations(page);
+  // デッキは 7 枚なので、2 ターン目までに E が手札に来る
+  for (let step = 0; step < 40; step++) {
+    await expect(useSpell.or(operations).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await useSpell.isVisible()) {
+      break;
+    }
+    const revision = await frame.getAttribute("data-revision");
+    await operations.first().click();
+    await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
+  }
+  await expect(page.getByTestId("match-phase")).toContainText("サイコロを振る");
+
+  const revision = await frame.getAttribute("data-revision");
+  await useSpell.click();
+  await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
+
+  const events = page.getByTestId("match-events");
+  await expect(events).toContainText("スペル「E」を使った（魔力 -10）");
+  // 続けて 1 枚引き、振る段階のまま。スペルは 1 ターンに 1 枚までなので、使うボタンは消える
+  await expect(events.getByRole("listitem").first()).toContainText("を引いた");
+  await expect(
+    page.getByRole("button", { name: "サイコロを振る" }),
+  ).toBeVisible();
+  await expect(useSpell).toHaveCount(0);
 });

@@ -1541,6 +1541,10 @@ type Match {
 	"""
 	pathChoices: [BoardPosition!]!
 	"""
+	今の番の人が使えるスペルの手札の番号（0 始まり。手札の順。ROLLING で、このターンにまだ使っていないときだけ中身がある）
+	"""
+	spellChoices: [Int!]!
+	"""
 	今の番の人が配置できる手札の番号（0 始まり。手札の順。DEPLOYING のときだけ中身がある。DEPLOYING でも配置できるものが無ければ空）
 	"""
 	deployChoices: [Int!]!
@@ -2866,6 +2870,39 @@ type MatchRules {
 	startingHandCards: Int!
 }
 """
+サイコロを振る前に、手札のスペルを使った（効果は続くイベント。スペルは捨て札に入る）
+"""
+type MatchSpellUsedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	使った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	使った手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	使ったカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
+	"""
+	払った魔力
+	"""
+	cost: Int!
+}
+"""
 地形効果（効いた土地）
 """
 type MatchTerrainSource {
@@ -3276,6 +3313,10 @@ type Mutation {
 	通った自分の領地の土地の属性を変える（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	changeMatchLandElement(input: ChangeMatchLandElementInput!): ChangeMatchLandElementResult!
+	"""
+	サイコロを振る前に、手札のスペルを使う（1 ターンに 1 枚まで。コストの分の魔力を払う）
+	"""
+	useMatchSpell(input: UseMatchSpellInput!): UseMatchSpellResult!
 	"""
 	止まった他人の領地を、手札のクリーチャーで侵略する（選んだ時点で確定し、コストの分の魔力を払う）
 	"""
@@ -4261,7 +4302,24 @@ type SpellCardInfo implements CardInfo {
 	希少度
 	"""
 	rarity: CardRarity!
+	"""
+	効果（効果が無ければ null。効果の無いスペルは、対戦で使えない）
+	"""
+	effect: SpellEffect
 }
+"""
+カードを引く効果（山札の先頭から引く。山札が空なら捨て札を混ぜてから）
+"""
+type SpellDrawCardsEffect {
+	"""
+	引く枚数（1 以上）
+	"""
+	count: Int!
+}
+"""
+スペルの効果（種類は __typename で見分ける）
+"""
+union SpellEffect = SpellDrawCardsEffect
 """
 スターターの配布の状態
 """
@@ -4293,6 +4351,40 @@ type Subscription {
 公開用の ID（UUID の文字列）。core の内部の ID は返さない
 """
 scalar UUID
+"""
+サイコロを振る前にスペルを使う入力
+"""
+input UseMatchSpellInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	使うスペルの手札の番号（0 始まり。Match.spellChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で使えないものは FieldNotFound）
+	"""
+	handIndex: Int!
+}
+"""
+useMatchSpell の結果（ROLLING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union UseMatchSpellResult = UseMatchSpellSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+スペルを使った（コストを払い、効果を当て、スペルは捨て札に入る。続けてサイコロを振る。成功したら対戦の revision が進む）
+"""
+type UseMatchSpellSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
 """
 入力の誤り（操作は行われていない）
 """

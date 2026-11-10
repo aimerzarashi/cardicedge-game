@@ -7,6 +7,7 @@ import {
   RULE_LABELS,
   type RuleField,
   ruleStep,
+  spellEffectLabel,
 } from "./messages.ts";
 
 describe("ruleStep", () => {
@@ -63,5 +64,18 @@ describe("matchNumberLabel", () => {
       "2 戦目",
       "10 戦目",
     ]);
+  });
+});
+
+describe("spellEffectLabel", () => {
+  it("効果の種類ごとに、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "SpellDrawCardsEffect", count: 1 }),
+      "カードを 1 枚引く",
+    );
+  });
+
+  it("効果なし（null）は「なし」と出す", () => {
+    assert.equal(spellEffectLabel(null), "なし");
   });
 });

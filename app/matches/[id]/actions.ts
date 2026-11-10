@@ -27,6 +27,7 @@ import {
   payMatchTollMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
+  useMatchSpellMutation,
 } from "../operations";
 
 export type MatchActionState = { error?: string };
@@ -139,6 +140,24 @@ export async function chooseMatchPath(
   });
   return result.ok
     ? finish(result.data.chooseMatchPath)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function useMatchSpell(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(useMatchSpellMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.useMatchSpell)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
