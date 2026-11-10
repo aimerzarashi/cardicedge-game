@@ -96,7 +96,13 @@ export function itemBonusesLabel(
 // スペルの効果の表示。種類は core が返した __typename で見分け、効果なし（null）は「なし」（studio の messages.ts と同じ）
 export function spellEffectLabel(
   effect:
-    | { __typename?: string; count?: number; perLap?: number }
+    | {
+        __typename?: string;
+        count?: number;
+        perLap?: number;
+        value?: number;
+        turns?: number;
+      }
     | null
     | undefined,
 ): string {
@@ -107,6 +113,8 @@ export function spellEffectLabel(
       return `（周回数 + 1）× ${effect.perLap} の魔力を得る`;
     case "SpellRollDiceEffect":
       return `サイコロを ${effect.count} 個同時に振る`;
+    case "SpellFixedDiceCurseEffect":
+      return `対象の次のサイコロの目を ${effect.value} にする呪い（${effect.turns} ターン）`;
     default:
       return "なし";
   }
@@ -314,10 +322,15 @@ export const MATCH_EVENT_MESSAGES = {
     `捨て札 ${cards} 枚を混ぜて山札にした`,
   handLimitExceeded: "手札が上限を超えたので、ターンを終える前に捨てる",
   // 複数のサイコロを同時に振ったときは 1 個ずつの目と合計（1 個のときは目だけ）
-  diceRolled: (value: number, dice: number[] = []) =>
-    dice.length > 1
-      ? `サイコロ ${dice.join(" + ")} = ${value}`
-      : `サイコロ ${value}`,
+  diceRolled: (value: number, dice: number[] = [], fixedByCurse = false) =>
+    fixedByCurse
+      ? `サイコロ ${value}（呪いで決まった目）`
+      : dice.length > 1
+        ? `サイコロ ${dice.join(" + ")} = ${value}`
+        : `サイコロ ${value}`,
+  curseCast: (target: string, value: number, turns: number) =>
+    `${target}に呪い「次のサイコロは ${value}」（${turns} ターン）をかけた`,
+  curseRemoved: "呪いが解けた",
   magicGained: (magic: number) => `魔力を得た（魔力 +${magic}）`,
   diceCountChanged: (count: number) =>
     `このターンはサイコロを ${count} 個同時に振る`,
@@ -410,3 +423,12 @@ export const MATCH_REVIEW_MESSAGES = {
   rewardCards: (cards: string) => `戦利品: ${cards}`,
   backToRoom: "部屋に戻る",
 };
+
+// 参加者にかかっている呪いの表示（無ければ「なし」）
+export function curseLabel(
+  curse: { value: number; remainingTurns: number } | null,
+): string {
+  return curse
+    ? `次のサイコロは ${curse.value}（残り ${curse.remainingTurns} ターン）`
+    : "なし";
+}

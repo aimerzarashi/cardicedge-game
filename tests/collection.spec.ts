@@ -1,9 +1,9 @@
 import { login, seedPlayer, signUpAndVerify } from "./account";
 import { expect, test } from "./fixtures";
 
-// マスタ（local/core-master/master.sql）のスターターデッキは 火（A 4・B 3）と 水（A 2・B 3・C 1・E 1）で、所持品はデッキを作れる枚数
-// （カードごとに多いほうの枚数。A 4・B 3・C 1・E 1。startergrant の collectionOf）。A・B・C はクリーチャーで、性能は
-// A（10・N）・B（20・S）・C（30・R）。E はスペル（10・N・カードを 1 枚引く）
+// マスタ（local/core-master/master.sql）のスターターデッキは 火（A 4・B 3）と 水（A 2・B 2・C 1・E 1・F 1）で、所持品はデッキを作れる枚数
+// （カードごとに多いほうの枚数。A 4・B 3・C 1・E 1・F 1。startergrant の collectionOf）。A・B・C はクリーチャーで、性能は
+// A（10・N）・B（20・S）・C（30・R）。E・F はスペル（10・N。E はカードを 1 枚引く、F は次の目を 6 にする呪い）
 
 test("スターターを受け取ると所持カードに枚数つきで出て、種類で絞れ、カード名から詳細へ移れる", async ({
   page,
@@ -19,13 +19,14 @@ test("スターターを受け取ると所持カードに枚数つきで出て�
   const rows = page.locator("tbody tr");
   await expect(async () => {
     await page.reload();
-    await expect(rows).toHaveCount(4, { timeout: 1000 });
+    await expect(rows).toHaveCount(5, { timeout: 1000 });
   }).toPass({ timeout: 30_000 });
 
   await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*10\s*N\s*4/);
   await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*20\s*S\s*3/);
   await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*1/);
   await expect(rows.nth(3)).toHaveText(/E\s*スペル\s*10\s*N\s*1/);
+  await expect(rows.nth(4)).toHaveText(/F\s*スペル\s*10\s*N\s*1/);
 
   await page.getByLabel("アイテム").check();
   await page.getByRole("button", { name: "絞り込む" }).click();

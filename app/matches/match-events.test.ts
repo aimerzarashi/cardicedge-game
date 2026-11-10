@@ -227,6 +227,40 @@ describe("eventLine", () => {
     );
   });
 
+  it("呪いのイベントは、かけられた人の名前と決まる目・ターン数、呪いで決まった目を出す", () => {
+    assert.equal(
+      eventLine(
+        event(22, {
+          __typename: "MatchCurseCastEvent",
+          participant: 0,
+          target: 1,
+          curse: { remainingTurns: 1, effect: { value: 6 } },
+        }),
+        names,
+      ),
+      `版 22 部屋用: ${names[1]}に呪い「次のサイコロは 6」（1 ターン）をかけた`,
+    );
+    assert.equal(
+      eventLine(
+        event(23, {
+          __typename: "MatchDiceRolledEvent",
+          participant: 0,
+          value: 6,
+          fixedByCurse: true,
+        }),
+        names,
+      ),
+      "版 23 部屋用: サイコロ 6（呪いで決まった目）",
+    );
+    assert.equal(
+      eventLine(
+        event(24, { __typename: "MatchCurseRemovedEvent", participant: 0 }),
+        names,
+      ),
+      "版 24 部屋用: 呪いが解けた",
+    );
+  });
+
   it("複数のサイコロを振ったイベントは、1 個ずつの目と合計を出す", () => {
     assert.equal(
       eventLine(

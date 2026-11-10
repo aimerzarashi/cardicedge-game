@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   continuesLabel,
+  curseLabel,
   fieldErrorMessage,
   matchNumberLabel,
   RULE_LABELS,
@@ -88,5 +89,15 @@ describe("spellEffectLabel", () => {
       spellEffectLabel({ __typename: "SpellRollDiceEffect", count: 2 }),
       "サイコロを 2 個同時に振る",
     );
+  });
+});
+
+describe("curseLabel", () => {
+  it("かかっている呪いは決まる目と残りのターン、無ければ「なし」", () => {
+    assert.equal(
+      curseLabel({ value: 6, remainingTurns: 1 }),
+      "次のサイコロは 6（残り 1 ターン）",
+    );
+    assert.equal(curseLabel(null), "なし");
   });
 });

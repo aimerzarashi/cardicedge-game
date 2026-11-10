@@ -13,6 +13,7 @@ import { BoardGrid } from "../../../boards/board-grid";
 import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
 import {
+  curseLabel,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
   itemBonusesLabel,
@@ -124,8 +125,11 @@ export type MatchPlayerOperations = {
   // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
   awaitingParticipant: number | null;
   pathChoices: { x: number; y: number }[];
-  // 振る前に使えるスペルの手札の番号（core の spellChoices）
-  spellChoices: number[];
+  // 振る前に使えるスペル（core の spellChoices）。呪いは選べる対象（名前つき）があり、対象ごとにボタンを出す
+  spellChoices: {
+    handIndex: number;
+    targets: { index: number; name: string }[];
+  }[];
   deployChoices: number[];
   invadeChoices: number[];
   itemChoices: number[];
@@ -481,16 +485,29 @@ function Operations({
           </MatchActionButton>
         ))}
       {latest.phase === "ROLLING" &&
-        operations.spellChoices.map((handIndex) => (
-          <MatchActionButton
-            key={handIndex}
-            action={useMatchSpell}
-            values={{ handIndex }}
-            {...actionProps}
-          >
-            {hand[handIndex]?.name}を使う
-          </MatchActionButton>
-        ))}
+        operations.spellChoices.flatMap(({ handIndex, targets }) =>
+          targets.length === 0
+            ? [
+                <MatchActionButton
+                  key={handIndex}
+                  action={useMatchSpell}
+                  values={{ handIndex }}
+                  {...actionProps}
+                >
+                  {hand[handIndex]?.name}を使う
+                </MatchActionButton>,
+              ]
+            : targets.map((target) => (
+                <MatchActionButton
+                  key={`${handIndex}:${target.index}`}
+                  action={useMatchSpell}
+                  values={{ handIndex, target: target.index }}
+                  {...actionProps}
+                >
+                  {hand[handIndex]?.name}を{target.name}に使う
+                </MatchActionButton>
+              )),
+        )}
       {latest.phase === "ROLLING" && (
         <MatchActionButton action={rollMatchDice} {...actionProps}>
           サイコロを振る
@@ -707,6 +724,12 @@ function FrameView({
                       data-testid="participant-draw-pile"
                     >
                       {participant.drawPileCount}
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
+                    <dt>呪い</dt>
+                    <dd style={{ margin: 0 }} data-testid="participant-curse">
+                      {curseLabel(participant.curse)}
                     </dd>
                   </div>
                   <div style={PAIR_STYLE}>

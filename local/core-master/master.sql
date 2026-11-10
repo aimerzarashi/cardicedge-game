@@ -8,11 +8,12 @@ INSERT INTO cards (card_id, card_type, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-00000000000b', 1, 'b', 'published', '{"id":"00000000-0000-4000-8000-00000000000b","name":"B","status":"published","cost":20,"rarity":"strange","creature":{"elements":["water"],"attack":20,"hit_points":30,"movement":1}}'),
   ('00000000-0000-4000-8000-00000000000c', 1, 'c', 'published', '{"id":"00000000-0000-4000-8000-00000000000c","name":"C","status":"published","cost":30,"rarity":"rare","creature":{"elements":["fire","water"],"attack":30,"hit_points":40,"movement":2}}'),
   ('00000000-0000-4000-8000-00000000000d', 2, 'd', 'published', '{"id":"00000000-0000-4000-8000-00000000000d","name":"D","status":"published","cost":15,"rarity":"normal","item":{"category":"armor","attack_bonus":-5,"hit_points_bonus":25}}'),
-  ('00000000-0000-4000-8000-00000000000e', 3, 'e', 'published', '{"id":"00000000-0000-4000-8000-00000000000e","name":"E","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"draw_cards":{"count":1}}}}');
+  ('00000000-0000-4000-8000-00000000000e', 3, 'e', 'published', '{"id":"00000000-0000-4000-8000-00000000000e","name":"E","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"draw_cards":{"count":1}}}}'),
+  ('00000000-0000-4000-8000-00000000000f', 3, 'f', 'published', '{"id":"00000000-0000-4000-8000-00000000000f","name":"F","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"fixed_dice_curse":{"value":6,"turns":1}}}}');
 
 INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata) VALUES
   ('00000000-0000-4000-8000-0000000000d1', '1', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d1","name":"火","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":4},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3}]}'),
-  ('00000000-0000-4000-8000-0000000000d2', '2', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d2","name":"水","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":2},{"card_id":"00000000-0000-4000-8000-00000000000b","count":3},{"card_id":"00000000-0000-4000-8000-00000000000c","count":1},{"card_id":"00000000-0000-4000-8000-00000000000e","count":1}]}');
+  ('00000000-0000-4000-8000-0000000000d2', '2', 'published', 7, '{"id":"00000000-0000-4000-8000-0000000000d2","name":"水","status":"published","cards":[{"card_id":"00000000-0000-4000-8000-00000000000a","count":2},{"card_id":"00000000-0000-4000-8000-00000000000b","count":2},{"card_id":"00000000-0000-4000-8000-00000000000c","count":1},{"card_id":"00000000-0000-4000-8000-00000000000e","count":1},{"card_id":"00000000-0000-4000-8000-00000000000f","count":1}]}');
 
 -- 値は core の gamerules.Defaults()
 INSERT INTO game_rules (game_rules_id, metadata) VALUES

@@ -37,6 +37,8 @@ export type FrameParticipant = {
   drawPileCount: number;
   // 捨て札（入った順）。山札が空のまま引くときに混ぜて山札になる
   discardPile: FrameDiscardedCard[];
+  // かかっている呪い（今は次のサイコロの目を決めるものだけ。無ければ null）
+  curse: FrameCurse | null;
   turnOrder: number;
   passedCheckpoints: Position[];
   rewardReceived: boolean;
@@ -44,6 +46,8 @@ export type FrameParticipant = {
 };
 
 export type FrameDiscardedCard = { id: string; name: string };
+
+export type FrameCurse = { value: number; remainingTurns: number };
 
 export type FrameTerritory = {
   position: Position;
@@ -148,6 +152,8 @@ export type PlayEvent = {
   hitPoints?: number;
   drawPileCount?: number;
   dice?: number[];
+  target?: number;
+  curse?: { remainingTurns: number; effect?: { value?: number } };
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -213,7 +219,21 @@ function territoryAt(
 }
 
 // 順番は core が turnOrder で返した値の小さい順。一周したら次のラウンド
+// 終えた人の呪いは、残りのターンが 1 減る（最後のターンは、先に呪いが解けたイベントで消えている）
 function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
+  const passed = updateParticipant(frame, seat, (participant) => ({
+    ...participant,
+    curse: participant.curse
+      ? {
+          ...participant.curse,
+          remainingTurns: participant.curse.remainingTurns - 1,
+        }
+      : null,
+  }));
+  return nextTurn(passed, seat);
+}
+
+function nextTurn(frame: MatchFrame, seat: number): MatchFrame {
   const order = frame.participants
     .map((participant, index) => ({ index, turn: participant.turnOrder }))
     .sort((a, b) => a.turn - b.turn)
@@ -396,6 +416,22 @@ function applyFact(
         invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
       };
     }
+    case "MatchCurseCastEvent": {
+      const { curse, target } = event;
+      if (!curse || target === undefined) return frame;
+      return updateParticipant(frame, target, (participant) => ({
+        ...participant,
+        curse: {
+          value: curse.effect?.value ?? 0,
+          remainingTurns: curse.remainingTurns,
+        },
+      }));
+    }
+    case "MatchCurseRemovedEvent":
+      return updateParticipant(frame, seat, (participant) => ({
+        ...participant,
+        curse: null,
+      }));
     case "MatchMagicGainedEvent":
       return updateParticipant(frame, seat, (participant) => ({
         ...participant,

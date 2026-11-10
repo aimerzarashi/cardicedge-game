@@ -73,7 +73,18 @@ export default async function MatchDebugPage({
     diceFaces: [],
     remainingSteps: match.remainingSteps,
     currentParticipant: match.currentParticipant ?? null,
-    participants: match.participants,
+    participants: match.participants.map((participant) => ({
+      ...participant,
+      curse: participant.curse
+        ? {
+            value:
+              participant.curse.effect.__typename === "MatchFixedDiceCurse"
+                ? participant.curse.effect.value
+                : 0,
+            remainingTurns: participant.curse.remainingTurns,
+          }
+        : null,
+    })),
     territories: match.territories,
     invasion: match.invasion ?? null,
     // 戦闘は 1 回の操作の中で終わるので、開いた時点の状態には無い
@@ -89,7 +100,13 @@ export default async function MatchDebugPage({
     invadeChoices: match.invadeChoices,
     itemChoices: match.itemChoices,
     pathChoices: match.pathChoices,
-    spellChoices: match.spellChoices,
+    spellChoices: match.spellChoices.map((choice) => ({
+      handIndex: choice.handIndex,
+      targets: choice.targets.map((target) => ({
+        index: target,
+        name: match.participants[target]?.avatar.name ?? "",
+      })),
+    })),
     deployChoices: match.deployChoices,
     relinquishChoices: match.relinquishChoices.map((position) => {
       const territory = match.territories.find(

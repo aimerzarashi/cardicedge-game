@@ -50,7 +50,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   const packButton = page.getByRole("button", { name: /を選ぶ$/ });
   await packButton.click();
   await expect(page.getByTestId("review-reward-cards")).toHaveText(
-    /戦利品: (A|B|C|D|E)(、(A|B|C|D|E))*$/,
+    /戦利品: (A|B|C|D|E|F)(、(A|B|C|D|E|F))*$/,
   );
   await expect(packButton).toHaveCount(0);
   await expect(

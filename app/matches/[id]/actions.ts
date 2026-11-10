@@ -153,8 +153,10 @@ export async function useMatchSpell(
   if (id === undefined || revision === undefined || handIndex === undefined) {
     return BAD_FORM;
   }
+  // 呪いのスペルだけ、対象のプレイヤーを送る
+  const target = integer(form, "target");
   const result = await callCore(useMatchSpellMutation, {
-    input: { id, revision, handIndex },
+    input: { id, revision, handIndex, target },
   });
   return result.ok
     ? finish(result.data.useMatchSpell)
