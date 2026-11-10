@@ -19,6 +19,7 @@ export type FrameCard = {
   elements?: CreatureElement[];
   attack?: number;
   hitPoints?: number;
+  movement?: number;
   category?: ItemCategory;
   attackBonus?: number;
   hitPointsBonus?: number;

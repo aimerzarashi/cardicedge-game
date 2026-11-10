@@ -645,7 +645,7 @@ function FrameView({
                             <Link href={`/cards/${card.id}`}>{card.name}</Link>
                             （コスト {card.cost}・{RARITY_LABELS[card.rarity]}
                             {card.elements &&
-                              `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
+                              `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}・移動 ${card.movement}`}
                             {card.category &&
                               `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
                             ）

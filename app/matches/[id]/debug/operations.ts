@@ -153,6 +153,7 @@ export const matchDebugQuery = graphql(`
               elements
               attack
               hitPoints
+              movement
             }
             ... on ItemCardInfo {
               category
@@ -219,6 +220,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -240,6 +242,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -261,6 +264,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -288,6 +292,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -314,6 +319,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -394,6 +400,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -447,6 +454,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category
@@ -466,6 +474,7 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
+                movement
               }
               ... on ItemCardInfo {
                 category

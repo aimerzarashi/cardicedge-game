@@ -863,6 +863,10 @@ type CreatureCardInfo implements CardInfo {
 	体力（HP）
 	"""
 	hitPoints: Int!
+	"""
+	移動（領地コマンドのクリーチャーの移動で進めるマスの数。0 は動けない）
+	"""
+	movement: Int!
 }
 """
 クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独
