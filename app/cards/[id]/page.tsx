@@ -24,6 +24,7 @@ const cardQuery = graphql(`
         elements
         attack
         hitPoints
+        movement
       }
       ... on ItemCardInfo {
         category
@@ -107,6 +108,8 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{card.attack}</dd>
             <dt>HP</dt>
             <dd>{card.hitPoints}</dd>
+            <dt>移動</dt>
+            <dd>{card.movement}</dd>
           </>
         )}
         {card.__typename === "ItemCardInfo" && (
