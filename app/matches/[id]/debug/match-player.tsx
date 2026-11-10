@@ -415,6 +415,60 @@ function StopOperations({
   );
 }
 
+// 振る前に使えるスペル。対象の要るスペル（呪い）は、スペルを選んでから対象を選ぶ 2 段にする（2026-11-10 オーナー）
+function SpellOperations({
+  choices,
+  hand,
+  actionProps,
+}: {
+  choices: MatchPlayerOperations["spellChoices"];
+  hand: FrameCard[];
+  actionProps: { id: string; revision: number };
+}) {
+  const [chosen, setChosen] = useState<number | null>(null);
+  const choice = choices.find((candidate) => candidate.handIndex === chosen);
+  if (choice) {
+    return (
+      <>
+        <span>{hand[choice.handIndex]?.name}を誰に使いますか</span>
+        {choice.targets.map((target) => (
+          <MatchActionButton
+            key={target.index}
+            action={useMatchSpell}
+            values={{ handIndex: choice.handIndex, target: target.index }}
+            {...actionProps}
+          >
+            {target.name}に使う
+          </MatchActionButton>
+        ))}
+        <button type="button" onClick={() => setChosen(null)}>
+          やめる
+        </button>
+      </>
+    );
+  }
+  return choices.map(({ handIndex, targets }) =>
+    targets.length === 0 ? (
+      <MatchActionButton
+        key={handIndex}
+        action={useMatchSpell}
+        values={{ handIndex }}
+        {...actionProps}
+      >
+        {hand[handIndex]?.name}を使う
+      </MatchActionButton>
+    ) : (
+      <button
+        key={handIndex}
+        type="button"
+        onClick={() => setChosen(handIndex)}
+      >
+        {hand[handIndex]?.name}を使う
+      </button>
+    ),
+  );
+}
+
 function Operations({
   id,
   latest,
@@ -484,30 +538,15 @@ function Operations({
             {card.name}を捨てる
           </MatchActionButton>
         ))}
-      {latest.phase === "ROLLING" &&
-        operations.spellChoices.flatMap(({ handIndex, targets }) =>
-          targets.length === 0
-            ? [
-                <MatchActionButton
-                  key={handIndex}
-                  action={useMatchSpell}
-                  values={{ handIndex }}
-                  {...actionProps}
-                >
-                  {hand[handIndex]?.name}を使う
-                </MatchActionButton>,
-              ]
-            : targets.map((target) => (
-                <MatchActionButton
-                  key={`${handIndex}:${target.index}`}
-                  action={useMatchSpell}
-                  values={{ handIndex, target: target.index }}
-                  {...actionProps}
-                >
-                  {hand[handIndex]?.name}を{target.name}に使う
-                </MatchActionButton>
-              )),
-        )}
+      {latest.phase === "ROLLING" && (
+        // 版が進んだら選びかけの対象は捨てる（前の版の選択肢で送らないため）
+        <SpellOperations
+          key={latest.revision}
+          choices={operations.spellChoices}
+          hand={hand}
+          actionProps={actionProps}
+        />
+      )}
       {latest.phase === "ROLLING" && (
         <MatchActionButton action={rollMatchDice} {...actionProps}>
           サイコロを振る
