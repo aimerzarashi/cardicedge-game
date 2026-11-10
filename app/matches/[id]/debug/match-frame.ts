@@ -82,6 +82,8 @@ export type MatchFrame = {
   // 操作を待っていない間（始まる前・移動の途中）は null
   phase: MatchPhase | null;
   dice: number | null;
+  // 複数のサイコロを同時に振ったときの 1 個ずつの目（1 個のとき・振る前・開いた時点は空）
+  diceFaces: number[];
   remainingSteps: number;
   currentParticipant: number | null;
   participants: FrameParticipant[];
@@ -145,6 +147,7 @@ export type PlayEvent = {
   attack?: number;
   hitPoints?: number;
   drawPileCount?: number;
+  dice?: number[];
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -222,6 +225,7 @@ function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
     currentParticipant: order[wraps ? 0 : next],
     round: frame.round + (wraps ? 1 : 0),
     dice: null,
+    diceFaces: [],
     remainingSteps: 0,
   };
 }
@@ -322,6 +326,7 @@ function applyFact(
       return {
         ...frame,
         dice: event.value ?? 0,
+        diceFaces: event.dice ?? [],
         remainingSteps: event.value ?? 0,
       };
     case "MatchMovedEvent": {
@@ -391,6 +396,11 @@ function applyFact(
         invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
       };
     }
+    case "MatchMagicGainedEvent":
+      return updateParticipant(frame, seat, (participant) => ({
+        ...participant,
+        magic: participant.magic + magic,
+      }));
     case "MatchSpellUsedEvent":
       // 使ったスペルは捨て札に入る。効果は続くイベント（引いたカード等）で当たる
       return discarded(

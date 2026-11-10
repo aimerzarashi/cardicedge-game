@@ -38,6 +38,12 @@ const cardQuery = graphql(`
           ... on SpellDrawCardsEffect {
             count
           }
+          ... on SpellGainMagicEffect {
+            perLap
+          }
+          ... on SpellRollDiceEffect {
+            count
+          }
         }
       }
     }

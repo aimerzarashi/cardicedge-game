@@ -78,4 +78,15 @@ describe("spellEffectLabel", () => {
   it("効果なし（null）は「なし」と出す", () => {
     assert.equal(spellEffectLabel(null), "なし");
   });
+
+  it("魔力を得る・サイコロを複数振るも、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "SpellGainMagicEffect", perLap: 100 }),
+      "（周回数 + 1）× 100 の魔力を得る",
+    );
+    assert.equal(
+      spellEffectLabel({ __typename: "SpellRollDiceEffect", count: 2 }),
+      "サイコロを 2 個同時に振る",
+    );
+  });
 });

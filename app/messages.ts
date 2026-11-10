@@ -95,11 +95,18 @@ export function itemBonusesLabel(
 
 // スペルの効果の表示。種類は core が返した __typename で見分け、効果なし（null）は「なし」（studio の messages.ts と同じ）
 export function spellEffectLabel(
-  effect: { __typename?: string; count?: number } | null | undefined,
+  effect:
+    | { __typename?: string; count?: number; perLap?: number }
+    | null
+    | undefined,
 ): string {
   switch (effect?.__typename) {
     case "SpellDrawCardsEffect":
       return `カードを ${effect.count} 枚引く`;
+    case "SpellGainMagicEffect":
+      return `（周回数 + 1）× ${effect.perLap} の魔力を得る`;
+    case "SpellRollDiceEffect":
+      return `サイコロを ${effect.count} 個同時に振る`;
     default:
       return "なし";
   }
@@ -306,7 +313,14 @@ export const MATCH_EVENT_MESSAGES = {
   discardPileShuffled: (cards: number) =>
     `捨て札 ${cards} 枚を混ぜて山札にした`,
   handLimitExceeded: "手札が上限を超えたので、ターンを終える前に捨てる",
-  diceRolled: (value: number) => `サイコロ ${value}`,
+  // 複数のサイコロを同時に振ったときは 1 個ずつの目と合計（1 個のときは目だけ）
+  diceRolled: (value: number, dice: number[] = []) =>
+    dice.length > 1
+      ? `サイコロ ${dice.join(" + ")} = ${value}`
+      : `サイコロ ${value}`,
+  magicGained: (magic: number) => `魔力を得た（魔力 +${magic}）`,
+  diceCountChanged: (count: number) =>
+    `このターンはサイコロを ${count} 個同時に振る`,
   moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
   checkpointPassed: (x: number, y: number, magic: number) =>
     `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,

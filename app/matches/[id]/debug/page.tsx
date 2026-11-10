@@ -69,6 +69,8 @@ export default async function MatchDebugPage({
     round: match.round,
     phase: match.phase,
     dice: match.dice ?? null,
+    // 開いた時点の 1 個ずつの目は返らないので、合計だけを出す
+    diceFaces: [],
     remainingSteps: match.remainingSteps,
     currentParticipant: match.currentParticipant ?? null,
     participants: match.participants,
