@@ -271,8 +271,8 @@ test("呪いのスペルを相手に使うと、相手の欄に呪いが出て�
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
   const frame = page.getByTestId("match-frame");
-  // NPC（炎の剣士）にかける
-  const curse = page.getByRole("button", { name: "Fを炎の剣士に使う" });
+  // スペルを選んでから、対象の NPC（炎の剣士）を選ぶ
+  const curse = page.getByRole("button", { name: "Fを使う" });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
     await expect(curse.or(operations).first()).toBeVisible({
@@ -285,8 +285,14 @@ test("呪いのスペルを相手に使うと、相手の欄に呪いが出て�
     await operations.first().click();
     await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
   }
-  const revision = await frame.getAttribute("data-revision");
   await curse.click();
+  await expect(page.getByText("Fを誰に使いますか")).toBeVisible();
+  // やめると、スペルを選ぶところに戻る
+  await page.getByRole("button", { name: "やめる" }).click();
+  await expect(curse).toBeVisible();
+  await curse.click();
+  const revision = await frame.getAttribute("data-revision");
+  await page.getByRole("button", { name: "炎の剣士に使う" }).click();
   await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
 
   const events = page.getByTestId("match-events");
