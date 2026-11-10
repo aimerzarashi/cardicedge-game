@@ -40,6 +40,8 @@ export type MatchEventView = {
   };
   level?: number;
   returnedCard?: { name: string };
+  from?: { x: number; y: number };
+  returnedTo?: { x: number; y: number } | null;
   element?: BoardTileElement;
   attackDelta?: number;
   hitPointsDelta?: number;
@@ -130,9 +132,29 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
       );
     case "MatchInvasionRepelledEvent":
+      // 移動で侵略したときは手札に戻らず、元の領地に戻るか倒れる（returnedTo は移動で生き残ったときだけ届く）
+      if (event.returnedTo !== undefined && !event.returnedToHand) {
+        return event.returnedTo
+          ? m.movedInvasionRepelled(event.card?.name ?? "", true)
+          : m.invasionRepelled(event.card?.name ?? "", false);
+      }
       return m.invasionRepelled(
         event.card?.name ?? "",
         event.returnedToHand ?? false,
+      );
+    case "MatchCreatureMovedEvent":
+      return m.creatureMoved(
+        event.from?.x ?? 0,
+        event.from?.y ?? 0,
+        event.to?.x ?? 0,
+        event.to?.y ?? 0,
+      );
+    case "MatchTerritoryInvadedByMoveEvent":
+      return m.territoryInvadedByMove(
+        event.from?.x ?? 0,
+        event.from?.y ?? 0,
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
       );
     case "MatchTollPaidEvent":
       return m.tollPaid(

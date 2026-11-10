@@ -25,6 +25,16 @@ export const matchDebugQuery = graphql(`
           x
           y
         }
+        moveChoices {
+          from {
+            x
+            y
+          }
+          to {
+            x
+            y
+          }
+        }
         landLevels {
           position {
             x
@@ -393,6 +403,11 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchInvasionRepelledEvent {
             participant
             territoryHitPoints
+            returnedTo {
+              x
+              y
+            }
+            returnedHitPoints
             position {
               x
               y
@@ -434,6 +449,30 @@ export const matchDebugEventsQuery = graphql(`
             }
             level
             magic
+          }
+          ... on MatchCreatureMovedEvent {
+            participant
+            from {
+              x
+              y
+            }
+            to {
+              x
+              y
+            }
+            creature
+          }
+          ... on MatchTerritoryInvadedByMoveEvent {
+            participant
+            from {
+              x
+              y
+            }
+            position {
+              x
+              y
+            }
+            creature
           }
           ... on MatchLandElementChangedEvent {
             participant

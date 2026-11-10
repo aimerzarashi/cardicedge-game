@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { choicesAt, selectableTerritories } from "./stop-selection.ts";
+import {
+  choicesAt,
+  selectableTerritories,
+  selectTile,
+} from "./stop-selection.ts";
 
 const A = { x: 1, y: 0 };
 const B = { x: 2, y: 0 };
@@ -8,6 +12,11 @@ const choices = {
   levelUpChoices: [A, A, B],
   exchangeChoices: [B, B],
   elementChangeChoices: [A],
+  moveChoices: [
+    { ...A, to: B },
+    { ...A, to: { x: 3, y: 0 } },
+    { ...B, to: { x: 4, y: 0 } },
+  ],
 };
 
 describe("selectableTerritories", () => {
@@ -40,6 +49,43 @@ describe("selectableTerritories", () => {
     assert.deepEqual(selectableTerritories(null, choices), []);
     assert.deepEqual(selectableTerritories({ command: "deploy" }, choices), []);
     assert.deepEqual(selectableTerritories({ command: "invade" }, choices), []);
+  });
+});
+
+describe("移動の選び方", () => {
+  it("動かす領地を選ぶ前は動かせる領地、選んだ後はそこから届く行き先が押せる", () => {
+    assert.deepEqual(
+      selectableTerritories(
+        { command: "move", position: null, to: null },
+        choices,
+      ),
+      [A, B],
+    );
+    assert.deepEqual(
+      selectableTerritories(
+        { command: "move", position: A, to: null },
+        choices,
+      ),
+      [B, { x: 3, y: 0 }],
+    );
+    assert.deepEqual(
+      selectableTerritories({ command: "move", position: A, to: B }, choices),
+      [],
+    );
+  });
+
+  it("盤面で押したマスは、1 回目が動かす領地、2 回目が行き先になる", () => {
+    const first = selectTile({ command: "move", position: null, to: null }, A);
+    assert.deepEqual(first, { command: "move", position: A, to: null });
+    assert.deepEqual(selectTile(first, B), {
+      command: "move",
+      position: A,
+      to: B,
+    });
+    assert.deepEqual(selectTile({ command: "levelUp", position: null }, B), {
+      command: "levelUp",
+      position: B,
+    });
   });
 });
 

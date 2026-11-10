@@ -23,6 +23,7 @@ import {
   exchangeMatchCreatureMutation,
   invadeMatchTerritoryMutation,
   levelUpMatchTerritoryMutation,
+  moveMatchCreatureMutation,
   payMatchTollMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
@@ -206,6 +207,39 @@ export async function levelUpMatchTerritory(
   });
   return result.ok
     ? finish(result.data.levelUpMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function moveMatchCreature(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const fromX = integer(form, "fromX");
+  const fromY = integer(form, "fromY");
+  const toX = integer(form, "toX");
+  const toY = integer(form, "toY");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    fromX === undefined ||
+    fromY === undefined ||
+    toX === undefined ||
+    toY === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(moveMatchCreatureMutation, {
+    input: {
+      id,
+      revision,
+      from: { x: fromX, y: fromY },
+      to: { x: toX, y: toY },
+    },
+  });
+  return result.ok
+    ? finish(result.data.moveMatchCreature)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
