@@ -80,6 +80,8 @@ export type MatchFrame = {
   territories: FrameTerritory[];
   invasion: FrameInvasion | null;
   battle: FrameBattle | null;
+  // レベルを上げた土地（空き地を含む。無い土地はレベル 1。レベルは土地のもので、クリーチャーがいなくなっても残る。core#146）
+  landLevels: { position: Position; level: number }[];
   // 開いた後に属性が変わった土地（盤面のマスの属性より優先する）
   landElements: { position: Position; element: BoardTileElement }[];
   outcome: {
@@ -160,6 +162,13 @@ function updateParticipant(
       index === seat ? update(participant) : participant,
     ),
   };
+}
+
+function landLevelAt(frame: MatchFrame, position: Position): number {
+  return (
+    frame.landLevels.find((land) => samePosition(land.position, position))
+      ?.level ?? 1
+  );
 }
 
 function withoutCard(hand: FrameCard[], handIndex: number): FrameCard[] {
@@ -253,7 +262,8 @@ function applyFact(
           {
             position,
             owner: seat,
-            level: 1,
+            // 空き地に残っていたレベルを引き継ぐ
+            level: landLevelAt(paid, position),
             // 価値と通行料は続けて当てる changes の値で決まる
             value: 0,
             toll: 0,
@@ -385,6 +395,12 @@ function applyFact(
       }));
       return {
         ...paid,
+        landLevels: [
+          ...paid.landLevels.filter(
+            (land) => !samePosition(land.position, position),
+          ),
+          { position, level },
+        ],
         territories: paid.territories.map((territory) =>
           samePosition(territory.position, position)
             ? { ...territory, level }

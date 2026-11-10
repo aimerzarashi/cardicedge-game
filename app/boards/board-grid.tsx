@@ -40,6 +40,7 @@ import {
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
 // 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
 // territories（領地。マスの側面（厚み）を持ち主の色にし、レベルの分だけ板を積み、マスの上寄せに持ち主の色の ♞ とクリーチャーの ID を出し、マスの中央に通行料を出し、マスの名前にも「領地 1 レベル 1 クリーチャー名 通行料 60」と添える。core#113・game#50・game#57）。
+// landLevels（土地のレベル。空き地にもレベルの分の板を色を付けずに積み、名前に「レベル 2」と添える。game#70）も game だけ。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -63,6 +64,7 @@ export function BoardGrid({
   pairs,
   pieces = [],
   territories,
+  landLevels = [],
   selectable = [],
   onTile,
 }: {
@@ -72,6 +74,8 @@ export function BoardGrid({
   pairs: Pair[];
   pieces?: Piece[];
   territories?: TerritoryMark[];
+  // レベルを上げた土地（空き地にもレベルの分の板を積む。領地はその持ち主の色で積む）
+  landLevels?: (Position & { level: number })[];
   // 押せるマス（印を付ける）。ほかのマスは押せない
   selectable?: Position[];
   onTile?: (position: Position) => void;
@@ -250,6 +254,10 @@ export function BoardGrid({
                 (territory) => territory.x === x && territory.y === y,
               )}
               showsStats={showsStats}
+              landLevel={
+                landLevels.find((land) => land.x === x && land.y === y)
+                  ?.level ?? 1
+              }
               onSelect={
                 selectable.some(
                   (position) => position.x === x && position.y === y,
@@ -415,6 +423,7 @@ function TileButton({
   pieces,
   territory,
   showsStats,
+  landLevel,
   onSelect,
 }: {
   position: Position;
@@ -424,13 +433,16 @@ function TileButton({
   pieces: Piece[];
   territory: TerritoryMark | undefined;
   showsStats: boolean;
+  landLevel: number;
   onSelect: ((position: Position) => void) | undefined;
 }) {
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
   const territoryName = territory
     ? ` 領地 ${territory.number} レベル ${territory.level} ${territory.creature} 通行料 ${territory.toll} AT ${territory.attack} HP ${territory.hitPoints}`
-    : "";
+    : landLevel > 1
+      ? ` レベル ${landLevel}`
+      : "";
   return (
     <button
       type="button"
@@ -440,7 +452,7 @@ function TileButton({
       onClick={() => onSelect?.(position)}
       style={{
         ...paint(tile),
-        ...tileSide(territory?.color, territory?.level),
+        ...tileSide(territory?.color, territory?.level ?? landLevel),
         ...(onSelect !== undefined ? SELECTABLE_TILE : {}),
         position: "relative",
         padding: 0,

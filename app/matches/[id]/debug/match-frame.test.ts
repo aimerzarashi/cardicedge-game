@@ -64,6 +64,7 @@ function frame(overrides: Partial<MatchFrame> = {}): MatchFrame {
     invasion: null,
     battle: null,
     landElements: [],
+    landLevels: [],
     outcome: null,
     ...overrides,
   };
@@ -327,6 +328,49 @@ describe("applyEvent", () => {
     assert.deepEqual(next.landElements, [
       { position: { x: 2, y: 0 }, element: "EARTH" },
       { position: { x: 1, y: 0 }, element: "WATER" },
+    ]);
+  });
+
+  it("空き地に配置すると、その土地に残っていたレベルを引き継ぐ", () => {
+    const next = applyEvent(
+      frame({ landLevels: [{ position: { x: 3, y: 0 }, level: 3 }] }),
+      event("MatchCreatureDeployedEvent", {
+        card: DRAGON,
+        handIndex: 0,
+        creature: 5,
+        position: { x: 3, y: 0 },
+        cost: 30,
+      }),
+      BASE,
+    );
+    assert.equal(next.territories[0].level, 3);
+  });
+
+  it("レベルを上げると土地のレベルも変わり、手放しても土地に残る", () => {
+    const leveled = applyEvent(
+      frame({ territories: [TERRITORY] }),
+      event("MatchTerritoryLeveledUpEvent", {
+        position: TERRITORY.position,
+        level: 2,
+        magic: 100,
+      }),
+      BASE,
+    );
+    assert.deepEqual(leveled.landLevels, [
+      { position: TERRITORY.position, level: 2 },
+    ]);
+    const relinquished = applyEvent(
+      leveled,
+      event("MatchTerritoryRelinquishedEvent", {
+        position: TERRITORY.position,
+        creature: 1,
+        magic: 80,
+      }),
+      BASE,
+    );
+    assert.deepEqual(relinquished.territories, []);
+    assert.deepEqual(relinquished.landLevels, [
+      { position: TERRITORY.position, level: 2 },
     ]);
   });
 

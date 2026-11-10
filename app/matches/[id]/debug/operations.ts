@@ -25,6 +25,13 @@ export const matchDebugQuery = graphql(`
           x
           y
         }
+        landLevels {
+          position {
+            x
+            y
+          }
+          level
+        }
         levelUpChoices {
           position {
             x
