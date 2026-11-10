@@ -244,7 +244,7 @@ export const MATCH_PHASE_NOT_WAITING = "進行中";
 
 export const MATCH_PHASE_LABELS: Record<MatchPhase, string> = {
   DRAWING: "カードを引く",
-  DISCARDING: "手札を捨てる",
+  DISCARDING: "手札を上限まで捨てる",
   ROLLING: "サイコロを振る",
   CHOOSING_PATH: "行き先を選ぶ",
   DEPLOYING: "クリーチャーを配置する",
@@ -291,6 +291,9 @@ export const MATCH_EVENT_MESSAGES = {
   turnOrderDecided: (names: string) => `順番が決まった: ${names}`,
   cardDrawn: (card: string) => `カード「${card}」を引いた`,
   cardDiscarded: (card: string) => `カード「${card}」を捨てた`,
+  discardPileShuffled: (cards: number) =>
+    `捨て札 ${cards} 枚を混ぜて山札にした`,
+  handLimitExceeded: "手札が上限を超えたので、ターンを終える前に捨てる",
   diceRolled: (value: number) => `サイコロ ${value}`,
   moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
   checkpointPassed: (x: number, y: number, magic: number) =>

@@ -1746,7 +1746,7 @@ type MatchBoard {
 	pairs: [BoardTilePair!]!
 }
 """
-手札を 1 枚捨てた
+手札を 1 枚捨てた（捨て札に入る）
 """
 type MatchCardDiscardedEvent implements MatchEvent {
 	"""
@@ -2053,6 +2053,31 @@ type MatchDiceRolledEvent implements MatchEvent {
 	value: Int!
 }
 """
+山札が空のまま引くときに、捨て札を混ぜて山札にした（並びは見せない）
+"""
+type MatchDiscardPileShuffledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	混ぜた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	山札にした枚数（捨て札はこれで空になる）
+	"""
+	drawPileCount: Int!
+}
+"""
 土地の属性を変える選択肢 1 つ
 """
 type MatchElementChangeChoice {
@@ -2177,6 +2202,27 @@ type MatchExchangeChoice {
 	払う魔力（出すクリーチャーのコスト）
 	"""
 	magic: Int!
+}
+"""
+ターンを終えるときに、手札が上限を超えていた（上限まで捨ててからターンを終える）
+"""
+type MatchHandLimitExceededEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	手札が上限を超えた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
 }
 """
 全員に手札が配られた
@@ -2547,6 +2593,10 @@ type MatchParticipant {
 	"""
 	drawPileCount: Int!
 	"""
+	捨て札（入った順）。使った・捨てた・倒された・手放したカードで、誰でも見られる。山札が空のまま引くときに混ぜて山札にする
+	"""
+	discardPile: [CardInfo!]!
+	"""
 	順番の何番目か（0 始まり）。順番が早い人ほど小さい
 	"""
 	turnOrder: Int!
@@ -2585,7 +2635,7 @@ enum MatchPhase {
 	"""
 	DRAWING
 	"""
-	手札が上限を超えているので捨てる段階（discardMatchCard）
+	ターンを終えるときに手札が上限を超えているので、上限まで捨てる段階（discardMatchCard）。捨て終えるとターンを終える
 	"""
 	DISCARDING
 	"""

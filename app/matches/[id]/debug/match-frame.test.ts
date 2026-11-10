@@ -43,6 +43,7 @@ function participant(turnOrder: number) {
     totalMagic: 600,
     hand: [DRAGON],
     drawPileCount: 3,
+    discardPile: [],
     turnOrder,
     passedCheckpoints: [],
     rewardReceived: false,
@@ -113,17 +114,21 @@ describe("applyEvent", () => {
     assert.deepEqual(next.territories, [TERRITORY]);
   });
 
-  it("アイテムを出した人の手札から抜けて魔力が減る", () => {
+  it("アイテムを出した人の手札から抜けて捨て札に入り、魔力が減る", () => {
     const next = applyEvent(
       frame(),
       event("MatchItemUsedEvent", {
         participant: 0,
         handIndex: 0,
+        card: { ...DRAGON, id: "i1", name: "剣" },
         cost: 20,
       }),
       BASE,
     );
     assert.deepEqual(next.participants[0].hand, []);
+    assert.deepEqual(next.participants[0].discardPile, [
+      { id: "i1", name: "剣" },
+    ]);
     assert.equal(next.participants[0].magic, 580);
     assert.equal(next.participants[1].magic, 600);
   });
@@ -216,6 +221,11 @@ describe("applyEvent", () => {
       hitPoints: 8,
       card: { id: "c9", name: "ナイト", attack: 40 },
     });
+    // 倒されたクリーチャーは、守った持ち主の捨て札に入る
+    assert.deepEqual(next.participants[0].discardPile, [
+      { id: "c1", name: "ドラゴン" },
+    ]);
+    assert.deepEqual(next.participants[1].discardPile, []);
   });
 
   it("侵略に失敗すると、領地のクリーチャーの体力が残る値になる", () => {
@@ -237,7 +247,7 @@ describe("applyEvent", () => {
     assert.equal(next.territories[0].creature.hitPoints, 9);
   });
 
-  it("侵略に失敗して生きていれば手札の最後に戻り、倒れていれば戻らない", () => {
+  it("侵略に失敗して生きていれば手札の最後に戻り、倒れていれば捨て札に入る", () => {
     const returned = applyEvent(
       frame({ invasion: INVASION }),
       event("MatchInvasionRepelledEvent", {
@@ -264,6 +274,10 @@ describe("applyEvent", () => {
       destroyed.participants[1].hand.map((card) => card.id),
       ["c1"],
     );
+    assert.deepEqual(returned.participants[1].discardPile, []);
+    assert.deepEqual(destroyed.participants[1].discardPile, [
+      { id: "c9", name: "ナイト" },
+    ]);
   });
 
   it("領地のレベルを上げると、魔力が減ってその領地のレベルだけが変わる", () => {
@@ -429,7 +443,7 @@ describe("applyEvent", () => {
     ]);
   });
 
-  it("移動で侵略して生き残ると元の領地に戻り、倒れると元の土地が空く", () => {
+  it("移動で侵略して生き残ると元の領地に戻り、倒れると元の土地が空いて捨て札に入る", () => {
     const own = { ...TERRITORY, owner: 1 };
     const invasion = {
       ...INVASION,
@@ -464,6 +478,10 @@ describe("applyEvent", () => {
       BASE,
     );
     assert.deepEqual(destroyed.territories, []);
+    assert.deepEqual(returned.participants[1].discardPile, []);
+    assert.deepEqual(destroyed.participants[1].discardPile, [
+      { id: "c1", name: "ドラゴン" },
+    ]);
   });
 
   it("元のフレームを書き換えない", () => {
@@ -493,13 +511,35 @@ describe("applyEvent", () => {
     assert.equal(next.participants[0].drawPileCount, 3);
   });
 
-  it("捨てたカードが手札の番号で抜ける", () => {
+  it("捨てたカードが手札の番号で抜けて捨て札に入る", () => {
     const next = applyEvent(
       frame(),
-      event("MatchCardDiscardedEvent", { handIndex: 0 }),
+      event("MatchCardDiscardedEvent", { handIndex: 0, card: DRAGON }),
       BASE,
     );
     assert.deepEqual(next.participants[1].hand, []);
+    assert.deepEqual(next.participants[1].discardPile, [
+      { id: "c1", name: "ドラゴン" },
+    ]);
+  });
+
+  it("捨て札を混ぜると捨て札が空になり、その枚数が山札になる", () => {
+    const discarded = frame();
+    discarded.participants[1] = {
+      ...discarded.participants[1],
+      drawPileCount: 0,
+      discardPile: [
+        { id: "c1", name: "ドラゴン" },
+        { id: "c2", name: "ナイト" },
+      ],
+    };
+    const next = applyEvent(
+      discarded,
+      event("MatchDiscardPileShuffledEvent", { drawPileCount: 2 }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[1].discardPile, []);
+    assert.equal(next.participants[1].drawPileCount, 2);
   });
 
   it("サイコロの目が残りの歩数になり、進むと 1 減ってコマが動き、移動の途中は段階が無い", () => {
@@ -606,7 +646,7 @@ describe("applyEvent", () => {
     assert.equal(next.participants[0].magic, 660);
   });
 
-  it("手放すと魔力を受け取り、その領地が消える", () => {
+  it("手放すと魔力を受け取り、その領地が消えてクリーチャーが捨て札に入る", () => {
     const next = applyEvent(
       frame({ territories: [TERRITORY] }),
       event("MatchTerritoryRelinquishedEvent", {
@@ -618,6 +658,9 @@ describe("applyEvent", () => {
     );
     assert.equal(next.participants[1].magic, 680);
     assert.deepEqual(next.territories, []);
+    assert.deepEqual(next.participants[1].discardPile, [
+      { id: "c1", name: "ドラゴン" },
+    ]);
   });
 
   it("魔力が枯渇すると与えられた魔力で拠点に戻り、チェックポイントの記録が消える", () => {

@@ -17,6 +17,7 @@ export type MatchEventView = {
   checkpoint?: { x: number; y: number };
   magic?: number;
   cards?: number;
+  drawPileCount?: number;
   order?: number[];
   winners?: number[];
   reason?: keyof typeof MATCH_END_REASON_LABELS;
@@ -87,6 +88,10 @@ function body(event: MatchEventView, names: string[]): string {
       return m.cardDrawn(event.card?.name ?? "");
     case "MatchCardDiscardedEvent":
       return m.cardDiscarded(event.card?.name ?? "");
+    case "MatchDiscardPileShuffledEvent":
+      return m.discardPileShuffled(event.drawPileCount ?? 0);
+    case "MatchHandLimitExceededEvent":
+      return m.handLimitExceeded;
     case "MatchCreatureDeployedEvent":
       return m.creatureDeployed(
         event.card?.name ?? "",
