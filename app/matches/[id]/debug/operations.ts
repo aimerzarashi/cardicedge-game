@@ -179,6 +179,10 @@ export const matchDebugQuery = graphql(`
             }
           }
           drawPileCount
+          discardPile {
+            id
+            name
+          }
           turnOrder
           passedCheckpoints {
             x
@@ -245,6 +249,13 @@ export const matchDebugEventsQuery = graphql(`
                 hitPointsBonus
               }
             }
+          }
+          ... on MatchDiscardPileShuffledEvent {
+            participant
+            drawPileCount
+          }
+          ... on MatchHandLimitExceededEvent {
+            participant
           }
           ... on MatchCardDiscardedEvent {
             participant

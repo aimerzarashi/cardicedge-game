@@ -691,6 +691,25 @@ function FrameView({
                     </dd>
                   </div>
                   <div style={PAIR_STYLE}>
+                    <dt style={{ flexShrink: 0 }}>捨て札</dt>
+                    <dd style={{ margin: 0 }}>
+                      <span data-testid="participant-discard-pile-count">
+                        {participant.discardPile.length}
+                      </span>
+                      <ul
+                        data-testid="participant-discard-pile"
+                        style={HAND_STYLE}
+                      >
+                        {participant.discardPile.map((card, cardIndex) => (
+                          // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、入った順で区別する
+                          <li key={cardIndex}>
+                            <Link href={`/cards/${card.id}`}>{card.name}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </dd>
+                  </div>
+                  <div style={PAIR_STYLE}>
                     <dt style={{ flexShrink: 0 }}>手札</dt>
                     <dd style={{ margin: 0 }}>
                       <ul data-testid="participant-hand" style={HAND_STYLE}>

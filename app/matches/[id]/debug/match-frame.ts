@@ -33,11 +33,15 @@ export type FrameParticipant = {
   totalMagic: number;
   hand: FrameCard[];
   drawPileCount: number;
+  // 捨て札（入った順）。山札が空のまま引くときに混ぜて山札になる
+  discardPile: FrameDiscardedCard[];
   turnOrder: number;
   passedCheckpoints: Position[];
   rewardReceived: boolean;
   rewardCards: { name: string }[];
 };
+
+export type FrameDiscardedCard = { id: string; name: string };
 
 export type FrameTerritory = {
   position: Position;
@@ -138,6 +142,7 @@ export type PlayEvent = {
   side?: "ATTACKER" | "DEFENDER";
   attack?: number;
   hitPoints?: number;
+  drawPileCount?: number;
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -180,6 +185,28 @@ function withoutCard(hand: FrameCard[], handIndex: number): FrameCard[] {
   return hand.filter((_, index) => index !== handIndex);
 }
 
+function discarded(
+  frame: MatchFrame,
+  seat: number,
+  card: FrameDiscardedCard | undefined,
+): MatchFrame {
+  if (!card) return frame;
+  return updateParticipant(frame, seat, (participant) => ({
+    ...participant,
+    discardPile: [...participant.discardPile, { id: card.id, name: card.name }],
+  }));
+}
+
+function territoryAt(
+  frame: MatchFrame,
+  position: Position | undefined,
+): FrameTerritory | undefined {
+  if (!position) return undefined;
+  return frame.territories.find((territory) =>
+    samePosition(territory.position, position),
+  );
+}
+
 // 順番は core が turnOrder で返した値の小さい順。一周したら次のラウンド
 function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
   const order = frame.participants
@@ -194,6 +221,65 @@ function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
     round: frame.round + (wraps ? 1 : 0),
     dice: null,
     remainingSteps: 0,
+  };
+}
+
+// 奪った後の盤面。移動で侵略したクリーチャーは同じ 1 体のまま移り、元の土地は空き地になる
+function conquered(
+  frame: MatchFrame,
+  event: PlayEvent,
+  seat: number,
+  position: Position | undefined,
+  creature: number | undefined,
+): MatchFrame {
+  const { invasion } = frame;
+  if (!invasion || !position || creature === undefined) return frame;
+  if (invasion.from) {
+    const origin = invasion.from;
+    const mover = frame.territories.find((territory) =>
+      samePosition(territory.position, origin),
+    );
+    return {
+      ...frame,
+      invasion: null,
+      battle: null,
+      territories: frame.territories
+        .filter((territory) => !samePosition(territory.position, origin))
+        .map((territory) =>
+          samePosition(territory.position, position) && mover
+            ? {
+                ...territory,
+                owner: seat,
+                creature: {
+                  ...mover.creature,
+                  hitPoints: event.territoryHitPoints ?? 0,
+                },
+              }
+            : territory,
+        ),
+    };
+  }
+  return {
+    ...frame,
+    invasion: null,
+    battle: null,
+    territories: frame.territories.map((territory) =>
+      samePosition(territory.position, position)
+        ? {
+            ...territory,
+            owner: seat,
+            creature: {
+              id: creature,
+              hitPoints: event.territoryHitPoints ?? 0,
+              card: {
+                id: invasion.card.id,
+                name: invasion.card.name,
+                attack: invasion.card.attack ?? 0,
+              },
+            },
+          }
+        : territory,
+    ),
   };
 }
 
@@ -216,9 +302,19 @@ function applyFact(
       }));
     }
     case "MatchCardDiscardedEvent":
+      return discarded(
+        updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          hand: withoutCard(participant.hand, event.handIndex ?? 0),
+        })),
+        seat,
+        event.card,
+      );
+    case "MatchDiscardPileShuffledEvent":
       return updateParticipant(frame, seat, (participant) => ({
         ...participant,
-        hand: withoutCard(participant.hand, event.handIndex ?? 0),
+        discardPile: [],
+        drawPileCount: event.drawPileCount ?? 0,
       }));
     case "MatchDiceRolledEvent":
       return {
@@ -294,11 +390,15 @@ function applyFact(
       };
     }
     case "MatchItemUsedEvent":
-      return updateParticipant(frame, seat, (participant) => ({
-        ...participant,
-        hand: withoutCard(participant.hand, event.handIndex ?? 0),
-        magic: participant.magic - (event.cost ?? 0),
-      }));
+      return discarded(
+        updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          hand: withoutCard(participant.hand, event.handIndex ?? 0),
+          magic: participant.magic - (event.cost ?? 0),
+        })),
+        seat,
+        event.card,
+      );
     case "MatchBattleStartedEvent": {
       const { attacker, defender } = event;
       if (!attacker || !defender) return frame;
@@ -331,57 +431,13 @@ function applyFact(
       };
     }
     case "MatchTerritoryConqueredEvent": {
-      const { invasion } = frame;
       const { position, creature } = event;
-      if (!invasion || !position || creature === undefined) return frame;
-      if (invasion.from) {
-        // 動いたクリーチャーは同じ 1 体のまま移り、元の土地は空き地になる
-        const origin = invasion.from;
-        const mover = frame.territories.find((territory) =>
-          samePosition(territory.position, origin),
-        );
-        return {
-          ...frame,
-          invasion: null,
-          battle: null,
-          territories: frame.territories
-            .filter((territory) => !samePosition(territory.position, origin))
-            .map((territory) =>
-              samePosition(territory.position, position) && mover
-                ? {
-                    ...territory,
-                    owner: seat,
-                    creature: {
-                      ...mover.creature,
-                      hitPoints: event.territoryHitPoints ?? 0,
-                    },
-                  }
-                : territory,
-            ),
-        };
-      }
-      return {
-        ...frame,
-        invasion: null,
-        battle: null,
-        territories: frame.territories.map((territory) =>
-          samePosition(territory.position, position)
-            ? {
-                ...territory,
-                owner: seat,
-                creature: {
-                  id: creature,
-                  hitPoints: event.territoryHitPoints ?? 0,
-                  card: {
-                    id: invasion.card.id,
-                    name: invasion.card.name,
-                    attack: invasion.card.attack ?? 0,
-                  },
-                },
-              }
-            : territory,
-        ),
-      };
+      const defeated = territoryAt(frame, position);
+      // 倒されたクリーチャーは持ち主の捨て札に入る
+      const frameWithDefeated = defeated
+        ? discarded(frame, defeated.owner, defeated.creature.card)
+        : frame;
+      return conquered(frameWithDefeated, event, seat, position, creature);
     }
     case "MatchInvasionRepelledEvent": {
       const { card, position } = event;
@@ -403,28 +459,38 @@ function applyFact(
       };
       const origin = frame.invasion?.from;
       if (origin) {
-        // 移動で侵略したときは、生き残れば元の領地に戻り（傷は残る）、倒れれば元の土地が空き地になる
+        // 移動で侵略したときは、生き残れば元の領地に戻り（傷は残る）、倒れれば元の土地が空き地になり、捨て札に入る
         const { returnedTo, returnedHitPoints } = event;
+        if (!returnedTo) {
+          const destroyed = discarded(
+            cleared,
+            seat,
+            territoryAt(frame, origin)?.creature.card,
+          );
+          return {
+            ...destroyed,
+            territories: destroyed.territories.filter(
+              (territory) => !samePosition(territory.position, origin),
+            ),
+          };
+        }
         return {
           ...cleared,
-          territories: returnedTo
-            ? cleared.territories.map((territory) =>
-                samePosition(territory.position, origin)
-                  ? {
-                      ...territory,
-                      creature: {
-                        ...territory.creature,
-                        hitPoints: returnedHitPoints ?? 0,
-                      },
-                    }
-                  : territory,
-              )
-            : cleared.territories.filter(
-                (territory) => !samePosition(territory.position, origin),
-              ),
+          territories: cleared.territories.map((territory) =>
+            samePosition(territory.position, origin)
+              ? {
+                  ...territory,
+                  creature: {
+                    ...territory.creature,
+                    hitPoints: returnedHitPoints ?? 0,
+                  },
+                }
+              : territory,
+          ),
         };
       }
-      if (!card || !event.returnedToHand) return cleared;
+      if (!card) return cleared;
+      if (!event.returnedToHand) return discarded(cleared, seat, card);
       return updateParticipant(cleared, seat, (participant) => ({
         ...participant,
         hand: [...participant.hand, card],
@@ -553,10 +619,15 @@ function applyFact(
     case "MatchTerritoryRelinquishedEvent": {
       const position = event.position;
       if (!position) return frame;
-      const received = updateParticipant(frame, seat, (participant) => ({
-        ...participant,
-        magic: participant.magic + magic,
-      }));
+      // 手放した領地のクリーチャーは捨て札に入る
+      const received = discarded(
+        updateParticipant(frame, seat, (participant) => ({
+          ...participant,
+          magic: participant.magic + magic,
+        })),
+        seat,
+        territoryAt(frame, position)?.creature.card,
+      );
       return {
         ...received,
         territories: received.territories.filter(

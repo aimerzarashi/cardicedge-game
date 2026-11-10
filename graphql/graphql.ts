@@ -313,7 +313,7 @@ export type MatchPhase =
   | 'DEFENDING'
   /** 空いている土地に止まった後の段階。クリーチャーを配置する（deployMatchCreature。配置したらターンを終える）か、配置せずにターンを終える（endMatchTurn） */
   | 'DEPLOYING'
-  /** 手札が上限を超えているので捨てる段階（discardMatchCard） */
+  /** ターンを終えるときに手札が上限を超えているので、上限まで捨てる段階（discardMatchCard）。捨て終えるとターンを終える */
   | 'DISCARDING'
   /** カードを引く段階（drawMatchCard） */
   | 'DRAWING'
@@ -572,6 +572,10 @@ export type MatchDebugQuery = { match:
           | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+        >, discardPile: Array<
+          | { id: string, name: string }
+          | { id: string, name: string }
+          | { id: string, name: string }
         >, passedCheckpoints: Array<{ x: number, y: number }>, rewardCards: Array<
           | { name: string }
           | { name: string }
@@ -629,7 +633,9 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchCreatureStruckEvent', striker: MatchBattleSide, damage: number, remainingHitPoints: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDecksShuffledEvent', revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchDiscardPileShuffledEvent', participant: number, drawPileCount: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchEndedEvent', winners: Array<number>, ranks: Array<number>, reason: MatchEndReason, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchHandLimitExceededEvent', participant: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchInvasionRepelledEvent', participant: number, territoryHitPoints: number, returnedHitPoints: number | null, returnedToHand: boolean, revision: number, returnedTo: { x: number, y: number } | null, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
@@ -1713,6 +1719,10 @@ export const MatchDebugDocument = new TypedDocumentString(`
           }
         }
         drawPileCount
+        discardPile {
+          id
+          name
+        }
         turnOrder
         passedCheckpoints {
           x
@@ -1778,6 +1788,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
               hitPointsBonus
             }
           }
+        }
+        ... on MatchDiscardPileShuffledEvent {
+          participant
+          drawPileCount
+        }
+        ... on MatchHandLimitExceededEvent {
+          participant
         }
         ... on MatchCardDiscardedEvent {
           participant
