@@ -1541,9 +1541,9 @@ type Match {
 	"""
 	pathChoices: [BoardPosition!]!
 	"""
-	今の番の人が使えるスペルの手札の番号（0 始まり。手札の順。ROLLING で、このターンにまだ使っていないときだけ中身がある）
+	今の番の人が使えるスペル（手札の順。ROLLING で、このターンにまだ使っていないときだけ中身がある）
 	"""
-	spellChoices: [Int!]!
+	spellChoices: [MatchSpellChoice!]!
 	"""
 	今の番の人が配置できる手札の番号（0 始まり。手札の順。DEPLOYING のときだけ中身がある。DEPLOYING でも配置できるものが無ければ空）
 	"""
@@ -1998,6 +1998,73 @@ type MatchCreatureStruckEvent implements MatchEvent {
 	remainingHitPoints: Int!
 }
 """
+プレイヤーにかかっている呪い（1 人に 1 つまで）
+"""
+type MatchCurse {
+	"""
+	効き方（種類は __typename で見分ける）
+	"""
+	effect: MatchCurseEffect!
+	"""
+	解けるまでのターン数（かけられた人が自分のターンを終えるたびに 1 減り、0 で解ける）
+	"""
+	remainingTurns: Int!
+}
+"""
+スペルで、対象のプレイヤーに呪いをかけた（かかっていた呪いは上書きする）
+"""
+type MatchCurseCastEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	使った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	かけられた参加者（Match.participants の何番目か）
+	"""
+	target: Int!
+	"""
+	かけた呪い
+	"""
+	curse: MatchCurse!
+}
+"""
+呪いの効き方
+"""
+union MatchCurseEffect = MatchFixedDiceCurse
+"""
+自分のターンを終えて、かかっていた呪いが解けた
+"""
+type MatchCurseRemovedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	呪いが解けた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+}
+"""
 山札が混ざった（並びは見せないので、項目を持たない）
 """
 type MatchDecksShuffledEvent implements MatchEvent {
@@ -2084,6 +2151,10 @@ type MatchDiceRolledEvent implements MatchEvent {
 	複数のサイコロを同時に振ったときの 1 個ずつの目（振った順。合計が value）。1 個のときは空
 	"""
 	dice: [Int!]!
+	"""
+	呪いで目が決まった（サイコロは 1 個）
+	"""
+	fixedByCurse: Boolean!
 }
 """
 山札が空のまま引くときに、捨て札を混ぜて山札にした（並びは見せない）
@@ -2235,6 +2306,15 @@ type MatchExchangeChoice {
 	払う魔力（出すクリーチャーのコスト）
 	"""
 	magic: Int!
+}
+"""
+次のサイコロの目を決める（複数のサイコロを振るスペルより優先し、サイコロ 1 個でその目だけ進む）
+"""
+type MatchFixedDiceCurse {
+	"""
+	決まる目
+	"""
+	value: Int!
 }
 """
 ターンを終えるときに、手札が上限を超えていた（上限まで捨ててからターンを終える）
@@ -2659,6 +2739,10 @@ type MatchParticipant {
 	"""
 	turnOrder: Int!
 	"""
+	かかっている呪い（無ければ null）
+	"""
+	curse: MatchCurse
+	"""
 	拠点を出てから印を付けたチェックポイントの位置（拠点に戻って周回を終えると空に戻る）
 	"""
 	passedCheckpoints: [BoardPosition!]!
@@ -2922,6 +3006,19 @@ type MatchRules {
 	対戦の始めに配る手札の枚数
 	"""
 	startingHandCards: Int!
+}
+"""
+使えるスペル 1 枚
+"""
+type MatchSpellChoice {
+	"""
+	手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	選べる対象のプレイヤー（Match.participants の何番目か。呪いのスペルだけ中身があり、自分を含む。対象を選ばないスペルは空）
+	"""
+	targets: [Int!]!
 }
 """
 サイコロを振る前に、手札のスペルを使った（効果は続くイベント。スペルは捨て札に入る）
@@ -4373,7 +4470,20 @@ type SpellDrawCardsEffect {
 """
 スペルの効果（種類は __typename で見分ける）
 """
-union SpellEffect = SpellDrawCardsEffect | SpellGainMagicEffect | SpellRollDiceEffect
+union SpellEffect = SpellDrawCardsEffect | SpellGainMagicEffect | SpellRollDiceEffect | SpellFixedDiceCurseEffect
+"""
+次のサイコロの目を決める呪い（対象のプレイヤーが次に振ると、目は value になる。turns ターンで解ける）
+"""
+type SpellFixedDiceCurseEffect {
+	"""
+	決める目（1 以上）
+	"""
+	value: Int!
+	"""
+	解けるまでのターン数（1 以上。かけられた人が自分のターンを終えるたびに 1 減り、0 で解ける）
+	"""
+	turns: Int!
+}
 """
 魔力を得る効果（使った人が（周回数 + 1）× perLap の魔力を得る。周回数はその対戦で周回を終えた回数）
 """
@@ -4439,6 +4549,10 @@ input UseMatchSpellInput {
 	使うスペルの手札の番号（0 始まり。Match.spellChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で使えないものは FieldNotFound）
 	"""
 	handIndex: Int!
+	"""
+	対象のプレイヤー（Match.participants の何番目か。spellChoices の targets の中から選ぶ。呪いのスペルで無ければ FieldRequired、対象を選ばないスペルに付けた・選べない対象は FieldNotFound）
+	"""
+	target: Int
 }
 """
 useMatchSpell の結果（ROLLING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）

@@ -44,6 +44,7 @@ function participant(turnOrder: number) {
     hand: [DRAGON],
     drawPileCount: 3,
     discardPile: [],
+    curse: null,
     turnOrder,
     passedCheckpoints: [],
     rewardReceived: false,
@@ -522,6 +523,34 @@ describe("applyEvent", () => {
     assert.deepEqual(next.participants[1].discardPile, [
       { id: "c1", name: "ドラゴン" },
     ]);
+  });
+
+  it("呪いをかけると対象に付き、対象がターンを終えると 1 減り、解けたイベントで消える", () => {
+    const cast = applyEvent(
+      frame(),
+      event("MatchCurseCastEvent", {
+        target: 0,
+        curse: { remainingTurns: 2, effect: { value: 6 } },
+      }),
+      BASE,
+    );
+    assert.deepEqual(cast.participants[0].curse, {
+      value: 6,
+      remainingTurns: 2,
+    });
+    assert.equal(cast.participants[1].curse, null);
+    const passed = applyEvent(
+      { ...cast, currentParticipant: 0 },
+      event("MatchTurnEndedEvent", { participant: 0 }),
+      BASE,
+    );
+    assert.equal(passed.participants[0].curse?.remainingTurns, 1);
+    const removed = applyEvent(
+      passed,
+      event("MatchCurseRemovedEvent", { participant: 0 }),
+      BASE,
+    );
+    assert.equal(removed.participants[0].curse, null);
   });
 
   it("スペルで魔力を得ると、その人の魔力だけが増える", () => {

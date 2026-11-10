@@ -18,7 +18,10 @@ export const matchDebugQuery = graphql(`
           x
           y
         }
-        spellChoices
+        spellChoices {
+          handIndex
+          targets
+        }
         deployChoices
         invadeChoices
         itemChoices
@@ -190,6 +193,10 @@ export const matchDebugQuery = graphql(`
                 ... on SpellRollDiceEffect {
                   count
                 }
+                ... on SpellFixedDiceCurseEffect {
+                  value
+                  turns
+                }
               }
             }
           }
@@ -197,6 +204,15 @@ export const matchDebugQuery = graphql(`
           discardPile {
             id
             name
+          }
+          curse {
+            remainingTurns
+            effect {
+              __typename
+              ... on MatchFixedDiceCurse {
+                value
+              }
+            }
           }
           turnOrder
           passedCheckpoints {
@@ -275,6 +291,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -330,6 +350,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -365,6 +389,10 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on SpellRollDiceEffect {
                     count
+                  }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
                   }
                 }
               }
@@ -408,6 +436,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -448,6 +480,10 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on SpellRollDiceEffect {
                     count
+                  }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
                   }
                 }
               }
@@ -549,6 +585,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -641,6 +681,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -675,6 +719,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellRollDiceEffect {
                     count
                   }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
                 }
               }
             }
@@ -696,6 +744,23 @@ export const matchDebugEventsQuery = graphql(`
             participant
             value
             dice
+            fixedByCurse
+          }
+          ... on MatchCurseCastEvent {
+            participant
+            target
+            curse {
+              remainingTurns
+              effect {
+                __typename
+                ... on MatchFixedDiceCurse {
+                  value
+                }
+              }
+            }
+          }
+          ... on MatchCurseRemovedEvent {
+            participant
           }
           ... on MatchMagicGainedEvent {
             participant
