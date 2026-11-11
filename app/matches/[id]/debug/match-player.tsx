@@ -65,9 +65,13 @@ import {
 } from "./match-frame";
 import {
   choicesAt,
+  previewedTiles,
   type StopSelection,
   selectableTerritories,
   selectTile,
+  type TerritoryCommand,
+  territoryCommandPositions,
+  territoryCommandsAt,
 } from "./stop-selection";
 import { watchProgress } from "./watch-progress";
 
@@ -199,21 +203,60 @@ function ItemOperations({
   );
 }
 
-// 止まった後の選択。1 つ目で何をするかを選び、領地コマンドは盤面で領地を選んでから手札・レベルを選ぶ。選べないものは出さない（2026-11-09 オーナー）
+type Position = { x: number; y: number };
+
+const TERRITORY_COMMAND_LABELS: Record<TerritoryCommand, string> = {
+  levelUp: "土地レベルアップ",
+  exchange: "クリーチャー交換",
+  elementChange: "属性変更",
+  move: "クリーチャー移動",
+};
+
+// 選択肢にフォーカス（マウスが当たる・キーボードで移る）が当たっている間、その行動の対象のマスを盤面の印で見せる。
+// 止まった直後から印を付けないのは、盤面がいつも印で埋まって見づらくなるため（game#76。2026-11-11 オーナー）
+function Previewing({
+  tiles,
+  onPreview,
+  children,
+}: {
+  tiles: Position[];
+  onPreview: (tiles: Position[] | null) => void;
+  children: ReactNode;
+}) {
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: 印を見せるだけで、操作は中のボタンが受ける（フォーカスも中のボタンから伝わる）
+    <span
+      onMouseEnter={() => onPreview(tiles)}
+      onMouseLeave={() => onPreview(null)}
+      onFocus={() => onPreview(tiles)}
+      onBlur={() => onPreview(null)}
+    >
+      {children}
+    </span>
+  );
+}
+
+// 止まった後の選択。1 つ目で何をするかを選び（配置・侵略・通行料を払う・領地コマンド・ターンを終える の順。2026-11-11 オーナー）、領地コマンドは盤面で領地を選んでから、その領地で使える領地コマンド → 手札・レベル・属性・行き先を
+// 選ぶ（領地しだいで使えるものが違うため。game#76）。選べないものは出さない（2026-11-09 オーナー）
 function StopOperations({
   phase,
   actionProps,
   hand,
   operations,
+  stopped,
   selection,
   onSelect,
+  onPreview,
 }: {
   phase: "DEPLOYING" | "INVADING" | "TERRITORY_COMMANDING";
   actionProps: { id: string; revision: number };
   hand: FrameCard[];
   operations: MatchPlayerOperations;
+  // 止まったマス（配置・侵略・通行料の対象）
+  stopped: Position;
   selection: StopSelection | null;
   onSelect: (selection: StopSelection | null) => void;
+  onPreview: (tiles: Position[] | null) => void;
 }) {
   const back = (
     <button type="button" onClick={() => onSelect(null)}>
@@ -222,59 +265,54 @@ function StopOperations({
   );
   // スペルの選びかけは振る段階のもので、止まった後には残らない（版が進むと捨てる）が、型の上では来うるので何も選んでいない扱いにする
   if (selection === null || selection.command === "spell") {
+    // 押したボタンは消えてマウスが離れたことが届かないので、選ぶときに印の見せ方も消す
+    const choose = (next: StopSelection) => {
+      onPreview(null);
+      onSelect(next);
+    };
+    const territories = territoryCommandPositions(operations);
     return (
       <>
-        {operations.levelUpChoices.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onSelect({ command: "levelUp", position: null })}
-          >
-            土地レベルアップ
-          </button>
-        )}
-        {operations.exchangeChoices.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onSelect({ command: "exchange", position: null })}
-          >
-            クリーチャー交換
-          </button>
-        )}
-        {operations.elementChangeChoices.length > 0 && (
-          <button
-            type="button"
-            onClick={() =>
-              onSelect({ command: "elementChange", position: null })
-            }
-          >
-            属性変更
-          </button>
-        )}
-        {operations.moveChoices.length > 0 && (
-          <button
-            type="button"
-            onClick={() =>
-              onSelect({ command: "move", position: null, to: null })
-            }
-          >
-            クリーチャー移動
-          </button>
-        )}
         {phase === "DEPLOYING" && operations.deployChoices.length > 0 && (
-          <button type="button" onClick={() => onSelect({ command: "deploy" })}>
-            配置
-          </button>
+          <Previewing tiles={[stopped]} onPreview={onPreview}>
+            <button type="button" onClick={() => choose({ command: "deploy" })}>
+              配置
+            </button>
+          </Previewing>
         )}
         {phase === "INVADING" && operations.invadeChoices.length > 0 && (
-          <button type="button" onClick={() => onSelect({ command: "invade" })}>
-            侵略
-          </button>
+          <Previewing tiles={[stopped]} onPreview={onPreview}>
+            <button type="button" onClick={() => choose({ command: "invade" })}>
+              侵略
+            </button>
+          </Previewing>
         )}
-        {phase === "INVADING" ? (
-          <MatchActionButton action={payMatchToll} {...actionProps}>
-            通行料を払う
-          </MatchActionButton>
-        ) : (
+        {phase === "INVADING" && (
+          <Previewing tiles={[stopped]} onPreview={onPreview}>
+            <MatchActionButton action={payMatchToll} {...actionProps}>
+              通行料を払う
+            </MatchActionButton>
+          </Previewing>
+        )}
+        {territories.length > 0 && (
+          <Previewing tiles={territories} onPreview={onPreview}>
+            <button
+              type="button"
+              onClick={() =>
+                choose({
+                  command: "territory",
+                  position: null,
+                  action: null,
+                  to: null,
+                })
+              }
+            >
+              領地コマンド
+            </button>
+          </Previewing>
+        )}
+        {phase !== "INVADING" && (
+          // ターンを終えるには対象のマスが無いので、印を付けない
           <MatchActionButton action={endMatchTurn} {...actionProps}>
             ターンを終える
           </MatchActionButton>
@@ -316,7 +354,7 @@ function StopOperations({
       </>
     );
   }
-  const { position } = selection;
+  const { position, action } = selection;
   if (position === null) {
     return (
       <>
@@ -327,7 +365,26 @@ function StopOperations({
       </>
     );
   }
-  if (selection.command === "move") {
+  if (action === null) {
+    return (
+      <>
+        <span>
+          ({position.x}, {position.y}) の領地で
+        </span>
+        {territoryCommandsAt(operations, position).map((command) => (
+          <button
+            key={command}
+            type="button"
+            onClick={() => onSelect({ ...selection, action: command })}
+          >
+            {TERRITORY_COMMAND_LABELS[command]}
+          </button>
+        ))}
+        {back}
+      </>
+    );
+  }
+  if (action === "move") {
     const { to } = selection;
     const choice = operations.moveChoices.find(
       (candidate) =>
@@ -364,7 +421,7 @@ function StopOperations({
       </>
     );
   }
-  if (selection.command === "elementChange") {
+  if (action === "elementChange") {
     return (
       <>
         {choicesAt(operations.elementChangeChoices, position).map((choice) => (
@@ -382,7 +439,7 @@ function StopOperations({
       </>
     );
   }
-  if (selection.command === "levelUp") {
+  if (action === "levelUp") {
     return (
       <>
         {choicesAt(operations.levelUpChoices, position).map((choice) => (
@@ -520,6 +577,8 @@ function Operations({
   connected,
   selection,
   onSelect,
+  stopped,
+  onPreview,
 }: {
   id: string;
   latest: MatchFrame;
@@ -527,6 +586,8 @@ function Operations({
   connected: boolean;
   selection: StopSelection | null;
   onSelect: (selection: StopSelection | null) => void;
+  stopped: Position;
+  onPreview: (tiles: Position[] | null) => void;
 }) {
   const actionProps = { id, revision: latest.revision };
   const hand =
@@ -615,8 +676,10 @@ function Operations({
           actionProps={actionProps}
           hand={hand}
           operations={operations}
+          stopped={stopped}
           selection={selection}
           onSelect={onSelect}
+          onPreview={onPreview}
         />
       )}
       {latest.phase === "ATTACKING" && (
@@ -924,10 +987,13 @@ export function MatchPlayer({
   const [frame, setFrame] = useState(latest);
   // 選んでいる途中のことは、対戦が進んだら捨てる（前の版の選択肢で送らないため）
   const [selection, setSelection] = useState<StopSelection | null>(null);
+  // 選択肢にフォーカスが当たっている間だけ盤面に見せる、その行動の対象のマス（押せる印とは別の、見るだけのもの）
+  const [preview, setPreview] = useState<Position[] | null>(null);
   const [selectedAt, setSelectedAt] = useState(latest.revision);
   if (selectedAt !== latest.revision) {
     setSelectedAt(latest.revision);
     setSelection(null);
+    setPreview(null);
   }
   // 開いた時点の版。それより前は今の状態として出ているので、欄に入れるだけで再生しない
   const [opened] = useState(latest.revision);
@@ -988,6 +1054,14 @@ export function MatchPlayer({
   const selectable = caughtUp
     ? selectableTerritories(selection, operations)
     : [];
+  // 止まったマス（配置・侵略・通行料の対象）。守る段階は番でない人を待つので、待っている人の位置
+  const stopped = latest.participants[operations.awaitingParticipant ?? 0]
+    ?.position ?? { x: 0, y: 0 };
+  const previewed = !caughtUp
+    ? []
+    : selection === null
+      ? (preview ?? [])
+      : previewedTiles(selection, operations, stopped);
   const names = frame.participants.map(
     (participant) => participant.avatar.name,
   );
@@ -1013,6 +1087,7 @@ export function MatchPlayer({
         }))}
         pieces={participantPieces(frame.participants)}
         selectable={selectable}
+        previewed={previewed}
         onTile={(position) => {
           if (selection) {
             setSelection(selectTile(selection, position));
@@ -1028,6 +1103,8 @@ export function MatchPlayer({
             connected={connected}
             selection={selection}
             onSelect={setSelection}
+            stopped={stopped}
+            onPreview={setPreview}
           />
         ) : (
           <p data-testid="match-replaying" style={{ margin: "0 0 0.5rem" }}>
