@@ -348,6 +348,22 @@ describe("eventLine", () => {
     );
   });
 
+  it("通行料の倍率の発動は、位置・倍率・盤面の通行料と払う額を出す", () => {
+    assert.equal(
+      eventLine(
+        event(17, {
+          __typename: "MatchTollMultiplierActivatedEvent",
+          position: { x: 1, y: 0 },
+          percent: 150,
+          toll: 60,
+          multipliedToll: 90,
+        }),
+        names,
+      ),
+      "版 17 (1, 0) の通行料の倍率 150% が発動した（通行料 60 → 90）",
+    );
+  });
+
   it("領地を手放したイベントは、位置と受け取った魔力を出す", () => {
     assert.equal(
       eventLine(
