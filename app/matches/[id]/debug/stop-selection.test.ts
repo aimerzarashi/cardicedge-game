@@ -56,21 +56,22 @@ describe("selectableTerritories", () => {
     assert.deepEqual(selectableTerritories(territory, choices), [A, B, C]);
   });
 
-  it("領地を選んだ後も、領地コマンドを選んでいる間は使える領地が押せる", () => {
+  it("領地を選んだ後は押せる領地が無く、選んだ領地にだけ見るだけの印が残る", () => {
     assert.deepEqual(
       selectableTerritories({ ...territory, position: A }, choices),
-      [A, B, C],
+      [],
     );
     assert.deepEqual(
       selectableTerritories(
         { ...territory, position: A, action: "levelUp" },
         choices,
       ),
-      [A, B, C],
-    );
-    assert.deepEqual(
-      previewedTiles({ ...territory, position: A }, choices, S),
       [],
+    );
+    assert.deepEqual(previewedTiles({ ...territory, position: A }, S), [A]);
+    assert.deepEqual(
+      previewedTiles({ ...territory, position: A, action: "levelUp" }, S),
+      [A],
     );
   });
 
@@ -81,9 +82,9 @@ describe("selectableTerritories", () => {
   });
 
   it("配置・侵略を選んでいる間は、止まったマスに見るだけの印が残る", () => {
-    assert.deepEqual(previewedTiles({ command: "deploy" }, choices, S), [S]);
-    assert.deepEqual(previewedTiles({ command: "invade" }, choices, S), [S]);
-    assert.deepEqual(previewedTiles(null, choices, S), []);
+    assert.deepEqual(previewedTiles({ command: "deploy" }, S), [S]);
+    assert.deepEqual(previewedTiles({ command: "invade" }, S), [S]);
+    assert.deepEqual(previewedTiles(null, S), []);
   });
 });
 
@@ -92,20 +93,16 @@ describe("移動の選び方", () => {
     const move = { ...territory, position: A, action: "move" } as const;
     assert.deepEqual(selectableTerritories(move, choices), [B, { x: 3, y: 0 }]);
     assert.deepEqual(selectableTerritories({ ...move, to: B }, choices), []);
-    // 行き先と見分けられるよう、使える領地は見るだけの印になる
-    assert.deepEqual(previewedTiles(move, choices, S), [A, B, C]);
-    assert.deepEqual(previewedTiles({ ...move, to: B }, choices, S), [A, B, C]);
+    // 選んだ領地（と選んだ行き先）にだけ見るだけの印が残る
+    assert.deepEqual(previewedTiles(move, S), [A]);
+    assert.deepEqual(previewedTiles({ ...move, to: B }, S), [A, B]);
   });
 
-  it("盤面で押したマスは、領地コマンドでは選ぶ領地、移動を選んだ後は行き先になる", () => {
+  it("盤面で押したマスは、1 回目が領地、移動を選んだ後は行き先になる", () => {
     const chosen = selectTile(territory, A);
     assert.deepEqual(chosen, { ...territory, position: A });
-    // 別の領地を押すと、領地コマンドを選び直す
-    assert.deepEqual(selectTile(chosen, B), { ...territory, position: B });
-    assert.deepEqual(
-      selectTile({ ...territory, position: A, action: "levelUp" }, C),
-      { ...territory, position: C },
-    );
+    // 領地を選んだ後は押せるマスが無いので、押しても変わらない
+    assert.deepEqual(selectTile(chosen, B), chosen);
     assert.deepEqual(
       selectTile({ ...territory, position: A, action: "move" }, B),
       { ...territory, position: A, action: "move", to: B },
@@ -119,13 +116,9 @@ describe("スペルの選び方", () => {
     assert.deepEqual(selectableTerritories(chosen, choices), [A, B]);
     const targeted = selectTile(chosen, B);
     assert.deepEqual(targeted, { command: "spell", handIndex: 2, position: B });
-    // 押した後も印が残り、別の対象を押すと選び直す
-    assert.deepEqual(selectableTerritories(targeted, choices), [A, B]);
-    assert.deepEqual(selectTile(targeted, A), {
-      command: "spell",
-      handIndex: 2,
-      position: A,
-    });
+    // 押した後は押せる印が無く、押したマスにだけ見るだけの印が残る
+    assert.deepEqual(selectableTerritories(targeted, choices), []);
+    assert.deepEqual(previewedTiles(targeted, S), [B]);
   });
 
   it("クリーチャーを対象にしないスペルでは押せる領地が無い", () => {

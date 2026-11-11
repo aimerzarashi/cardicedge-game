@@ -1073,7 +1073,7 @@ export function MatchPlayer({
     ? []
     : selection === null
       ? (preview ?? [])
-      : previewedTiles(selection, operations, stopped);
+      : previewedTiles(selection, stopped);
   const names = frame.participants.map(
     (participant) => participant.avatar.name,
   );
