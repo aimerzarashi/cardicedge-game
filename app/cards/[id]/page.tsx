@@ -3,6 +3,7 @@ import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import {
+  abilitiesLabel,
   CARD_TYPE_LABELS,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
@@ -27,9 +28,11 @@ const cardQuery = graphql(`
         elements
         attack
         hitPoints
-        movement
         itemRestrictions
         placementRestrictions
+        abilities {
+          kind
+        }
       }
       ... on ItemCardInfo {
         category
@@ -134,12 +137,12 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{card.attack}</dd>
             <dt>HP</dt>
             <dd>{card.hitPoints}</dd>
-            <dt>移動</dt>
-            <dd>{card.movement}</dd>
             <dt>アイテム制限</dt>
             <dd>{itemRestrictionsLabel(card.itemRestrictions)}</dd>
             <dt>配置制限</dt>
             <dd>{placementRestrictionsLabel(card.placementRestrictions)}</dd>
+            <dt>能力</dt>
+            <dd>{abilitiesLabel(card.abilities)}</dd>
           </>
         )}
         {card.__typename === "ItemCardInfo" && (

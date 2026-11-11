@@ -13,6 +13,7 @@ import { BoardGrid } from "../../../boards/board-grid";
 import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
 import {
+  abilitiesLabel,
   curseLabel,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
@@ -909,13 +910,16 @@ function FrameView({
                             <Link href={`/cards/${card.id}`}>{card.name}</Link>
                             （コスト {card.cost}・{RARITY_LABELS[card.rarity]}
                             {card.elements &&
-                              `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}・移動 ${card.movement}`}
+                              `・${elementsLabel(card.elements)}・AT ${card.attack}・HP ${card.hitPoints}`}
                             {card.itemRestrictions &&
                               card.itemRestrictions.length > 0 &&
                               `・アイテム制限 ${itemRestrictionsLabel(card.itemRestrictions)}`}
                             {card.placementRestrictions &&
                               card.placementRestrictions.length > 0 &&
                               `・配置制限 ${placementRestrictionsLabel(card.placementRestrictions)}`}
+                            {card.abilities &&
+                              card.abilities.length > 0 &&
+                              `・${abilitiesLabel(card.abilities)}`}
                             {card.category &&
                               `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
                             {card.__typename === "SpellCardInfo" &&

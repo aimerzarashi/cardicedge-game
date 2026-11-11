@@ -3,6 +3,7 @@
 import type {
   CardRarity,
   CardType,
+  CreatureAbilityKind,
   CreatureElement,
   ItemCategory,
   MatchEndReason,
@@ -163,6 +164,20 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
 };
 
 // 複数の属性は core が並べた順のまま 1 文字ずつつなぐ（例: 火水）
+// 種類の足し忘れを型検査で見つけるため、Record<CreatureAbilityKind, …> で持つ
+export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
+  DEFENSIVE: "防御型",
+};
+
+// 能力の表示（core が返した並びのまま。無ければ「なし」）
+export function abilitiesLabel(
+  abilities: readonly { kind: CreatureAbilityKind }[],
+): string {
+  return abilities.length === 0
+    ? "なし"
+    : abilities.map(({ kind }) => CREATURE_ABILITY_LABELS[kind]).join("・");
+}
+
 // 配置制限の表示（無ければ「なし」）
 export function placementRestrictionsLabel(
   elements: readonly CreatureElement[],

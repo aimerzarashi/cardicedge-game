@@ -1,6 +1,7 @@
 import type {
   BoardTileElement,
   CardRarity,
+  CreatureAbilityKind,
   CreatureElement,
   ItemCategory,
   MatchEndReason,
@@ -19,9 +20,9 @@ export type FrameCard = {
   elements?: CreatureElement[];
   attack?: number;
   hitPoints?: number;
-  movement?: number;
   itemRestrictions?: ItemCategory[];
   placementRestrictions?: CreatureElement[];
+  abilities?: { kind: CreatureAbilityKind }[];
   category?: ItemCategory;
   attackBonus?: number;
   hitPointsBonus?: number;

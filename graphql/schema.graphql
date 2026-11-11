@@ -832,6 +832,24 @@ type CreateRoomSuccess {
 	revision: Int!
 }
 """
+クリーチャーの能力
+"""
+interface CreatureAbility {
+	"""
+	能力の種類
+	"""
+	kind: CreatureAbilityKind!
+}
+"""
+クリーチャーの能力の種類
+"""
+enum CreatureAbilityKind {
+	"""
+	防御型（侵略に出せず、クリーチャー移動もできない）
+	"""
+	DEFENSIVE
+}
+"""
 クリーチャー
 """
 type CreatureCardInfo implements CardInfo {
@@ -864,10 +882,6 @@ type CreatureCardInfo implements CardInfo {
 	"""
 	hitPoints: Int!
 	"""
-	移動（領地コマンドのクリーチャーの移動で進めるマスの数。0 は動けない）
-	"""
-	movement: Int!
-	"""
 	アイテム制限（持てないアイテムの分類。武器・防具・巻物の順。無ければ空）
 	"""
 	itemRestrictions: [ItemCategory!]!
@@ -875,6 +889,19 @@ type CreatureCardInfo implements CardInfo {
 	配置制限（置けない土地の属性。火・地・水・風の順。無ければ空）
 	"""
 	placementRestrictions: [CreatureElement!]!
+	"""
+	能力（並びは決めた順。無ければ空）
+	"""
+	abilities: [CreatureAbility!]!
+}
+"""
+防御型
+"""
+type CreatureDefensiveAbility implements CreatureAbility {
+	"""
+	能力の種類（DEFENSIVE）
+	"""
+	kind: CreatureAbilityKind!
 }
 """
 クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独

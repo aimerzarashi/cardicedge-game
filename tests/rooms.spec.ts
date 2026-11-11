@@ -59,9 +59,7 @@ test("部屋を作り、席・対戦ルール・席の選択を決めて公開�
   // 手札は、対戦を始めたときに写した性能を出す（火のデッキは A（コスト 10・N・火・AT 10・HP 10）と B（コスト 20・S・水・AT 20・HP 30））
   await expect(
     player.getByTestId("participant-hand").getByRole("listitem").first(),
-  ).toHaveText(
-    /（コスト (10・N・火・AT 10・HP 10・移動 1|20・S・水・AT 20・HP 30・移動 1)）/,
-  );
+  ).toHaveText(/（コスト (10・N・火・AT 10・HP 10|20・S・水・AT 20・HP 30)）/);
   // 山札の残りは、デッキの枚数から配った 5 枚を引いた数（火のデッキは 7 枚）
   await expect(player.getByTestId("participant-draw-pile")).toHaveText("2");
   await expect(page.getByTestId("match-rules")).toContainText("目標の魔力9000");
