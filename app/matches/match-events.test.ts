@@ -179,6 +179,20 @@ describe("eventLine", () => {
     });
   }
 
+  it("能力の発動のイベントは、どちらの側の何の能力かを出す", () => {
+    assert.equal(
+      eventLine(
+        event(22, {
+          __typename: "MatchBattleAbilityActivatedEvent",
+          side: "DEFENDER",
+          ability: "FIRST_STRIKE",
+        }),
+        names,
+      ),
+      "版 22 守る側の先制が発動した",
+    );
+  });
+
   it("進んだイベントは、版・アバターの名前・行き先を出す", () => {
     assert.equal(
       eventLine(event(15, { participant: 1, to: { x: 1, y: 0 } }), names),

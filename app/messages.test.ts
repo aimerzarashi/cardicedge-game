@@ -32,6 +32,11 @@ describe("abilitiesLabel", () => {
       ]),
       "防御型・通行料の倍率 150%",
     );
+    assert.equal(
+      abilitiesLabel([{ kind: "FIRST_STRIKE" }, { kind: "DEFENSIVE" }]),
+      "先制・防御型",
+    );
+    assert.equal(abilitiesLabel([{ kind: "LAST_STRIKE" }]), "後手");
   });
 });
 

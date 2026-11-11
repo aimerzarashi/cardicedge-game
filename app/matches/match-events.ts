@@ -1,6 +1,7 @@
-import type { BoardTileElement } from "@/graphql/graphql";
+import type { BoardTileElement, CreatureAbilityKind } from "@/graphql/graphql";
 import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
+  CREATURE_ABILITY_LABELS,
   itemBonusesLabel,
   MATCH_END_REASON_LABELS,
   MATCH_EVENT_MESSAGES,
@@ -37,6 +38,7 @@ export type MatchEventView = {
   attacker?: { attack: number; hitPoints: number };
   defender?: { attack: number; hitPoints: number };
   side?: "ATTACKER" | "DEFENDER";
+  ability?: CreatureAbilityKind;
   source?: {
     __typename?: string;
     positions?: { x: number; y: number }[];
@@ -131,6 +133,11 @@ function body(event: MatchEventView, names: string[]): string {
         itemBonusesLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
         event.attack ?? 0,
         event.hitPoints ?? 0,
+      );
+    case "MatchBattleAbilityActivatedEvent":
+      return m.battleAbilityActivated(
+        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+        event.ability ? CREATURE_ABILITY_LABELS[event.ability] : "",
       );
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
