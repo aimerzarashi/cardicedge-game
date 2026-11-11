@@ -6,11 +6,19 @@ import {
   fieldErrorMessage,
   itemRestrictionsLabel,
   matchNumberLabel,
+  placementRestrictionsLabel,
   RULE_LABELS,
   type RuleField,
   ruleStep,
   spellEffectLabel,
 } from "./messages.ts";
+
+describe("placementRestrictionsLabel", () => {
+  it("無ければ「なし」、あれば core の並びのまま属性をつなぐ", () => {
+    assert.equal(placementRestrictionsLabel([]), "なし");
+    assert.equal(placementRestrictionsLabel(["EARTH", "WIND"]), "地風");
+  });
+});
 
 describe("itemRestrictionsLabel", () => {
   it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
