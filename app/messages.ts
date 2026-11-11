@@ -434,6 +434,14 @@ export const MATCH_EVENT_MESSAGES = {
     x: number,
     y: number,
   ) => `(${fromX}, ${fromY}) のクリーチャーを動かして (${x}, ${y}) を侵略した`,
+  tollMultiplierActivated: (
+    x: number,
+    y: number,
+    percent: number,
+    toll: number,
+    multipliedToll: number,
+  ) =>
+    `(${x}, ${y}) の通行料の倍率 ${percent}% が発動した（通行料 ${toll} → ${multipliedToll}）`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>

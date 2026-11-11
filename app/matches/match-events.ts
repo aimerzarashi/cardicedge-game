@@ -39,6 +39,9 @@ export type MatchEventView = {
   defender?: { attack: number; hitPoints: number };
   side?: "ATTACKER" | "DEFENDER";
   ability?: CreatureAbilityKind;
+  percent?: number;
+  toll?: number;
+  multipliedToll?: number;
   source?: {
     __typename?: string;
     positions?: { x: number; y: number }[];
@@ -174,6 +177,14 @@ function body(event: MatchEventView, names: string[]): string {
         event.from?.y ?? 0,
         event.position?.x ?? 0,
         event.position?.y ?? 0,
+      );
+    case "MatchTollMultiplierActivatedEvent":
+      return m.tollMultiplierActivated(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.percent ?? 0,
+        event.toll ?? 0,
+        event.multipliedToll ?? 0,
       );
     case "MatchTollPaidEvent":
       return m.tollPaid(

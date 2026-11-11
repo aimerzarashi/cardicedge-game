@@ -672,6 +672,15 @@ export const matchDebugEventsQuery = graphql(`
             }
             returnedToHand
           }
+          ... on MatchTollMultiplierActivatedEvent {
+            position {
+              x
+              y
+            }
+            percent
+            toll
+            multipliedToll
+          }
           ... on MatchTollPaidEvent {
             participant
             owner

@@ -3264,7 +3264,7 @@ type MatchTerritory {
 	"""
 	value: Int!
 	"""
-	他人が止まったときに払う通行料
+	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollMultiplierActivatedEvent））
 	"""
 	toll: Int!
 	"""
@@ -3458,9 +3458,42 @@ type MatchTerritoryValue {
 	"""
 	value: Int!
 	"""
-	他人が止まったときに払う通行料
+	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollMultiplierActivatedEvent））
 	"""
 	toll: Int!
+}
+"""
+通行料を払う直前に、領地のクリーチャーの通行料の倍率が発動した（倍率を持っていれば、効き目が無くても出る）。続く MatchTollPaidEvent が multipliedToll を払う
+"""
+type MatchTollMultiplierActivatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	止まった領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	倍率（百分率。150 で 1.5 倍）
+	"""
+	percent: Int!
+	"""
+	盤面の通行料（倍率を掛ける前）
+	"""
+	toll: Int!
+	"""
+	倍率を掛けて切り捨てた、払う通行料
+	"""
+	multipliedToll: Int!
 }
 """
 他人の領地に止まって通行料を払った（足りなくても全額を払い、魔力は負になる）
