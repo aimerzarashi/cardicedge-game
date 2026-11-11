@@ -7,6 +7,7 @@ import {
   elementsLabel,
   ITEM_CATEGORY_LABELS,
   itemBonusesLabel,
+  itemRestrictionsLabel,
   RARITY_LABELS,
   spellEffectLabel,
 } from "../../messages";
@@ -26,6 +27,7 @@ const cardQuery = graphql(`
         attack
         hitPoints
         movement
+        itemRestrictions
       }
       ... on ItemCardInfo {
         category
@@ -132,6 +134,8 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{card.hitPoints}</dd>
             <dt>移動</dt>
             <dd>{card.movement}</dd>
+            <dt>アイテム制限</dt>
+            <dd>{itemRestrictionsLabel(card.itemRestrictions)}</dd>
           </>
         )}
         {card.__typename === "ItemCardInfo" && (

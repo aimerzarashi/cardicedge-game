@@ -4,12 +4,20 @@ import {
   continuesLabel,
   curseLabel,
   fieldErrorMessage,
+  itemRestrictionsLabel,
   matchNumberLabel,
   RULE_LABELS,
   type RuleField,
   ruleStep,
   spellEffectLabel,
 } from "./messages.ts";
+
+describe("itemRestrictionsLabel", () => {
+  it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
+    assert.equal(itemRestrictionsLabel([]), "なし");
+    assert.equal(itemRestrictionsLabel(["ARMOR", "SCROLL"]), "防具・巻物");
+  });
+});
 
 describe("ruleStep", () => {
   it("魔力は 100 刻み、ラウンドの上限とサイコロの目は 1 刻みにする", () => {
