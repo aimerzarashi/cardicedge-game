@@ -320,3 +320,58 @@ test("呪いのスペルを相手に使うと、相手の欄に呪いが出て�
   await expect(events).toContainText("炎の剣士: 呪いが解けた");
   await expect(npc.getByTestId("participant-curse")).toHaveText("なし");
 });
+
+test("ダメージのスペルを相手のクリーチャーに使うと、HP が減るか破壊される", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(180_000);
+  await openNewRoom(page, request, "match-damage");
+  await decideSeats(page);
+  // 土地が 6 つ続く 1 本道なので、NPC がクリーチャーを配置しやすい
+  await decideRules(page, undefined, "公開中D");
+  // 水のデッキに、クリーチャーに 20 ダメージのスペル G（コスト 10）が 1 枚入っている（local/core-master/master.sql）
+  await reloadUntilVisible(page, seatItem(page, 0).getByLabel("デッキ"));
+  await seatItem(page, 0).getByLabel("デッキ").selectOption({ label: "水" });
+  await seatItem(page, 0)
+    .getByRole("button", { name: "席 1 を決める" })
+    .click();
+  await expect(seatItem(page, 0)).toContainText("デッキ: 水");
+  await decideNpcSeat(page);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
+
+  const frame = page.getByTestId("match-frame");
+  // 領地があるときだけ使える（自分のクリーチャーにも使える）。自分は配置しないので、領地は NPC のものだけ
+  const damage = page.getByRole("button", { name: "Gを使う" });
+  const endTurn = page.getByRole("button", { name: "ターンを終える" });
+  const operations = matchOperations(page);
+  for (let step = 0; step < 150; step++) {
+    await expect(damage.or(operations).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await damage.isVisible()) {
+      break;
+    }
+    const button = (await endTurn.isVisible()) ? endTurn : operations.first();
+    const revision = await frame.getAttribute("data-revision");
+    await button.click();
+    await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
+  }
+  await damage.click();
+  // 対象は盤面の印の付いた領地を押して選ぶ
+  await expect(page.getByTestId("spell-target-prompt")).toBeVisible();
+  await page.locator("[data-selectable='true']").first().click();
+  const target = page
+    .getByRole("button", { name: /^\(\d+, \d+\) の.+に使う$/ })
+    .first();
+  const revision = await frame.getAttribute("data-revision");
+  await target.click();
+  await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
+
+  // テスト用のマスタのクリーチャーは HP 10〜40 なので、20 で減るか破壊される
+  const events = page.getByTestId("match-events");
+  await expect(events).toContainText("のクリーチャーに 20 ダメージ（残りの HP");
+});

@@ -102,6 +102,7 @@ export function spellEffectLabel(
         perLap?: number;
         value?: number;
         turns?: number;
+        amount?: number;
       }
     | null
     | undefined,
@@ -115,6 +116,8 @@ export function spellEffectLabel(
       return `サイコロを ${effect.count} 個同時に振る`;
     case "SpellFixedDiceCurseEffect":
       return `対象の次のサイコロの目を ${effect.value} にする呪い（${effect.turns} ターン）`;
+    case "SpellDamageEffect":
+      return `対象のクリーチャーに ${effect.amount} ダメージ`;
     default:
       return "なし";
   }
@@ -331,6 +334,10 @@ export const MATCH_EVENT_MESSAGES = {
   curseCast: (target: string, value: number, turns: number) =>
     `${target}に呪い「次のサイコロは ${value}」（${turns} ターン）をかけた`,
   curseRemoved: "呪いが解けた",
+  creatureDamaged: (x: number, y: number, damage: number, remaining: number) =>
+    `(${x}, ${y}) のクリーチャーに ${damage} ダメージ（残りの HP ${remaining}）`,
+  creatureDestroyed: (x: number, y: number) =>
+    `(${x}, ${y}) のクリーチャーが破壊された`,
   magicGained: (magic: number) => `魔力を得た（魔力 +${magic}）`,
   diceCountChanged: (count: number) =>
     `このターンはサイコロを ${count} 個同時に振る`,

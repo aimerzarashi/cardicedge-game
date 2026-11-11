@@ -219,6 +219,18 @@ function body(event: MatchEventView, names: string[]): string {
       );
     case "MatchCurseRemovedEvent":
       return m.curseRemoved;
+    case "MatchCreatureDamagedEvent":
+      return m.creatureDamaged(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.damage ?? 0,
+        event.remainingHitPoints ?? 0,
+      );
+    case "MatchCreatureDestroyedEvent":
+      return m.creatureDestroyed(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+      );
     case "MatchMagicGainedEvent":
       return m.magicGained(event.magic ?? 0);
     case "MatchDiceCountChangedEvent":

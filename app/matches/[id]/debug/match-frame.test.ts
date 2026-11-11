@@ -553,6 +553,27 @@ describe("applyEvent", () => {
     assert.equal(removed.participants[0].curse, null);
   });
 
+  it("ダメージでクリーチャーの HP が減り、破壊されると土地が空き、持ち主の捨て札に入る", () => {
+    const damaged = applyEvent(
+      frame({ territories: [{ ...TERRITORY, owner: 0 }] }),
+      event("MatchCreatureDamagedEvent", {
+        position: { x: 1, y: 0 },
+        remainingHitPoints: 0,
+      }),
+      BASE,
+    );
+    assert.equal(damaged.territories[0].creature.hitPoints, 0);
+    const destroyed = applyEvent(
+      damaged,
+      event("MatchCreatureDestroyedEvent", { position: { x: 1, y: 0 } }),
+      BASE,
+    );
+    assert.deepEqual(destroyed.territories, []);
+    assert.deepEqual(destroyed.participants[0].discardPile, [
+      { id: "c1", name: "ドラゴン" },
+    ]);
+  });
+
   it("スペルで魔力を得ると、その人の魔力だけが増える", () => {
     const next = applyEvent(
       frame(),

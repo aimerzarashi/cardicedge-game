@@ -1,6 +1,7 @@
 type Position = { x: number; y: number };
 
 // 止まった後に選んでいる途中のこと。どれを実行するか → どの領地か（領地コマンドだけ）→ 手札・レベル の順に選ぶ。
+// 振る前のスペルも、クリーチャーを対象にするものは同じく盤面で領地を選ぶので、ここに入れる（2026-11-11 オーナー）。
 // 見るための状態なのでイベントにしない
 export type StopSelection =
   | { command: "deploy" }
@@ -10,13 +11,16 @@ export type StopSelection =
       position: Position | null;
     }
   // 移動は、動かす領地 → 行き先 の順に盤面で選ぶ
-  | { command: "move"; position: Position | null; to: Position | null };
+  | { command: "move"; position: Position | null; to: Position | null }
+  // スペルは、手札のどれか → 対象（プレイヤーはボタン、クリーチャーは盤面の領地）の順に選ぶ
+  | { command: "spell"; handIndex: number; position: Position | null };
 
 type TerritoryChoices = {
   levelUpChoices: Position[];
   exchangeChoices: Position[];
   elementChangeChoices: Position[];
   moveChoices: (Position & { to: Position })[];
+  spellChoices: { handIndex: number; targetPositions: Position[] }[];
 };
 
 const CHOICES_OF = {
@@ -57,6 +61,13 @@ export function selectableTerritories(
   }
   if (selection.position !== null) {
     return [];
+  }
+  if (selection.command === "spell") {
+    const { handIndex } = selection;
+    return unique(
+      choices.spellChoices.find((choice) => choice.handIndex === handIndex)
+        ?.targetPositions ?? [],
+    );
   }
   return unique(choices[CHOICES_OF[selection.command]]);
 }

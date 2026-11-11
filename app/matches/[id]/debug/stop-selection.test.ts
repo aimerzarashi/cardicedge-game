@@ -17,6 +17,10 @@ const choices = {
     { ...A, to: { x: 3, y: 0 } },
     { ...B, to: { x: 4, y: 0 } },
   ],
+  spellChoices: [
+    { handIndex: 0, targetPositions: [] },
+    { handIndex: 2, targetPositions: [A, B] },
+  ],
 };
 
 describe("selectableTerritories", () => {
@@ -86,6 +90,26 @@ describe("移動の選び方", () => {
       command: "levelUp",
       position: B,
     });
+  });
+});
+
+describe("スペルの選び方", () => {
+  it("クリーチャーを対象にするスペルは、そのスペルの対象の領地が押せ、押すと対象になる", () => {
+    const chosen = { command: "spell", handIndex: 2, position: null } as const;
+    assert.deepEqual(selectableTerritories(chosen, choices), [A, B]);
+    const targeted = selectTile(chosen, B);
+    assert.deepEqual(targeted, { command: "spell", handIndex: 2, position: B });
+    assert.deepEqual(selectableTerritories(targeted, choices), []);
+  });
+
+  it("クリーチャーを対象にしないスペルでは押せる領地が無い", () => {
+    assert.deepEqual(
+      selectableTerritories(
+        { command: "spell", handIndex: 0, position: null },
+        choices,
+      ),
+      [],
+    );
   });
 });
 
