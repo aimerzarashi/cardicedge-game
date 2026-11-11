@@ -178,9 +178,11 @@ export const matchDebugQuery = graphql(`
               elements
               attack
               hitPoints
-              movement
               itemRestrictions
               placementRestrictions
+              abilities {
+                kind
+              }
             }
             ... on ItemCardInfo {
               category
@@ -281,9 +283,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -345,9 +349,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -390,9 +396,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -441,9 +449,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -491,9 +501,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -600,9 +612,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -701,9 +715,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category
@@ -744,9 +760,11 @@ export const matchDebugEventsQuery = graphql(`
                 elements
                 attack
                 hitPoints
-                movement
                 itemRestrictions
                 placementRestrictions
+                abilities {
+                  kind
+                }
               }
               ... on ItemCardInfo {
                 category

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  abilitiesLabel,
   continuesLabel,
   curseLabel,
   fieldErrorMessage,
@@ -17,6 +18,13 @@ describe("placementRestrictionsLabel", () => {
   it("無ければ「なし」、あれば core の並びのまま属性をつなぐ", () => {
     assert.equal(placementRestrictionsLabel([]), "なし");
     assert.equal(placementRestrictionsLabel(["EARTH", "WIND"]), "地風");
+  });
+});
+
+describe("abilitiesLabel", () => {
+  it("無ければ「なし」、あれば能力の名前をつなぐ", () => {
+    assert.equal(abilitiesLabel([]), "なし");
+    assert.equal(abilitiesLabel([{ kind: "DEFENSIVE" }]), "防御型");
   });
 });
 
