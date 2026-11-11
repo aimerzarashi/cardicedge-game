@@ -90,46 +90,50 @@ export function selectableTerritories(
   }
   if (selection.command === "spell") {
     const { handIndex } = selection;
-    // 対象を押した後も印を残し、別の対象を押して選び直せる（2026-11-11 オーナー）
-    return unique(
-      choices.spellChoices.find((choice) => choice.handIndex === handIndex)
-        ?.targetPositions ?? [],
-    );
+    return selection.position === null
+      ? unique(
+          choices.spellChoices.find((choice) => choice.handIndex === handIndex)
+            ?.targetPositions ?? [],
+        )
+      : [];
   }
   if (selection.command !== "territory") {
     return [];
   }
-  if (selection.action === "move" && selection.position !== null) {
-    return selection.to === null
-      ? unique(
-          choicesAt(choices.moveChoices, selection.position).map(
-            (choice) => choice.to,
-          ),
-        )
-      : [];
+  if (selection.position === null) {
+    return territoryCommandPositions(choices);
   }
-  // 領地コマンドを選んでいる間は、領地を選んだ後も印を残し、別の領地を押して選び直せる（2026-11-11 オーナー）
-  return territoryCommandPositions(choices);
+  if (selection.action === "move" && selection.to === null) {
+    return unique(
+      choicesAt(choices.moveChoices, selection.position).map(
+        (choice) => choice.to,
+      ),
+    );
+  }
+  return [];
 }
 
-// 選んでいる間、盤面に見るだけの印を付けるマス。配置・侵略は手札を選んでいる間も止まったマスに印を残す（2026-11-11 オーナー）。
-// 移動の行き先を選ぶ段では、行き先の押せる印と見分けられるよう、使える領地を見るだけの印にする
+// 選んでいる間、盤面に見るだけの印を付けるマス。選んだマスにだけ印を残す（2026-11-11 オーナー。ほかの候補の印は残さない。game#82）。
+// 配置・侵略は止まったマス、領地コマンドは選んだ領地（移動は行き先も）、スペルは選んだ対象
 export function previewedTiles(
   selection: StopSelection | null,
-  choices: TerritoryChoices,
   stopped: Position,
 ): Position[] {
   if (selection?.command === "deploy" || selection?.command === "invade") {
     return [stopped];
   }
-  return selection?.command === "territory" &&
-    selection.position !== null &&
-    selection.action === "move"
-    ? territoryCommandPositions(choices)
-    : [];
+  if (selection?.command === "territory" && selection.position !== null) {
+    return selection.to === null
+      ? [selection.position]
+      : [selection.position, selection.to];
+  }
+  if (selection?.command === "spell" && selection.position !== null) {
+    return [selection.position];
+  }
+  return [];
 }
 
-// 盤面で押したマスを、選んでいる途中のことに当てる（領地コマンドは押した領地を選び直し、移動を選んだ後は行き先にする）
+// 盤面で押したマスを、選んでいる途中のことに当てる（領地コマンドは 1 回目が領地、移動を選んだ後は行き先）
 export function selectTile(
   selection: StopSelection,
   position: Position,
@@ -140,11 +144,13 @@ export function selectTile(
   if (selection.command !== "territory") {
     return selection;
   }
-  if (selection.action === "move" && selection.position !== null) {
+  if (selection.position === null) {
+    return { ...selection, position };
+  }
+  if (selection.action === "move") {
     return { ...selection, to: position };
   }
-  // 別の領地を押したら、その領地で使える領地コマンドを選び直す
-  return { command: "territory", position, action: null, to: null };
+  return selection;
 }
 
 // 選んだ領地の選択肢だけに絞る（手札・レベルを選ぶ順番で並べる）
