@@ -867,6 +867,10 @@ type CreatureCardInfo implements CardInfo {
 	移動（領地コマンドのクリーチャーの移動で進めるマスの数。0 は動けない）
 	"""
 	movement: Int!
+	"""
+	アイテム制限（持てないアイテムの分類。武器・防具・巻物の順。無ければ空）
+	"""
+	itemRestrictions: [ItemCategory!]!
 }
 """
 クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独

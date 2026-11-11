@@ -80,6 +80,17 @@ export const ITEM_CATEGORY_LABELS: Record<ItemCategory, string> = {
   SCROLL: "巻物",
 };
 
+// アイテム制限の表示（core が並べた順。無ければ「なし」）
+export function itemRestrictionsLabel(
+  itemRestrictions: readonly ItemCategory[],
+): string {
+  return itemRestrictions.length === 0
+    ? "なし"
+    : itemRestrictions
+        .map((category) => ITEM_CATEGORY_LABELS[category])
+        .join("・");
+}
+
 // 符号つきで出す（下げるアイテムと見分けるため）。増減の無い項目は出さない
 export function itemBonusesLabel(
   attackBonus: number,
