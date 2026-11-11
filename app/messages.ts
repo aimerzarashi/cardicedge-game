@@ -167,15 +167,22 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
 // 種類の足し忘れを型検査で見つけるため、Record<CreatureAbilityKind, …> で持つ
 export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
   DEFENSIVE: "防御型",
+  TOLL_MULTIPLIER: "通行料の倍率",
 };
 
-// 能力の表示（core が返した並びのまま。無ければ「なし」）
+// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%）。無ければ「なし」）
 export function abilitiesLabel(
-  abilities: readonly { kind: CreatureAbilityKind }[],
+  abilities: readonly { kind: CreatureAbilityKind; percent?: number }[],
 ): string {
   return abilities.length === 0
     ? "なし"
-    : abilities.map(({ kind }) => CREATURE_ABILITY_LABELS[kind]).join("・");
+    : abilities
+        .map(({ kind, percent }) =>
+          percent === undefined
+            ? CREATURE_ABILITY_LABELS[kind]
+            : `${CREATURE_ABILITY_LABELS[kind]} ${percent}%`,
+        )
+        .join("・");
 }
 
 // 配置制限の表示（無ければ「なし」）

@@ -848,6 +848,10 @@ enum CreatureAbilityKind {
 	防御型（侵略に出せず、クリーチャー移動もできない）
 	"""
 	DEFENSIVE
+	"""
+	通行料の倍率（このクリーチャーのいる領地の通行料に掛ける）
+	"""
+	TOLL_MULTIPLIER
 }
 """
 クリーチャー
@@ -927,6 +931,19 @@ enum CreatureElement {
 	無
 	"""
 	NEUTRAL
+}
+"""
+通行料の倍率
+"""
+type CreatureTollMultiplierAbility implements CreatureAbility {
+	"""
+	能力の種類（TOLL_MULTIPLIER）
+	"""
+	kind: CreatureAbilityKind!
+	"""
+	倍率（百分率。150 で 1.5 倍）
+	"""
+	percent: Int!
 }
 """
 日時（RFC 3339 の文字列。例: 2026-10-17T09:00:00Z）

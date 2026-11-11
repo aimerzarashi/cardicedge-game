@@ -182,6 +182,9 @@ export const matchDebugQuery = graphql(`
               placementRestrictions
               abilities {
                 kind
+                ... on CreatureTollMultiplierAbility {
+                  percent
+                }
               }
             }
             ... on ItemCardInfo {
@@ -287,6 +290,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -353,6 +359,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -400,6 +409,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -453,6 +465,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -505,6 +520,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -616,6 +634,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -719,6 +740,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -764,6 +788,9 @@ export const matchDebugEventsQuery = graphql(`
                 placementRestrictions
                 abilities {
                   kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
                 }
               }
               ... on ItemCardInfo {
