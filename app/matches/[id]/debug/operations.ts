@@ -180,6 +180,7 @@ export const matchDebugQuery = graphql(`
               hitPoints
               movement
               itemRestrictions
+              placementRestrictions
             }
             ... on ItemCardInfo {
               category
@@ -282,6 +283,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -345,6 +347,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -389,6 +392,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -439,6 +443,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -488,6 +493,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -596,6 +602,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -696,6 +703,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category
@@ -738,6 +746,7 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 movement
                 itemRestrictions
+                placementRestrictions
               }
               ... on ItemCardInfo {
                 category

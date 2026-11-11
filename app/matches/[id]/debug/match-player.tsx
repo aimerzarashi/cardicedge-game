@@ -22,6 +22,7 @@ import {
   MATCH_PHASE_LABELS,
   MATCH_PHASE_NOT_WAITING,
   MATCH_REVIEW_MESSAGES,
+  placementRestrictionsLabel,
   RARITY_LABELS,
   SEAT_KIND_LABELS,
   spellEffectLabel,
@@ -209,7 +210,7 @@ type Position = { x: number; y: number };
 const TERRITORY_COMMAND_LABELS: Record<TerritoryCommand, string> = {
   levelUp: "土地レベルアップ",
   exchange: "クリーチャー交換",
-  elementChange: "属性変更",
+  elementChange: "土地の属性変更",
   move: "クリーチャー移動",
 };
 
@@ -912,6 +913,9 @@ function FrameView({
                             {card.itemRestrictions &&
                               card.itemRestrictions.length > 0 &&
                               `・アイテム制限 ${itemRestrictionsLabel(card.itemRestrictions)}`}
+                            {card.placementRestrictions &&
+                              card.placementRestrictions.length > 0 &&
+                              `・配置制限 ${placementRestrictionsLabel(card.placementRestrictions)}`}
                             {card.category &&
                               `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
                             {card.__typename === "SpellCardInfo" &&

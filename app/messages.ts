@@ -163,6 +163,13 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
 };
 
 // 複数の属性は core が並べた順のまま 1 文字ずつつなぐ（例: 火水）
+// 配置制限の表示（無ければ「なし」）
+export function placementRestrictionsLabel(
+  elements: readonly CreatureElement[],
+): string {
+  return elements.length === 0 ? "なし" : elementsLabel(elements);
+}
+
 export function elementsLabel(elements: readonly CreatureElement[]): string {
   return elements.map((element) => CREATURE_ELEMENT_LABELS[element]).join("");
 }
