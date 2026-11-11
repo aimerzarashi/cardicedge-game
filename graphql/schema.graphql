@@ -852,6 +852,14 @@ enum CreatureAbilityKind {
 	通行料の倍率（このクリーチャーのいる領地の通行料に掛ける）
 	"""
 	TOLL_MULTIPLIER
+	"""
+	先制（戦闘で、先制の無い相手より先に攻撃する。後手と同時には持てない）
+	"""
+	FIRST_STRIKE
+	"""
+	後手（戦闘で、後手の無い相手より後に攻撃する。先制と同時には持てない）
+	"""
+	LAST_STRIKE
 }
 """
 クリーチャー
@@ -931,6 +939,24 @@ enum CreatureElement {
 	無
 	"""
 	NEUTRAL
+}
+"""
+先制
+"""
+type CreatureFirstStrikeAbility implements CreatureAbility {
+	"""
+	能力の種類（FIRST_STRIKE）
+	"""
+	kind: CreatureAbilityKind!
+}
+"""
+後手
+"""
+type CreatureLastStrikeAbility implements CreatureAbility {
+	"""
+	能力の種類（LAST_STRIKE）
+	"""
+	kind: CreatureAbilityKind!
 }
 """
 通行料の倍率
@@ -1678,6 +1704,31 @@ type MatchAvatar {
 	名前
 	"""
 	name: String!
+}
+"""
+戦闘で能力が発動した（効き目が無いとき（両方が先制で打ち消し合う等）も、持っていれば出る）
+"""
+type MatchBattleAbilityActivatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	能力を持つクリーチャーの側
+	"""
+	side: MatchBattleSide!
+	"""
+	発動した能力（今は FIRST_STRIKE・LAST_STRIKE）
+	"""
+	ability: CreatureAbilityKind!
 }
 """
 戦闘のどちら側か

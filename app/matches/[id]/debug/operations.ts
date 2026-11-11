@@ -593,6 +593,10 @@ export const matchDebugEventsQuery = graphql(`
               }
             }
           }
+          ... on MatchBattleAbilityActivatedEvent {
+            side
+            ability
+          }
           ... on MatchCreatureStruckEvent {
             striker
             damage

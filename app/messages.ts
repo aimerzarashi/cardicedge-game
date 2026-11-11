@@ -168,6 +168,8 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
 export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
   DEFENSIVE: "防御型",
   TOLL_MULTIPLIER: "通行料の倍率",
+  FIRST_STRIKE: "先制",
+  LAST_STRIKE: "後手",
 };
 
 // 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%）。無ければ「なし」）
@@ -394,6 +396,8 @@ export const MATCH_EVENT_MESSAGES = {
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
   itemSkipped: "アイテムを出さなかった",
+  battleAbilityActivated: (side: string, ability: string) =>
+    `${side}の${ability}が発動した`,
   creatureStruck: (striker: string, damage: number, remaining: number) =>
     `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
   battleStarted: (
