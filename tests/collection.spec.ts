@@ -39,7 +39,7 @@ test("スターターを受け取ると所持カードに枚数つきで出て�
   await page.getByRole("link", { name: "C", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("C");
   await expect(page.locator("dl")).toHaveText(
-    /種類\s*クリーチャー\s*コスト\s*30\s*希少度\s*R\s*属性\s*火水\s*AT\s*30\s*HP\s*40\s*アイテム制限\s*防具・巻物\s*配置制限\s*風\s*能力\s*防御型/,
+    /種類\s*クリーチャー\s*コスト\s*30\s*希少度\s*R\s*属性\s*火水\s*AT\s*30\s*HP\s*40\s*アイテム制限\s*防具・巻物\s*配置制限\s*風\s*能力\s*防御型・通行料の倍率 150%/,
   );
 });
 

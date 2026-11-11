@@ -25,6 +25,13 @@ describe("abilitiesLabel", () => {
   it("無ければ「なし」、あれば能力の名前をつなぐ", () => {
     assert.equal(abilitiesLabel([]), "なし");
     assert.equal(abilitiesLabel([{ kind: "DEFENSIVE" }]), "防御型");
+    assert.equal(
+      abilitiesLabel([
+        { kind: "DEFENSIVE" },
+        { kind: "TOLL_MULTIPLIER", percent: 150 },
+      ]),
+      "防御型・通行料の倍率 150%",
+    );
   });
 });
 

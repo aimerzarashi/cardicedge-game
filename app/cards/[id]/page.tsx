@@ -30,9 +30,7 @@ const cardQuery = graphql(`
         hitPoints
         itemRestrictions
         placementRestrictions
-        abilities {
-          kind
-        }
+        abilities {          kind          ... on CreatureTollMultiplierAbility {            percent          }        }
       }
       ... on ItemCardInfo {
         category
