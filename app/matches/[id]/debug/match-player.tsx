@@ -129,6 +129,8 @@ export type MatchPlayerOperations = {
   spellChoices: {
     handIndex: number;
     targets: { index: number; name: string }[];
+    // クリーチャーを選ぶスペルの対象（自分の領地を含む）（領地の位置とクリーチャーの名前）
+    targetPositions: { x: number; y: number; name: string }[];
   }[];
   deployChoices: number[];
   invadeChoices: number[];
@@ -218,7 +220,8 @@ function StopOperations({
       選び直す
     </button>
   );
-  if (selection === null) {
+  // スペルの選びかけは振る段階のもので、止まった後には残らない（版が進むと捨てる）が、型の上では来うるので何も選んでいない扱いにする
+  if (selection === null || selection.command === "spell") {
     return (
       <>
         {operations.levelUpChoices.length > 0 && (
@@ -415,40 +418,79 @@ function StopOperations({
   );
 }
 
-// 振る前に使えるスペル。対象の要るスペル（呪い）は、スペルを選んでから対象を選ぶ 2 段にする（2026-11-10 オーナー）
+// 振る前に使えるスペル。対象の要るスペルは、スペルを選んでから対象を選ぶ 2 段にする（2026-11-10 オーナー）。
+// クリーチャーが対象のものは、領地コマンドと同じく盤面で印の付いた領地を押して選ぶ（2026-11-11 オーナー）
 function SpellOperations({
   choices,
   hand,
   actionProps,
+  selection,
+  onSelect,
 }: {
   choices: MatchPlayerOperations["spellChoices"];
   hand: FrameCard[];
   actionProps: { id: string; revision: number };
+  selection: StopSelection | null;
+  onSelect: (selection: StopSelection | null) => void;
 }) {
-  const [chosen, setChosen] = useState<number | null>(null);
-  const choice = choices.find((candidate) => candidate.handIndex === chosen);
-  if (choice) {
+  const chosen = selection?.command === "spell" ? selection : null;
+  const choice = choices.find(
+    (candidate) => candidate.handIndex === chosen?.handIndex,
+  );
+  if (chosen && choice) {
+    const cancel = (
+      <button type="button" onClick={() => onSelect(null)}>
+        やめる
+      </button>
+    );
+    const { position } = chosen;
+    if (choice.targetPositions.length > 0 && position === null) {
+      return (
+        <>
+          <span data-testid="spell-target-prompt">
+            {hand[choice.handIndex]?.name}
+            を使うクリーチャーを、盤面の印の付いた領地から選んでください
+          </span>
+          {cancel}
+        </>
+      );
+    }
+    const target =
+      position === null
+        ? undefined
+        : choicesAt(choice.targetPositions, position)[0];
     return (
       <>
         <span>{hand[choice.handIndex]?.name}を誰に使いますか</span>
-        {choice.targets.map((target) => (
+        {choice.targets.map((player) => (
           <MatchActionButton
-            key={target.index}
+            key={player.index}
             action={useMatchSpell}
-            values={{ handIndex: choice.handIndex, target: target.index }}
+            values={{ handIndex: choice.handIndex, target: player.index }}
             {...actionProps}
           >
-            {target.name}に使う
+            {player.name}に使う
           </MatchActionButton>
         ))}
-        <button type="button" onClick={() => setChosen(null)}>
-          やめる
-        </button>
+        {target && (
+          <MatchActionButton
+            action={useMatchSpell}
+            values={{
+              handIndex: choice.handIndex,
+              targetX: target.x,
+              targetY: target.y,
+            }}
+            {...actionProps}
+          >
+            ({target.x}, {target.y}) の{target.name}に使う
+          </MatchActionButton>
+        )}
+        {cancel}
       </>
     );
   }
-  return choices.map(({ handIndex, targets }) =>
-    targets.length === 0 ? (
+  return choices.map(({ handIndex, targets, targetPositions }) =>
+    targets.length === 0 && targetPositions.length === 0 ? (
       <MatchActionButton
         key={handIndex}
         action={useMatchSpell}
@@ -461,7 +503,9 @@ function SpellOperations({
       <button
         key={handIndex}
         type="button"
-        onClick={() => setChosen(handIndex)}
+        onClick={() =>
+          onSelect({ command: "spell", handIndex, position: null })
+        }
       >
         {hand[handIndex]?.name}を使う
       </button>
@@ -539,12 +583,12 @@ function Operations({
           </MatchActionButton>
         ))}
       {latest.phase === "ROLLING" && (
-        // 版が進んだら選びかけの対象は捨てる（前の版の選択肢で送らないため）
         <SpellOperations
-          key={latest.revision}
           choices={operations.spellChoices}
           hand={hand}
           actionProps={actionProps}
+          selection={selection}
+          onSelect={onSelect}
         />
       )}
       {latest.phase === "ROLLING" && (

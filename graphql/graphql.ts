@@ -446,6 +446,8 @@ export type UseMatchSpellInput = {
   revision: number;
   /** 対象のプレイヤー（Match.participants の何番目か。spellChoices の targets の中から選ぶ。呪いのスペルで無ければ FieldRequired、対象を選ばないスペルに付けた・選べない対象は FieldNotFound） */
   target?: number | null | undefined;
+  /** 対象のクリーチャーがいる領地の位置（spellChoices の targetPositions の中から選ぶ。クリーチャーを選ぶスペルで無ければ FieldRequired、それ以外のスペルに付けた・選べない位置は FieldNotFound） */
+  targetPosition?: BoardPositionInput | null | undefined;
 };
 
 export type RegisterAvatarMutationVariables = Exact<{
@@ -521,6 +523,7 @@ export type CardQuery = { card:
     | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, attackBonus: number, hitPointsBonus: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+        | { __typename: 'SpellDamageEffect', amount: number }
         | { __typename: 'SpellDrawCardsEffect', count: number }
         | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
         | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -575,7 +578,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, deployChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -589,6 +592,7 @@ export type MatchDebugQuery = { match:
           | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+              | { __typename: 'SpellDamageEffect', amount: number }
               | { __typename: 'SpellDrawCardsEffect', count: number }
               | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
               | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -629,6 +633,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -639,6 +644,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -647,20 +653,24 @@ export type MatchDebugEventsQuery = { matchEvents:
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCheckpointPassedEvent', participant: number, magic: number, revision: number, checkpoint: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatedEvent', revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchCreatureDamagedEvent', participant: number, creature: number, damage: number, remainingHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatureDeployedEvent', participant: number, handIndex: number, creature: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
                 | { __typename: 'SpellRollDiceEffect', count: number }
                | null }
           , position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchCreatureDestroyedEvent', participant: number, creature: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatureExchangedEvent', participant: number, handIndex: number, creature: number, cost: number, revision: number, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -670,6 +680,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -691,6 +702,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -702,6 +714,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -730,6 +743,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, movement: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
                 | { __typename: 'SpellFixedDiceCurseEffect', value: number, turns: number }
                 | { __typename: 'SpellGainMagicEffect', perLap: number }
@@ -1578,6 +1592,9 @@ export const CardDocument = new TypedDocumentString(`
           value
           turns
         }
+        ... on SpellDamageEffect {
+          amount
+        }
       }
     }
   }
@@ -1674,6 +1691,10 @@ export const MatchDebugDocument = new TypedDocumentString(`
       spellChoices {
         handIndex
         targets
+        targetPositions {
+          x
+          y
+        }
       }
       deployChoices
       invadeChoices
@@ -1850,6 +1871,9 @@ export const MatchDebugDocument = new TypedDocumentString(`
                 value
                 turns
               }
+              ... on SpellDamageEffect {
+                amount
+              }
             }
           }
         }
@@ -1947,6 +1971,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -2006,6 +2033,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -2045,6 +2075,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on SpellFixedDiceCurseEffect {
                   value
                   turns
+                }
+                ... on SpellDamageEffect {
+                  amount
                 }
               }
             }
@@ -2092,6 +2125,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -2136,6 +2172,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on SpellFixedDiceCurseEffect {
                   value
                   turns
+                }
+                ... on SpellDamageEffect {
+                  amount
                 }
               }
             }
@@ -2241,6 +2280,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -2337,6 +2379,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -2374,6 +2419,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on SpellFixedDiceCurseEffect {
                   value
                   turns
+                }
+                ... on SpellDamageEffect {
+                  amount
                 }
               }
             }
@@ -2413,6 +2461,24 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
         }
         ... on MatchCurseRemovedEvent {
           participant
+        }
+        ... on MatchCreatureDamagedEvent {
+          participant
+          position {
+            x
+            y
+          }
+          creature
+          damage
+          remainingHitPoints
+        }
+        ... on MatchCreatureDestroyedEvent {
+          participant
+          position {
+            x
+            y
+          }
+          creature
         }
         ... on MatchMagicGainedEvent {
           participant

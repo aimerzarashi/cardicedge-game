@@ -427,6 +427,40 @@ function applyFact(
         },
       }));
     }
+    case "MatchCreatureDamagedEvent": {
+      const { position, remainingHitPoints } = event;
+      if (!position || remainingHitPoints === undefined) return frame;
+      return {
+        ...frame,
+        territories: frame.territories.map((territory) =>
+          samePosition(territory.position, position)
+            ? {
+                ...territory,
+                creature: {
+                  ...territory.creature,
+                  hitPoints: remainingHitPoints,
+                },
+              }
+            : territory,
+        ),
+      };
+    }
+    case "MatchCreatureDestroyedEvent": {
+      // 破壊されたクリーチャーは持ち主の捨て札に入り、土地は空く（レベルは土地に残る）
+      const destroyed = territoryAt(frame, event.position);
+      if (!destroyed) return frame;
+      const discardedFrame = discarded(
+        frame,
+        destroyed.owner,
+        destroyed.creature.card,
+      );
+      return {
+        ...discardedFrame,
+        territories: discardedFrame.territories.filter(
+          (territory) => !samePosition(territory.position, destroyed.position),
+        ),
+      };
+    }
     case "MatchCurseRemovedEvent":
       return updateParticipant(frame, seat, (participant) => ({
         ...participant,

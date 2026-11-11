@@ -261,6 +261,33 @@ describe("eventLine", () => {
     );
   });
 
+  it("ダメージと破壊のイベントは、位置とダメージ・残りの HP を出す", () => {
+    assert.equal(
+      eventLine(
+        event(25, {
+          __typename: "MatchCreatureDamagedEvent",
+          participant: 0,
+          position: { x: 1, y: 0 },
+          damage: 20,
+          remainingHitPoints: 10,
+        }),
+        names,
+      ),
+      "版 25 部屋用: (1, 0) のクリーチャーに 20 ダメージ（残りの HP 10）",
+    );
+    assert.equal(
+      eventLine(
+        event(26, {
+          __typename: "MatchCreatureDestroyedEvent",
+          participant: 0,
+          position: { x: 1, y: 0 },
+        }),
+        names,
+      ),
+      "版 26 部屋用: (1, 0) のクリーチャーが破壊された",
+    );
+  });
+
   it("複数のサイコロを振ったイベントは、1 個ずつの目と合計を出す", () => {
     assert.equal(
       eventLine(

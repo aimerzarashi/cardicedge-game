@@ -80,6 +80,13 @@ describe("spellEffectLabel", () => {
     assert.equal(spellEffectLabel(null), "なし");
   });
 
+  it("ダメージは、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "SpellDamageEffect", amount: 20 }),
+      "対象のクリーチャーに 20 ダメージ",
+    );
+  });
+
   it("魔力を得る・サイコロを複数振るも、core が返した値で言う", () => {
     assert.equal(
       spellEffectLabel({ __typename: "SpellGainMagicEffect", perLap: 100 }),

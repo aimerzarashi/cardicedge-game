@@ -48,6 +48,9 @@ const cardQuery = graphql(`
             value
             turns
           }
+          ... on SpellDamageEffect {
+            amount
+          }
         }
       }
     }

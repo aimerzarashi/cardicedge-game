@@ -21,6 +21,10 @@ export const matchDebugQuery = graphql(`
         spellChoices {
           handIndex
           targets
+          targetPositions {
+            x
+            y
+          }
         }
         deployChoices
         invadeChoices
@@ -197,6 +201,9 @@ export const matchDebugQuery = graphql(`
                   value
                   turns
                 }
+                ... on SpellDamageEffect {
+                  amount
+                }
               }
             }
           }
@@ -295,6 +302,9 @@ export const matchDebugEventsQuery = graphql(`
                     value
                     turns
                   }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
                 }
               }
             }
@@ -354,6 +364,9 @@ export const matchDebugEventsQuery = graphql(`
                     value
                     turns
                   }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
                 }
               }
             }
@@ -393,6 +406,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellFixedDiceCurseEffect {
                     value
                     turns
+                  }
+                  ... on SpellDamageEffect {
+                    amount
                   }
                 }
               }
@@ -440,6 +456,9 @@ export const matchDebugEventsQuery = graphql(`
                     value
                     turns
                   }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
                 }
               }
             }
@@ -484,6 +503,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellFixedDiceCurseEffect {
                     value
                     turns
+                  }
+                  ... on SpellDamageEffect {
+                    amount
                   }
                 }
               }
@@ -589,6 +611,9 @@ export const matchDebugEventsQuery = graphql(`
                     value
                     turns
                   }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
                 }
               }
             }
@@ -685,6 +710,9 @@ export const matchDebugEventsQuery = graphql(`
                     value
                     turns
                   }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
                 }
               }
             }
@@ -722,6 +750,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on SpellFixedDiceCurseEffect {
                     value
                     turns
+                  }
+                  ... on SpellDamageEffect {
+                    amount
                   }
                 }
               }
@@ -761,6 +792,24 @@ export const matchDebugEventsQuery = graphql(`
           }
           ... on MatchCurseRemovedEvent {
             participant
+          }
+          ... on MatchCreatureDamagedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            creature
+            damage
+            remainingHitPoints
+          }
+          ... on MatchCreatureDestroyedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            creature
           }
           ... on MatchMagicGainedEvent {
             participant

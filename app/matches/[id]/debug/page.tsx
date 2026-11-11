@@ -106,6 +106,15 @@ export default async function MatchDebugPage({
         index: target,
         name: match.participants[target]?.avatar.name ?? "",
       })),
+      targetPositions: choice.targetPositions.map((position) => ({
+        ...position,
+        name:
+          match.territories.find(
+            (territory) =>
+              territory.position.x === position.x &&
+              territory.position.y === position.y,
+          )?.creature.card.name ?? "",
+      })),
     })),
     deployChoices: match.deployChoices,
     relinquishChoices: match.relinquishChoices.map((position) => {
