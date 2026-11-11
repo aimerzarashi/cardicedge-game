@@ -41,6 +41,7 @@ import {
 // 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
 // territories（領地。マスの側面（厚み）を持ち主の色にし、レベルの分だけ板を積み、マスの上寄せに持ち主の色の ♞ とクリーチャーの ID を出し、マスの中央に通行料を出し、マスの名前にも「領地 1 レベル 1 クリーチャー名 通行料 60」と添える。core#113・game#50・game#57）。
 // landLevels（土地のレベル。空き地にもレベルの分の板を色を付けずに積み、名前に「レベル 2」と添える。game#70）も game だけ。
+// selectable・onTile（対戦で押せるマスの実線の印）と previewed（選択肢にフォーカスが当たっている間の、見るだけの破線の印。game#76）も game だけ。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -66,6 +67,7 @@ export function BoardGrid({
   territories,
   landLevels = [],
   selectable = [],
+  previewed = [],
   onTile,
 }: {
   width: number;
@@ -78,6 +80,8 @@ export function BoardGrid({
   landLevels?: (Position & { level: number })[];
   // 押せるマス（印を付ける）。ほかのマスは押せない
   selectable?: Position[];
+  // 見るだけの印を付けるマス（選択肢にフォーカスが当たっている間の、その行動の対象。押せない）
+  previewed?: Position[];
   onTile?: (position: Position) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -258,6 +262,9 @@ export function BoardGrid({
                 landLevels.find((land) => land.x === x && land.y === y)
                   ?.level ?? 1
               }
+              previewed={previewed.some(
+                (position) => position.x === x && position.y === y,
+              )}
               onSelect={
                 selectable.some(
                   (position) => position.x === x && position.y === y,
@@ -415,6 +422,13 @@ const SELECTABLE_TILE = {
   cursor: "pointer",
 };
 
+// 見るだけの印。押せる印と見分けられるよう破線にする
+const PREVIEWED_TILE = {
+  outline: "4px dashed #ffe066",
+  outlineOffset: 2,
+  zIndex: 1,
+};
+
 // ふだんは表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している。領地を選ぶ順番でだけ押せる
 function TileButton({
   position,
@@ -424,6 +438,7 @@ function TileButton({
   territory,
   showsStats,
   landLevel,
+  previewed,
   onSelect,
 }: {
   position: Position;
@@ -434,6 +449,7 @@ function TileButton({
   territory: TerritoryMark | undefined;
   showsStats: boolean;
   landLevel: number;
+  previewed: boolean;
   onSelect: ((position: Position) => void) | undefined;
 }) {
   const text = tileText(tile, pair);
@@ -449,11 +465,16 @@ function TileButton({
       aria-label={`${tileName(position, tile, pair)}${territoryName}${pieceNames && ` ${pieceNames}`}`}
       disabled={onSelect === undefined}
       data-selectable={onSelect !== undefined ? "true" : undefined}
+      data-previewed={previewed ? "true" : undefined}
       onClick={() => onSelect?.(position)}
       style={{
         ...paint(tile),
         ...tileSide(territory?.color, territory?.level ?? landLevel),
-        ...(onSelect !== undefined ? SELECTABLE_TILE : {}),
+        ...(onSelect !== undefined
+          ? SELECTABLE_TILE
+          : previewed
+            ? PREVIEWED_TILE
+            : {}),
         position: "relative",
         padding: 0,
         display: "flex",
