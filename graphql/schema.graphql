@@ -2433,7 +2433,7 @@ type MatchEventChanges {
 	"""
 	totalMagics: [MatchTotalMagicChange!]!
 	"""
-	価値か通行料が変わった領地だけ（できた順。無くなった領地は入らない）
+	価値・通行料・土地のレベル・連鎖の数のどれかが変わった領地だけ（できた順。無くなった領地は入らない）
 	"""
 	territoryValues: [MatchTerritoryValue!]!
 }
@@ -3525,6 +3525,18 @@ type MatchTerritoryValue {
 	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollMultiplierActivatedEvent））
 	"""
 	toll: Int!
+	"""
+	土地のレベル（価値の根拠。レベルの倍率は MatchPlayRules.landLevelMultipliers）
+	"""
+	level: Int!
+	"""
+	連鎖の数（同じ持ち主の同じ属性の土地の数。自分を含み、複の土地はいつも 1。価値の根拠で、倍率は MatchPlayRules.chainMultipliers）
+	"""
+	chainCount: Int!
+	"""
+	このイベントの前の連鎖の数（同じクリーチャーの前の領地、無ければ同じ位置で同じ持ち主の前の領地のもの）。この持ち主の連鎖に新しく入った（配置した・奪った）なら null
+	"""
+	previousChainCount: Int
 }
 """
 通行料を払う直前に、領地のクリーチャーの通行料の倍率が発動した（倍率を持っていれば、効き目が無くても出る）。続く MatchTollPaidEvent が multipliedToll を払う

@@ -117,7 +117,14 @@ export type MatchFrame = {
 export type MatchEventChanges = {
   phase?: MatchPhase | null;
   totalMagics: { participant: number; totalMagic: number }[];
-  territoryValues: { position: Position; value: number; toll: number }[];
+  territoryValues: {
+    position: Position;
+    value: number;
+    toll: number;
+    level: number;
+    chainCount: number;
+    previousChainCount?: number | null;
+  }[];
 };
 
 // core の MatchEvent の種類ごとの型を、再生に要る項目だけの形で受ける（__typename で見分ける）

@@ -689,7 +689,15 @@ describe("applyEvent", () => {
         changes: {
           phase: ENDING,
           totalMagics: [{ participant: 1, totalMagic: 670 }],
-          territoryValues: [{ position: { x: 1, y: 0 }, value: 100, toll: 60 }],
+          territoryValues: [
+            {
+              position: { x: 1, y: 0 },
+              value: 100,
+              toll: 60,
+              level: 1,
+              chainCount: 1,
+            },
+          ],
         },
       },
       BASE,
@@ -709,7 +717,15 @@ describe("applyEvent", () => {
         changes: {
           phase: ROLLING,
           totalMagics: [],
-          territoryValues: [{ position: { x: 1, y: 0 }, value: 150, toll: 90 }],
+          territoryValues: [
+            {
+              position: { x: 1, y: 0 },
+              value: 150,
+              toll: 90,
+              level: 1,
+              chainCount: 2,
+            },
+          ],
         },
       },
       BASE,

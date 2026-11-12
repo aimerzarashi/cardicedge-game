@@ -529,6 +529,11 @@ export const MATCH_EVENT_MESSAGES = {
     actor === undefined
       ? `版 ${revision} ${text}`
       : `版 ${revision} ${actor}: ${text}`,
+  // 同じ連鎖に入る領地は同じ「前 → 後」で動くので、それごとにまとめる（2026-11-12 オーナー）
+  chainChanged: (groups: string[]) => `（${groups.join("。")}）`,
+  chainChange: (from: number, to: number, positions: string[]) =>
+    `連鎖 ${from} → ${to}: ${positions.join("・")}`,
+  chainPosition: (x: number, y: number) => `(${x}, ${y})`,
 };
 
 // 対戦の振り返りと戦利品の欄の文言
