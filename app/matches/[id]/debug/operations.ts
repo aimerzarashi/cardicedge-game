@@ -349,6 +349,8 @@ export const matchDebugEventsQuery = graphql(`
           }
           ... on MatchHandLimitExceededEvent {
             participant
+            handCount
+            maxHandCards
           }
           ... on MatchCardDiscardedEvent {
             participant
@@ -826,6 +828,8 @@ export const matchDebugEventsQuery = graphql(`
             }
             element
             magic
+            baseLandValue
+            multiplier
           }
           ... on MatchCreatureExchangedEvent {
             participant
@@ -993,6 +997,8 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchMagicGainedEvent {
             participant
             magic
+            laps
+            magicPerLap
           }
           ... on MatchDiceCountChangedEvent {
             participant
