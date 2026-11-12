@@ -28,7 +28,12 @@ import {
   SEAT_KIND_LABELS,
   spellEffectLabel,
 } from "../../../messages";
-import { eventLine, mergeShown, splitEvents } from "../../match-events";
+import {
+  chainChangesOf,
+  eventLine,
+  mergeShown,
+  splitEvents,
+} from "../../match-events";
 import {
   currentTurnText,
   participantPieces,
@@ -1133,7 +1138,9 @@ export function MatchPlayer({
             {[...shown]
               .sort((a, b) => b.revision - a.revision)
               .map((event) => (
-                <li key={event.revision}>{eventLine(event, names)}</li>
+                <li key={event.revision}>
+                  {eventLine(event, names, chainChangesOf(event))}
+                </li>
               ))}
           </ol>
         )}

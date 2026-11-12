@@ -270,6 +270,9 @@ export const matchDebugEventsQuery = graphql(`
               }
               value
               toll
+              level
+              chainCount
+              previousChainCount
             }
           }
           ... on MatchHandsDealtEvent {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  chainChangesOf,
   eventLine,
   type MatchEventView,
   mergeShown,
@@ -585,6 +586,56 @@ describe("mergeShown", () => {
     assert.deepEqual(
       merged.map((e) => e.revision),
       [1, 2, 3],
+    );
+  });
+});
+
+describe("chainChangesOf", () => {
+  const value = (
+    x: number,
+    chainCount: number,
+    previousChainCount: number | null,
+  ) => ({ position: { x, y: 0 }, chainCount, previousChainCount });
+
+  it("前と今の連鎖の数が違う領地を増減にし、前が無い領地は 1 から入ったと読む", () => {
+    assert.deepEqual(
+      chainChangesOf({
+        changes: {
+          territoryValues: [
+            value(1, 2, 1),
+            value(2, 2, null),
+            value(3, 1, null),
+          ],
+        },
+      }),
+      [
+        { position: { x: 1, y: 0 }, from: 1, to: 2 },
+        { position: { x: 2, y: 0 }, from: 1, to: 2 },
+      ],
+    );
+  });
+
+  it("連鎖の倍率が上限でも、連鎖の数が変われば増減にする", () => {
+    assert.deepEqual(
+      chainChangesOf({ changes: { territoryValues: [value(1, 6, 5)] } }),
+      [{ position: { x: 1, y: 0 }, from: 5, to: 6 }],
+    );
+  });
+});
+
+describe("eventLine の連鎖の増減", () => {
+  it("行の後ろに、同じ「前 → 後」の領地をまとめて連鎖の増減を添える", () => {
+    assert.equal(
+      eventLine(
+        event(9, { __typename: "MatchTurnEndedEvent", participant: 0 }),
+        names,
+        [
+          { position: { x: 4, y: 4 }, from: 1, to: 2 },
+          { position: { x: 0, y: 5 }, from: 4, to: 3 },
+          { position: { x: 2, y: 0 }, from: 4, to: 3 },
+        ],
+      ),
+      "版 9 部屋用: ターンを終えた（連鎖 1 → 2: (4, 4)。連鎖 4 → 3: (0, 5)・(2, 0)）",
     );
   });
 });

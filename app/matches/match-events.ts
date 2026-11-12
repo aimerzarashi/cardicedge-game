@@ -344,16 +344,63 @@ function body(event: MatchEventView, names: string[]): string {
 }
 
 // 描画したイベントの欄の 1 行（版の番号・誰が・何をしたか）。誰かが起こしたイベントだけ participant を持つ
-export function eventLine(event: MatchEventView, names: string[]): string {
+export type ChainChange = {
+  position: { x: number; y: number };
+  from: number;
+  to: number;
+};
+
+export function eventLine(
+  event: MatchEventView,
+  names: string[],
+  chainChanges: ChainChange[] = [],
+): string {
+  const m = MATCH_EVENT_MESSAGES;
   const actor =
     event.participant === undefined
       ? undefined
       : nameOf(names, event.participant);
-  return MATCH_EVENT_MESSAGES.eventLine(
-    event.revision,
-    actor,
-    body(event, names),
-  );
+  const groups = new Map<string, ChainChange[]>();
+  for (const change of chainChanges) {
+    const key = `${change.from}>${change.to}`;
+    groups.set(key, [...(groups.get(key) ?? []), change]);
+  }
+  const chains =
+    groups.size === 0
+      ? ""
+      : m.chainChanged(
+          [...groups.values()].map((group) =>
+            m.chainChange(
+              group[0].from,
+              group[0].to,
+              group.map((change) =>
+                m.chainPosition(change.position.x, change.position.y),
+              ),
+            ),
+          ),
+        );
+  return m.eventLine(event.revision, actor, `${body(event, names)}${chains}`);
+}
+
+type ChainSource = {
+  changes?: {
+    territoryValues: {
+      position: { x: number; y: number };
+      chainCount: number;
+      previousChainCount?: number | null;
+    }[];
+  };
+};
+
+// 連鎖は増減のイベントが無く、core がイベントごとに変わった領地の前と今の連鎖の数を返す（core#168）。前が無い（配置した・
+// 奪った）領地は、単独の領地の連鎖と同じ 1 から入ったと読む（2026-11-12 オーナー）
+export function chainChangesOf(event: ChainSource): ChainChange[] {
+  return (event.changes?.territoryValues ?? []).flatMap((territory) => {
+    const from = territory.previousChainCount ?? 1;
+    return from === territory.chainCount
+      ? []
+      : [{ position: territory.position, from, to: territory.chainCount }];
+  });
 }
 
 // 読んだイベントを、開いた時点の版まで（欄に入れるだけ）とそれより後（順に描画する）に分ける。
