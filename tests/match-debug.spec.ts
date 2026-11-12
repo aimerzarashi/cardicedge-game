@@ -49,14 +49,14 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
 
   const frame = page.getByTestId("match-frame");
   const replaying = page.getByTestId("match-replaying");
-  const chooseDeploy = page.getByRole("button", { name: "配置", exact: true });
-  const deploy = page.getByRole("button", { name: /を配置する$/ });
+  const choosePlace = page.getByRole("button", { name: "配置", exact: true });
+  const place = page.getByRole("button", { name: /を配置する$/ });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
-    await expect(chooseDeploy.or(operations).first()).toBeVisible({
+    await expect(choosePlace.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await chooseDeploy.isVisible()) {
+    if (await choosePlace.isVisible()) {
       break;
     }
     const revision = await frame.getAttribute("data-revision");
@@ -67,11 +67,11 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
   await expect(replaying).toBeHidden();
   await expect(page.getByTestId("match-phase")).toContainText("配置");
 
-  await chooseDeploy.click();
-  await expect(deploy.first()).toBeVisible();
-  const label = (await deploy.first().textContent()) ?? "";
+  await choosePlace.click();
+  await expect(place.first()).toBeVisible();
+  const label = (await place.first().textContent()) ?? "";
   const creature = label.replace(/を配置する$/, "");
-  await deploy.first().click();
+  await place.first().click();
 
   await expect(page.getByTestId("match-territories")).toContainText(
     new RegExp(`${creature}.*レベル 1.*価値 100.*通行料 60`),
@@ -114,17 +114,17 @@ test("デバッグの画面は、再生が追いつくまで操作を出さず�
     .getByTestId("match-events")
     .locator("li")
     .allTextContents();
-  const deployed = new Set(
+  const placed = new Set(
     lines.flatMap((line) => {
       const found = line.match(/(\d+).*を .*に配置した/);
       return found ? [Number(found[1])] : [];
     }),
   );
-  expect(deployed.size).toBeGreaterThan(0);
+  expect(placed.size).toBeGreaterThan(0);
   for (let i = 1; i < frames.length; i++) {
     expect(frames[i].revision).toBe(frames[i - 1].revision + 1);
     const grew = frames[i].territories > frames[i - 1].territories;
-    expect(grew).toBe(deployed.has(frames[i].revision));
+    expect(grew).toBe(placed.has(frames[i].revision));
   }
 
   const replayed = await frame.textContent();

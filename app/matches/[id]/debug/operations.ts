@@ -26,7 +26,7 @@ export const matchDebugQuery = graphql(`
             y
           }
         }
-        deployChoices
+        placeChoices
         invadeChoices
         itemChoices
         relinquishChoices {
@@ -392,7 +392,7 @@ export const matchDebugEventsQuery = graphql(`
               }
             }
           }
-          ... on MatchCreatureDeployedEvent {
+          ... on MatchCreaturePlacedEvent {
             participant
             handIndex
             card {

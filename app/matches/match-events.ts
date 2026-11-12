@@ -102,8 +102,8 @@ function body(event: MatchEventView, names: string[]): string {
       return m.discardPileShuffled(event.drawPileCount ?? 0);
     case "MatchHandLimitExceededEvent":
       return m.handLimitExceeded;
-    case "MatchCreatureDeployedEvent":
-      return m.creatureDeployed(
+    case "MatchCreaturePlacedEvent":
+      return m.creaturePlaced(
         event.card?.name ?? "",
         event.position?.x ?? 0,
         event.position?.y ?? 0,
