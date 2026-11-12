@@ -151,38 +151,54 @@ describe("eventLine", () => {
 
   for (const [name, source, side, change, delta, stats] of [
     [
-      "支援",
+      "支援効果",
       {
         __typename: "MatchAdjacentTerritoriesSource",
         positions: [
           { x: 1, y: 0 },
           { x: 3, y: 0 },
         ],
+        bonusPerTerritory: 10,
       },
       "ATTACKER",
-      "攻める側に支援（隣の領地 2 つ）: AT +20 → AT 50・HP 40",
+      "攻める側に支援効果（隣の領地 2 つ × AT +10）: AT +20 → AT 50・HP 40",
       { attackDelta: 20, hitPointsDelta: 0 },
       { attack: 50, hitPoints: 40 },
     ],
     [
       "地形効果",
-      { __typename: "MatchTerrainSource", element: "FIRE", level: 2 },
+      {
+        __typename: "MatchTerrainSource",
+        element: "FIRE",
+        level: 2,
+        bonusPerLevel: 10,
+      },
       "DEFENDER",
-      "守る側に地形効果（火属性 レベル 2）: HP +20 → AT 20・HP 60",
+      "守る側に地形効果（火属性 レベル 2 × HP +10）: HP +20 → AT 20・HP 60",
       { attackDelta: 0, hitPointsDelta: 20 },
       { attack: 20, hitPoints: 60 },
     ],
     [
-      "アイテムで HP が 0",
-      { __typename: "MatchItemSource", card: { name: "呪いの指輪" } },
+      "アイテムで HP が 0（下限で止まった）",
+      {
+        __typename: "MatchItemSource",
+        card: { name: "呪いの指輪" },
+        attackModifier: 0,
+        hitPointsModifier: -99,
+      },
       "ATTACKER",
-      "攻める側にアイテム「呪いの指輪」: HP -40 → AT 30・HP 0（破壊された）",
+      "攻める側にアイテム「呪いの指輪」: HP -99（-40 で止まった） → AT 30・HP 0（破壊された）",
       { attackDelta: 0, hitPointsDelta: -40 },
       { attack: 30, hitPoints: 0 },
     ],
     [
       "能力（効果のイベント 1 つが発動を表す）",
-      { __typename: "MatchAbilitySource", ability: "BATTLE_MODIFIER" },
+      {
+        __typename: "MatchAbilitySource",
+        ability: "BATTLE_MODIFIER",
+        attackModifier: -10,
+        hitPointsModifier: 20,
+      },
       "DEFENDER",
       "守る側に能力「戦闘中の増減」が発動（AT -10・HP +20 → AT 10・HP 80）",
       { attackDelta: -10, hitPointsDelta: 20 },
@@ -190,11 +206,29 @@ describe("eventLine", () => {
     ],
     [
       "増減が 0 の能力",
-      { __typename: "MatchAbilitySource", ability: "BATTLE_MODIFIER" },
+      {
+        __typename: "MatchAbilitySource",
+        ability: "BATTLE_MODIFIER",
+        attackModifier: 0,
+        hitPointsModifier: 0,
+      },
       "ATTACKER",
       "攻める側に能力「戦闘中の増減」が発動（増減なし → AT 20・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0 },
       { attack: 20, hitPoints: 30 },
+    ],
+    [
+      "AT が 0 で変わらなかった能力",
+      {
+        __typename: "MatchAbilitySource",
+        ability: "BATTLE_MODIFIER",
+        attackModifier: -10,
+        hitPointsModifier: 0,
+      },
+      "ATTACKER",
+      "攻める側に能力「戦闘中の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
+      { attackDelta: 0, hitPointsDelta: 0 },
+      { attack: 0, hitPoints: 30 },
     ],
   ] as const) {
     it(`効果のイベントは、${name}の増減と当てた後の値を出す`, () => {

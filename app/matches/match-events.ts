@@ -1,6 +1,7 @@
 import type { BoardTileElement, CreatureAbilityKind } from "@/graphql/graphql";
 import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
+  battleModifierChangeLabel,
   CREATURE_ABILITY_LABELS,
   itemModifiersLabel,
   MATCH_END_REASON_LABELS,
@@ -50,6 +51,10 @@ export type MatchEventView = {
     level?: number;
     card?: { name: string };
     ability?: CreatureAbilityKind;
+    bonusPerTerritory?: number;
+    bonusPerLevel?: number;
+    attackModifier?: number;
+    hitPointsModifier?: number;
   };
   level?: number;
   returnedCard?: { name: string };
@@ -70,11 +75,15 @@ function battleStatSourceLabel(source: MatchEventView["source"]): string {
   const m = MATCH_EVENT_MESSAGES;
   switch (source?.__typename) {
     case "MatchAdjacentTerritoriesSource":
-      return m.adjacentTerritoriesSource(source.positions?.length ?? 0);
+      return m.adjacentTerritoriesSource(
+        source.positions?.length ?? 0,
+        source.bonusPerTerritory ?? 0,
+      );
     case "MatchTerrainSource":
       return m.terrainSource(
         source.element ? ELEMENT_LABELS[source.element] : "",
         source.level ?? 0,
+        source.bonusPerLevel ?? 0,
       );
     case "MatchItemSource":
       return m.itemSource(source.card?.name ?? "");
@@ -143,7 +152,9 @@ function body(event: MatchEventView, names: string[]): string {
             ? CREATURE_ABILITY_LABELS[event.source.ability]
             : "",
           m.battleStatChange(
-            itemModifiersLabel(
+            battleModifierChangeLabel(
+              event.source.attackModifier ?? 0,
+              event.source.hitPointsModifier ?? 0,
               event.attackDelta ?? 0,
               event.hitPointsDelta ?? 0,
             ),
@@ -155,7 +166,18 @@ function body(event: MatchEventView, names: string[]): string {
       return m.battleStatModified(
         event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
         battleStatSourceLabel(event.source),
-        itemModifiersLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
+        // アイテムは決まった増減を持つので、下限で止まったときに本来の値を添える。支援効果・地形効果は増やすだけで止まらない
+        event.source?.__typename === "MatchItemSource"
+          ? battleModifierChangeLabel(
+              event.source.attackModifier ?? 0,
+              event.source.hitPointsModifier ?? 0,
+              event.attackDelta ?? 0,
+              event.hitPointsDelta ?? 0,
+            )
+          : itemModifiersLabel(
+              event.attackDelta ?? 0,
+              event.hitPointsDelta ?? 0,
+            ),
         event.attack ?? 0,
         event.hitPoints ?? 0,
       );

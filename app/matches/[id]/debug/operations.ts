@@ -608,19 +608,25 @@ export const matchDebugEventsQuery = graphql(`
                   x
                   y
                 }
+                bonusPerTerritory
               }
               ... on MatchTerrainSource {
                 element
                 level
+                bonusPerLevel
               }
               ... on MatchItemSource {
                 card {
                   id
                   name
                 }
+                attackModifier
+                hitPointsModifier
               }
               ... on MatchAbilitySource {
                 ability
+                attackModifier
+                hitPointsModifier
               }
             }
           }

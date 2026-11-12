@@ -1678,15 +1678,27 @@ type MatchAbilitySource {
 	発動した能力（今は BATTLE_MODIFIER）
 	"""
 	ability: CreatureAbilityKind!
+	"""
+	戦闘中の AT の増減の決まった値（下限で止まる前の値）
+	"""
+	attackModifier: Int!
+	"""
+	戦闘中の HP の増減の決まった値（下限で止まる前の値）
+	"""
+	hitPointsModifier: Int!
 }
 """
-支援（侵略先の隣にある、攻める側の領地）
+支援効果（侵略先の隣にある、攻める側の領地）
 """
 type MatchAdjacentTerritoriesSource {
 	"""
 	隣の領地の位置
 	"""
 	positions: [BoardPosition!]!
+	"""
+	隣の領地 1 つあたりの AT の増加
+	"""
+	bonusPerTerritory: Int!
 }
 """
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
@@ -2597,6 +2609,14 @@ type MatchItemSource {
 	アイテムのカード（性能は対戦を始めたときの写し）
 	"""
 	card: CardInfo!
+	"""
+	アイテムの決まった AT の増減（下限で止まる前の値）
+	"""
+	attackModifier: Int!
+	"""
+	アイテムの決まった HP の増減（下限で止まる前の値）
+	"""
+	hitPointsModifier: Int!
 }
 """
 戦闘に手札のアイテムを出した（攻める側も守る側も同じ。効果はまだ無い）
@@ -3234,6 +3254,10 @@ type MatchTerrainSource {
 	土地のレベル
 	"""
 	level: Int!
+	"""
+	レベル 1 つあたりの HP の増加
+	"""
+	bonusPerLevel: Int!
 }
 """
 領地（クリーチャーを配置した土地）

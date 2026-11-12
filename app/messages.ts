@@ -92,15 +92,40 @@ export function itemRestrictionsLabel(
         .join("・");
 }
 
+const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
+
 // 符号つきで出す（下げるアイテムと見分けるため）。増減の無い項目は出さない
 export function itemModifiersLabel(
   attackModifier: number,
   hitPointsModifier: number,
 ): string {
-  const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
   const parts = [
     ...(attackModifier !== 0 ? [`AT ${signed(attackModifier)}`] : []),
     ...(hitPointsModifier !== 0 ? [`HP ${signed(hitPointsModifier)}`] : []),
+  ];
+  return parts.length > 0 ? parts.join("・") : "増減なし";
+}
+
+// 戦闘の増減の行の、決まった増減（modifier）と実際の増減（delta）。下限の 0 で止まって違うときだけ実際の量を添える
+// （例「HP -99（-30 で止まった）」。core#166 で出どころが決まった増減を持つので、イベントだけで説明できる）
+export function battleModifierChangeLabel(
+  attackModifier: number,
+  hitPointsModifier: number,
+  attackDelta: number,
+  hitPointsDelta: number,
+): string {
+  const part = (stat: string, modifier: number, delta: number) => {
+    if (modifier === delta) return `${stat} ${signed(modifier)}`;
+    if (delta === 0) return `${stat} ${signed(modifier)}（変わらず）`;
+    return `${stat} ${signed(modifier)}（${signed(delta)} で止まった）`;
+  };
+  const parts = [
+    ...(attackModifier !== 0 || attackDelta !== 0
+      ? [part("AT", attackModifier, attackDelta)]
+      : []),
+    ...(hitPointsModifier !== 0 || hitPointsDelta !== 0
+      ? [part("HP", hitPointsModifier, hitPointsDelta)]
+      : []),
   ];
   return parts.length > 0 ? parts.join("・") : "増減なし";
 }
@@ -439,9 +464,10 @@ export const MATCH_EVENT_MESSAGES = {
     hitPoints: number,
   ) => `${side}に${source}: ${battleStatChange(change, attack, hitPoints)}`,
   battleStatChange,
-  adjacentTerritoriesSource: (count: number) => `支援（隣の領地 ${count} つ）`,
-  terrainSource: (element: string, level: number) =>
-    `地形効果（${element}属性 レベル ${level}）`,
+  adjacentTerritoriesSource: (count: number, bonusPerTerritory: number) =>
+    `支援効果（隣の領地 ${count} つ × AT +${bonusPerTerritory}）`,
+  terrainSource: (element: string, level: number, bonusPerLevel: number) =>
+    `地形効果（${element}属性 レベル ${level} × HP +${bonusPerLevel}）`,
   itemSource: (card: string) => `アイテム「${card}」`,
   battleAttacker: "攻める側",
   battleDefender: "守る側",
