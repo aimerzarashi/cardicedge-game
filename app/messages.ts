@@ -93,14 +93,14 @@ export function itemRestrictionsLabel(
 }
 
 // 符号つきで出す（下げるアイテムと見分けるため）。増減の無い項目は出さない
-export function itemBonusesLabel(
-  attackBonus: number,
-  hitPointsBonus: number,
+export function itemModifiersLabel(
+  attackModifier: number,
+  hitPointsModifier: number,
 ): string {
   const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
   const parts = [
-    ...(attackBonus !== 0 ? [`AT ${signed(attackBonus)}`] : []),
-    ...(hitPointsBonus !== 0 ? [`HP ${signed(hitPointsBonus)}`] : []),
+    ...(attackModifier !== 0 ? [`AT ${signed(attackModifier)}`] : []),
+    ...(hitPointsModifier !== 0 ? [`HP ${signed(hitPointsModifier)}`] : []),
   ];
   return parts.length > 0 ? parts.join("・") : "増減なし";
 }
@@ -189,7 +189,7 @@ export function abilitiesLabel(
           const label = CREATURE_ABILITY_LABELS[kind];
           if (percent !== undefined) return `${label} ${percent}%`;
           if (attackModifier !== undefined && hitPointsModifier !== undefined) {
-            return `${label} ${itemBonusesLabel(attackModifier, hitPointsModifier)}`;
+            return `${label} ${itemModifiersLabel(attackModifier, hitPointsModifier)}`;
           }
           return label;
         })

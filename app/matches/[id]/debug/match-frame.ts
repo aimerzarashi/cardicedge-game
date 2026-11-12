@@ -29,8 +29,8 @@ export type FrameCard = {
     hitPointsModifier?: number;
   }[];
   category?: ItemCategory;
-  attackBonus?: number;
-  hitPointsBonus?: number;
+  attackModifier?: number;
+  hitPointsModifier?: number;
   // スペルの効果（効果なしは null）
   effect?: { __typename: string; count?: number } | null;
 };
