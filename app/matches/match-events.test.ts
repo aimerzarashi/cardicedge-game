@@ -70,10 +70,29 @@ describe("eventLine", () => {
           participant: 0,
           from: { x: 1, y: 0 },
           position: { x: 2, y: 0 },
+          card: { name: "ウルフ" },
+          defendingCreatureCard: { name: "ゴブリン" },
         }),
         names,
       ),
-      "版 35 部屋用: (1, 0) のクリーチャーを動かして (2, 0) を侵略した",
+      "版 35 部屋用: クリーチャー「ウルフ」が (1, 0) からクリーチャー「ゴブリン」が守る領地 (2, 0) を侵略した",
+    );
+  });
+
+  it("侵略したイベントは、出したクリーチャーと守るクリーチャーの名前・位置・払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(36, {
+          __typename: "MatchTerritoryInvadedEvent",
+          participant: 1,
+          card: { name: "ウルフ" },
+          defendingCreatureCard: { name: "ゴブリン" },
+          position: { x: 2, y: 0 },
+          cost: 10,
+        }),
+        names,
+      ),
+      "版 36 ゴリガン: クリーチャー「ウルフ」でクリーチャー「ゴブリン」が守る領地 (2, 0) を侵略した（魔力 -10）",
     );
   });
 

@@ -522,6 +522,10 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             cost
+            defendingCreature
+            defendingCreatureCard {
+              name
+            }
           }
           ... on MatchItemUsedEvent {
             participant
@@ -753,6 +757,60 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             creature
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                abilities {
+                  kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
+                }
+              }
+              ... on ItemCardInfo {
+                category
+                attackModifier
+                hitPointsModifier
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on SpellDrawCardsEffect {
+                    count
+                  }
+                  ... on SpellGainMagicEffect {
+                    perLap
+                  }
+                  ... on SpellRollDiceEffect {
+                    count
+                  }
+                  ... on SpellFixedDiceCurseEffect {
+                    value
+                    turns
+                  }
+                  ... on SpellDamageEffect {
+                    amount
+                  }
+                }
+              }
+            }
+            defendingCreature
+            defendingCreatureCard {
+              name
+            }
           }
           ... on MatchLandElementChangedEvent {
             participant

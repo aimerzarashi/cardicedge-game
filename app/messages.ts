@@ -402,8 +402,14 @@ export const MATCH_EVENT_MESSAGES = {
   lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
   creaturePlaced: (card: string, x: number, y: number, cost: number) =>
     `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
-  territoryInvaded: (card: string, x: number, y: number, cost: number) =>
-    `クリーチャー「${card}」で (${x}, ${y}) を侵略した（魔力 -${cost}）`,
+  territoryInvaded: (
+    card: string,
+    defender: string,
+    x: number,
+    y: number,
+    cost: number,
+  ) =>
+    `クリーチャー「${card}」でクリーチャー「${defender}」が守る領地 (${x}, ${y}) を侵略した（魔力 -${cost}）`,
   spellUsed: (card: string, cost: number) =>
     `スペル「${card}」を使った（魔力 -${cost}）`,
   itemUsed: (card: string, cost: number) =>
@@ -447,11 +453,14 @@ export const MATCH_EVENT_MESSAGES = {
   creatureMoved: (fromX: number, fromY: number, toX: number, toY: number) =>
     `(${fromX}, ${fromY}) のクリーチャーを (${toX}, ${toY}) へ動かした`,
   territoryInvadedByMove: (
+    card: string,
     fromX: number,
     fromY: number,
+    defender: string,
     x: number,
     y: number,
-  ) => `(${fromX}, ${fromY}) のクリーチャーを動かして (${x}, ${y}) を侵略した`,
+  ) =>
+    `クリーチャー「${card}」が (${fromX}, ${fromY}) からクリーチャー「${defender}」が守る領地 (${x}, ${y}) を侵略した`,
   tollMultiplierEffect: (
     percent: number,
     toll: number,
