@@ -168,22 +168,31 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
 export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
   DEFENSIVE: "防御型",
   TOLL_MULTIPLIER: "通行料の倍率",
+  BATTLE_MODIFIER: "戦闘中の増減",
   FIRST_STRIKE: "先制",
   LAST_STRIKE: "後手",
 };
 
-// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%）。無ければ「なし」）
+// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5）。無ければ「なし」）
 export function abilitiesLabel(
-  abilities: readonly { kind: CreatureAbilityKind; percent?: number }[],
+  abilities: readonly {
+    kind: CreatureAbilityKind;
+    percent?: number;
+    attackModifier?: number;
+    hitPointsModifier?: number;
+  }[],
 ): string {
   return abilities.length === 0
     ? "なし"
     : abilities
-        .map(({ kind, percent }) =>
-          percent === undefined
-            ? CREATURE_ABILITY_LABELS[kind]
-            : `${CREATURE_ABILITY_LABELS[kind]} ${percent}%`,
-        )
+        .map(({ kind, percent, attackModifier, hitPointsModifier }) => {
+          const label = CREATURE_ABILITY_LABELS[kind];
+          if (percent !== undefined) return `${label} ${percent}%`;
+          if (attackModifier !== undefined && hitPointsModifier !== undefined) {
+            return `${label} ${itemBonusesLabel(attackModifier, hitPointsModifier)}`;
+          }
+          return label;
+        })
         .join("・");
 }
 
@@ -356,6 +365,10 @@ export function matchErrorMessage(typename: string): string {
 }
 
 // 描画したイベントの欄の 1 行。種類ごとの文言は、イベントが持つ値（core が返した事実）を並べるだけにする
+function battleStatChange(change: string, attack: number, hitPoints: number) {
+  return `${change} → AT ${attack}・HP ${hitPoints}${hitPoints === 0 ? "（破壊された）" : ""}`;
+}
+
 export const MATCH_EVENT_MESSAGES = {
   created: "対戦が始まった",
   decksShuffled: "山札が混ざった",
@@ -396,8 +409,13 @@ export const MATCH_EVENT_MESSAGES = {
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
   itemSkipped: "アイテムを出さなかった",
-  battleAbilityActivated: (side: string, ability: string) =>
-    `${side}の${ability}が発動した`,
+  // 能力の発動は、戦闘・盤面とも「〈どこに〉能力「〈名前〉」が発動（〈具体的な効果〉）」にそろえる（2026-11-12 オーナー。game#87）。
+  // 能力を足すときもこれを通す
+  // target は助詞まで含める（側は「守る側に」、位置は「(1, 0) に」と、座標の後だけ空白が要るため）
+  abilityActivated: (target: string, ability: string, effect?: string) =>
+    `${target}能力「${ability}」が発動${effect ? `（${effect}）` : ""}`,
+  sideTarget: (side: string) => `${side}に`,
+  positionTarget: (x: number, y: number) => `(${x}, ${y}) に`,
   creatureStruck: (striker: string, damage: number, remaining: number) =>
     `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
   battleStarted: (
@@ -413,8 +431,8 @@ export const MATCH_EVENT_MESSAGES = {
     change: string,
     attack: number,
     hitPoints: number,
-  ) =>
-    `${side}に${source}: ${change} → AT ${attack}・HP ${hitPoints}${hitPoints === 0 ? "（破壊された）" : ""}`,
+  ) => `${side}に${source}: ${battleStatChange(change, attack, hitPoints)}`,
+  battleStatChange,
   adjacentTerritoriesSource: (count: number) => `支援（隣の領地 ${count} つ）`,
   terrainSource: (element: string, level: number) =>
     `地形効果（${element}属性 レベル ${level}）`,
@@ -434,14 +452,11 @@ export const MATCH_EVENT_MESSAGES = {
     x: number,
     y: number,
   ) => `(${fromX}, ${fromY}) のクリーチャーを動かして (${x}, ${y}) を侵略した`,
-  tollMultiplierActivated: (
-    x: number,
-    y: number,
+  tollMultiplierEffect: (
     percent: number,
     toll: number,
     multipliedToll: number,
-  ) =>
-    `(${x}, ${y}) の通行料の倍率 ${percent}% が発動した（通行料 ${toll} → ${multipliedToll}）`,
+  ) => `${percent}%: 通行料 ${toll} → ${multipliedToll}`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>

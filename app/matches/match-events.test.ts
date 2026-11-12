@@ -161,6 +161,22 @@ describe("eventLine", () => {
       { attackDelta: 0, hitPointsDelta: -40 },
       { attack: 30, hitPoints: 0 },
     ],
+    [
+      "能力（効果のイベント 1 つが発動を表す）",
+      { __typename: "MatchAbilitySource", ability: "BATTLE_MODIFIER" },
+      "DEFENDER",
+      "守る側に能力「戦闘中の増減」が発動（AT -10・HP +20 → AT 10・HP 80）",
+      { attackDelta: -10, hitPointsDelta: 20 },
+      { attack: 10, hitPoints: 80 },
+    ],
+    [
+      "増減が 0 の能力",
+      { __typename: "MatchAbilitySource", ability: "BATTLE_MODIFIER" },
+      "ATTACKER",
+      "攻める側に能力「戦闘中の増減」が発動（増減なし → AT 20・HP 30）",
+      { attackDelta: 0, hitPointsDelta: 0 },
+      { attack: 20, hitPoints: 30 },
+    ],
   ] as const) {
     it(`効果のイベントは、${name}の増減と当てた後の値を出す`, () => {
       assert.equal(
@@ -189,7 +205,7 @@ describe("eventLine", () => {
         }),
         names,
       ),
-      "版 22 守る側の先制が発動した",
+      "版 22 守る側に能力「先制」が発動",
     );
   });
 
@@ -360,7 +376,7 @@ describe("eventLine", () => {
         }),
         names,
       ),
-      "版 17 (1, 0) の通行料の倍率 150% が発動した（通行料 60 → 90）",
+      "版 17 (1, 0) に能力「通行料の倍率」が発動（150%: 通行料 60 → 90）",
     );
   });
 

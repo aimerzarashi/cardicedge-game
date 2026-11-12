@@ -48,6 +48,7 @@ export type MatchEventView = {
     element?: BoardTileElement;
     level?: number;
     card?: { name: string };
+    ability?: CreatureAbilityKind;
   };
   level?: number;
   returnedCard?: { name: string };
@@ -130,6 +131,22 @@ function body(event: MatchEventView, names: string[]): string {
         event.defender?.hitPoints ?? 0,
       );
     case "MatchBattleStatModifiedEvent":
+      // 能力はこのイベント 1 つが発動を表す（core が発動のイベントを別に出さない。core#163）ので、発動の形で出す
+      if (event.source?.__typename === "MatchAbilitySource") {
+        return m.abilityActivated(
+          m.sideTarget(
+            event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+          ),
+          event.source.ability
+            ? CREATURE_ABILITY_LABELS[event.source.ability]
+            : "",
+          m.battleStatChange(
+            itemBonusesLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
+            event.attack ?? 0,
+            event.hitPoints ?? 0,
+          ),
+        );
+      }
       return m.battleStatModified(
         event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
         battleStatSourceLabel(event.source),
@@ -138,8 +155,10 @@ function body(event: MatchEventView, names: string[]): string {
         event.hitPoints ?? 0,
       );
     case "MatchBattleAbilityActivatedEvent":
-      return m.battleAbilityActivated(
-        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+      return m.abilityActivated(
+        m.sideTarget(
+          event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+        ),
         event.ability ? CREATURE_ABILITY_LABELS[event.ability] : "",
       );
     case "MatchCreatureStruckEvent":
@@ -179,12 +198,14 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
       );
     case "MatchTollMultiplierActivatedEvent":
-      return m.tollMultiplierActivated(
-        event.position?.x ?? 0,
-        event.position?.y ?? 0,
-        event.percent ?? 0,
-        event.toll ?? 0,
-        event.multipliedToll ?? 0,
+      return m.abilityActivated(
+        m.positionTarget(event.position?.x ?? 0, event.position?.y ?? 0),
+        CREATURE_ABILITY_LABELS.TOLL_MULTIPLIER,
+        m.tollMultiplierEffect(
+          event.percent ?? 0,
+          event.toll ?? 0,
+          event.multipliedToll ?? 0,
+        ),
       );
     case "MatchTollPaidEvent":
       return m.tollPaid(

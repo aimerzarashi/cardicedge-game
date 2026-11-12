@@ -185,6 +185,10 @@ export const matchDebugQuery = graphql(`
                 ... on CreatureTollMultiplierAbility {
                   percent
                 }
+                ... on CreatureBattleModifierAbility {
+                  attackModifier
+                  hitPointsModifier
+                }
               }
             }
             ... on ItemCardInfo {
@@ -293,6 +297,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureTollMultiplierAbility {
                     percent
                   }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -362,6 +370,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureTollMultiplierAbility {
                     percent
                   }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -411,6 +423,10 @@ export const matchDebugEventsQuery = graphql(`
                   kind
                   ... on CreatureTollMultiplierAbility {
                     percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
                   }
                 }
               }
@@ -468,6 +484,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureTollMultiplierAbility {
                     percent
                   }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -522,6 +542,10 @@ export const matchDebugEventsQuery = graphql(`
                   kind
                   ... on CreatureTollMultiplierAbility {
                     percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
                   }
                 }
               }
@@ -591,6 +615,9 @@ export const matchDebugEventsQuery = graphql(`
                   name
                 }
               }
+              ... on MatchAbilitySource {
+                ability
+              }
             }
           }
           ... on MatchBattleAbilityActivatedEvent {
@@ -640,6 +667,10 @@ export const matchDebugEventsQuery = graphql(`
                   kind
                   ... on CreatureTollMultiplierAbility {
                     percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
                   }
                 }
               }
@@ -756,6 +787,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureTollMultiplierAbility {
                     percent
                   }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -803,6 +838,10 @@ export const matchDebugEventsQuery = graphql(`
                   kind
                   ... on CreatureTollMultiplierAbility {
                     percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
                   }
                 }
               }

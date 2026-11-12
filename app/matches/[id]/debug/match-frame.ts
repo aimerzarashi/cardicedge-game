@@ -22,7 +22,12 @@ export type FrameCard = {
   hitPoints?: number;
   itemRestrictions?: ItemCategory[];
   placementRestrictions?: CreatureElement[];
-  abilities?: { kind: CreatureAbilityKind; percent?: number }[];
+  abilities?: {
+    kind: CreatureAbilityKind;
+    percent?: number;
+    attackModifier?: number;
+    hitPointsModifier?: number;
+  }[];
   category?: ItemCategory;
   attackBonus?: number;
   hitPointsBonus?: number;
