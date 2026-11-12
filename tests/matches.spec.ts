@@ -142,7 +142,7 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   request,
 }) => {
   test.setTimeout(90_000);
-  await openNewRoom(page, request, "match-deploy");
+  await openNewRoom(page, request, "match-place");
   await decideSeats(page);
   // 公開中D は拠点の先に土地が 6 つ続く 1 本道で、サイコロの目は 1〜2。3 つだと、プレイヤーが空き地に止まる前に NPC がすべて取って詰まることがあった
   await decideRules(page, undefined, "公開中D");
@@ -153,14 +153,14 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   await page.getByRole("button", { name: "準備完了" }).click();
   await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
-  const chooseDeploy = page.getByRole("button", { name: "配置", exact: true });
-  const deploy = page.getByRole("button", { name: /を配置する$/ });
+  const choosePlace = page.getByRole("button", { name: "配置", exact: true });
+  const place = page.getByRole("button", { name: /を配置する$/ });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
-    await expect(chooseDeploy.or(operations).first()).toBeVisible({
+    await expect(choosePlace.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await chooseDeploy.isVisible()) {
+    if (await choosePlace.isVisible()) {
       break;
     }
     const revision = await page
@@ -175,12 +175,12 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
   await expect(
     page.getByRole("button", { name: "ターンを終える" }),
   ).toBeVisible();
-  await chooseDeploy.click();
-  await expect(deploy.first()).toBeVisible();
-  const label = (await deploy.first().textContent()) ?? "";
+  await choosePlace.click();
+  await expect(place.first()).toBeVisible();
+  const label = (await place.first().textContent()) ?? "";
   const creature = label.replace(/を配置する$/, "");
 
-  await deploy.first().click();
+  await place.first().click();
 
   await expect(page.getByTestId("match-territories")).toContainText(
     // NPC が先に配置していることがあるので、番号（対戦全体の通し番号）は決め打ちしない。自分の土地は 1 つなので連鎖しない

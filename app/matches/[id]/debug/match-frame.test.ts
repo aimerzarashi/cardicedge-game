@@ -350,7 +350,7 @@ describe("applyEvent", () => {
   it("空き地に配置すると、その土地に残っていたレベルを引き継ぐ", () => {
     const next = applyEvent(
       frame({ landLevels: [{ position: { x: 3, y: 0 }, level: 3 }] }),
-      event("MatchCreatureDeployedEvent", {
+      event("MatchCreaturePlacedEvent", {
         card: DRAGON,
         handIndex: 0,
         creature: 5,
@@ -679,7 +679,7 @@ describe("applyEvent", () => {
     const next = applyEvent(
       frame(),
       {
-        ...event("MatchCreatureDeployedEvent", {
+        ...event("MatchCreaturePlacedEvent", {
           handIndex: 0,
           card: DRAGON,
           creature: 1,

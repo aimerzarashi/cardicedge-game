@@ -46,9 +46,9 @@ export const useMatchSpellMutation = graphql(`
   }
 `);
 
-export const deployMatchCreatureMutation = graphql(`
-  mutation DeployMatchCreature($input: DeployMatchCreatureInput!) {
-    deployMatchCreature(input: $input) {
+export const placeMatchCreatureMutation = graphql(`
+  mutation PlaceMatchCreature($input: PlaceMatchCreatureInput!) {
+    placeMatchCreature(input: $input) {
       __typename
       ... on ValidationErrors {
         errors {

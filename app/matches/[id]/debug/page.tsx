@@ -116,7 +116,7 @@ export default async function MatchDebugPage({
           )?.creature.card.name ?? "",
       })),
     })),
-    deployChoices: match.deployChoices,
+    placeChoices: match.placeChoices,
     relinquishChoices: match.relinquishChoices.map((position) => {
       const territory = match.territories.find(
         (candidate) =>

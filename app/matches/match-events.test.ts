@@ -204,7 +204,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(17, {
-          __typename: "MatchCreatureDeployedEvent",
+          __typename: "MatchCreaturePlacedEvent",
           participant: 0,
           card: { name: "ウルフ" },
           position: { x: 1, y: 0 },

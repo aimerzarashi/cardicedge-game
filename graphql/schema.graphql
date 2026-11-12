@@ -482,7 +482,7 @@ input ChangeMatchLandElementInput {
 	element: BoardTileElement!
 }
 """
-changeMatchLandElement の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+changeMatchLandElement の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
 """
 union ChangeMatchLandElementResult = ChangeMatchLandElementSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -845,11 +845,11 @@ interface CreatureAbility {
 """
 enum CreatureAbilityKind {
 	"""
-	防御型（侵略に出せず、クリーチャー移動もできない）
+	防御型（侵略できない。移動できない。守ることはできる）
 	"""
 	DEFENSIVE
 	"""
-	通行料の倍率（このクリーチャーのいる領地の通行料に掛ける）
+	通行料の倍率（いる領地の通行料を払うときに倍率を掛ける）
 	"""
 	TOLL_MULTIPLIER
 	"""
@@ -1143,40 +1143,6 @@ type DefendMatchTerritorySuccess {
 	revision: Int!
 }
 """
-止まった空き地にクリーチャーを配置する入力
-"""
-input DeployMatchCreatureInput {
-	"""
-	対戦の公開用の ID
-	"""
-	id: UUID!
-	"""
-	画面が見ていた対戦の revision
-	"""
-	revision: Int!
-	"""
-	配置する手札の番号（0 始まり。Match.deployChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で配置できないものは FieldNotFound）
-	"""
-	handIndex: Int!
-}
-"""
-deployMatchCreature の結果（DEPLOYING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
-"""
-union DeployMatchCreatureResult = DeployMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
-"""
-クリーチャーを配置した（そのままターンを終える。成功したら対戦の revision が進む）
-"""
-type DeployMatchCreatureSuccess {
-	"""
-	対戦の公開用の ID
-	"""
-	id: UUID!
-	"""
-	操作した後の対戦の revision
-	"""
-	revision: Int!
-}
-"""
 手札を 1 枚捨てる入力
 """
 input DiscardMatchCardInput {
@@ -1254,7 +1220,7 @@ input EndMatchTurnInput {
 	revision: Int!
 }
 """
-endMatchTurn の結果（ENDING と DEPLOYING の段階の（DEPLOYING では配置しないことになる）、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+endMatchTurn の結果（ENDING と PLACING の段階の（PLACING では配置しないことになる）、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
 """
 union EndMatchTurnResult = EndMatchTurnSuccess | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -1292,7 +1258,7 @@ input ExchangeMatchCreatureInput {
 	handIndex: Int!
 }
 """
-exchangeMatchCreature の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+exchangeMatchCreature の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
 """
 union ExchangeMatchCreatureResult = ExchangeMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -1549,7 +1515,7 @@ input LevelUpMatchTerritoryInput {
 	level: Int!
 }
 """
-levelUpMatchTerritory の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+levelUpMatchTerritory の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
 """
 union LevelUpMatchTerritoryResult = LevelUpMatchTerritorySuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -1623,9 +1589,9 @@ type Match {
 	"""
 	spellChoices: [MatchSpellChoice!]!
 	"""
-	今の番の人が配置できる手札の番号（0 始まり。手札の順。DEPLOYING のときだけ中身がある。DEPLOYING でも配置できるものが無ければ空）
+	今の番の人が配置できる手札の番号（0 始まり。手札の順。PLACING のときだけ中身がある。PLACING でも配置できるものが無ければ空）
 	"""
-	deployChoices: [Int!]!
+	placeChoices: [Int!]!
 	"""
 	今の番の人が侵略に出せる手札の番号（0 始まり。手札の順。INVADING のときだけ中身がある。INVADING でも出せるものが無ければ空）
 	"""
@@ -1643,19 +1609,19 @@ type Match {
 	"""
 	landLevels: [MatchLandLevel!]!
 	"""
-	今の番の人が選べるレベルアップ（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手持ちの魔力で払える分だけ）
+	今の番の人が選べるレベルアップ（PLACING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手持ちの魔力で払える分だけ）
 	"""
 	levelUpChoices: [MatchLevelUpChoice!]!
 	"""
-	今の番の人が選べるクリーチャーの交換（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手札のクリーチャーで、手持ちの魔力で払える分だけ）
+	今の番の人が選べるクリーチャーの交換（PLACING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。手札のクリーチャーで、手持ちの魔力で払える分だけ）
 	"""
 	exchangeChoices: [MatchExchangeChoice!]!
 	"""
-	今の番の人が選べる土地の属性の変更（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。今と同じ属性は選べず、手持ちの魔力で払える分だけ）
+	今の番の人が選べる土地の属性の変更（PLACING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。今と同じ属性は選べず、手持ちの魔力で払える分だけ）
 	"""
 	elementChangeChoices: [MatchElementChangeChoice!]!
 	"""
-	今の番の人が選べるクリーチャーの移動（DEPLOYING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。ちょうど移動の歩数だけ進んで届く空き地か他人の領地）
+	今の番の人が選べるクリーチャーの移動（PLACING・INVADING・TERRITORY_COMMANDING のときだけ中身がある。ちょうど移動の歩数だけ進んで届く空き地か他人の領地）
 	"""
 	moveChoices: [MatchMoveChoice!]!
 	"""
@@ -1977,7 +1943,7 @@ type MatchCreatureDamagedEvent implements MatchEvent {
 	"""
 	position: BoardPosition!
 	"""
-	対象のクリーチャー（MatchDeployedCreature.id）
+	対象のクリーチャー（MatchPlacedCreature.id）
 	"""
 	creature: Int!
 	"""
@@ -1988,47 +1954,6 @@ type MatchCreatureDamagedEvent implements MatchEvent {
 	残りの HP（0 なら破壊される）
 	"""
 	remainingHitPoints: Int!
-}
-"""
-止まった空き地に、手札のクリーチャーを配置した（そのままターンを終える）
-"""
-type MatchCreatureDeployedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	配置した参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	配置した手札の番号（0 始まり）
-	"""
-	handIndex: Int!
-	"""
-	配置したカード（性能は対戦を始めたときの写し）
-	"""
-	card: CardInfo!
-	"""
-	配置したクリーチャーの ID（Match.territories の creature.id と同じ番号）
-	"""
-	creature: Int!
-	"""
-	配置した位置（領地になった）
-	"""
-	position: BoardPosition!
-	"""
-	払った魔力
-	"""
-	cost: Int!
 }
 """
 スペルのダメージで、領地のクリーチャーが破壊された（領地から外れて土地は空き地。レベルは残り、カードは持ち主の捨て札に入る）
@@ -2055,7 +1980,7 @@ type MatchCreatureDestroyedEvent implements MatchEvent {
 	"""
 	position: BoardPosition!
 	"""
-	破壊されたクリーチャー（MatchDeployedCreature.id）
+	破壊されたクリーチャー（MatchPlacedCreature.id）
 	"""
 	creature: Int!
 }
@@ -2136,6 +2061,47 @@ type MatchCreatureMovedEvent implements MatchEvent {
 	動いたクリーチャーの ID（同じ 1 体のまま）
 	"""
 	creature: Int!
+}
+"""
+止まった空き地に、手札のクリーチャーを配置した（そのままターンを終える）
+"""
+type MatchCreaturePlacedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	配置した参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	配置した手札の番号（0 始まり）
+	"""
+	handIndex: Int!
+	"""
+	配置したカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
+	"""
+	配置したクリーチャーの ID（Match.territories の creature.id と同じ番号）
+	"""
+	creature: Int!
+	"""
+	配置した位置（領地になった）
+	"""
+	position: BoardPosition!
+	"""
+	払った魔力
+	"""
+	cost: Int!
 }
 """
 戦闘の攻撃が 1 回当たった
@@ -2249,23 +2215,6 @@ type MatchDecksShuffledEvent implements MatchEvent {
 	このイベントで変わった、描画に要る core の決まりで決まる値
 	"""
 	changes: MatchEventChanges!
-}
-"""
-盤面に配置したクリーチャー 1 体（対戦の中の実体。戦闘の傷等はこの 1 体の今の状態として持つ）
-"""
-type MatchDeployedCreature {
-	"""
-	配置したクリーチャーの ID（対戦の中の通し番号。1 始まり。移動・交換しても変わらない）
-	"""
-	id: Int!
-	"""
-	元のカード（性能は配置したときの写し）
-	"""
-	card: CreatureCardInfo!
-	"""
-	今の体力
-	"""
-	hitPoints: Int!
 }
 """
 スペルの効果で、このターンに振るサイコロの個数が変わった（count 個を同時に振り、合計の分だけ進む）
@@ -2958,11 +2907,11 @@ enum MatchPhase {
 	"""
 	CHOOSING_PATH
 	"""
-	空いている土地に止まった後の段階。クリーチャーを配置する（deployMatchCreature。配置したらターンを終える）か、配置せずにターンを終える（endMatchTurn）
+	空いている土地に止まった後の段階。クリーチャーを配置する（placeMatchCreature。配置したらターンを終える）か、配置せずにターンを終える（endMatchTurn）
 	"""
-	DEPLOYING
+	PLACING
 	"""
-	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchTerritory・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは DEPLOYING・INVADING の中で領地コマンドを選ぶ
+	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchTerritory・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ
 	"""
 	TERRITORY_COMMANDING
 	"""
@@ -2998,6 +2947,23 @@ type MatchPhaseNotAllowedError {
 	開発者向けの説明（画面にそのまま出す文言ではない）
 	"""
 	message: String!
+}
+"""
+盤面に配置したクリーチャー 1 体（対戦の中の実体。戦闘の傷等はこの 1 体の今の状態として持つ）
+"""
+type MatchPlacedCreature {
+	"""
+	配置したクリーチャーの ID（対戦の中の通し番号。1 始まり。移動・交換しても変わらない）
+	"""
+	id: Int!
+	"""
+	元のカード（性能は配置したときの写し）
+	"""
+	card: CreatureCardInfo!
+	"""
+	今の体力
+	"""
+	hitPoints: Int!
 }
 """
 対戦のルール。始めた時点の写し（部屋の対戦ルールの 8 つの値と、全体のルール MatchRules の手札の決まり）。
@@ -3254,7 +3220,7 @@ type MatchTerritory {
 	"""
 	そこにいるクリーチャー
 	"""
-	creature: MatchDeployedCreature!
+	creature: MatchPlacedCreature!
 	"""
 	土地のレベル（1 始まり）
 	"""
@@ -3609,7 +3575,7 @@ input MoveMatchCreatureInput {
 	to: BoardPositionInput!
 }
 """
-moveMatchCreature の結果（DEPLOYING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
+moveMatchCreature の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ）
 """
 union MoveMatchCreatureResult = MoveMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
@@ -3649,7 +3615,7 @@ type Mutation {
 	"""
 	止まった空き地に、手札のクリーチャーを配置する（配置したらターンを終える）
 	"""
-	deployMatchCreature(input: DeployMatchCreatureInput!): DeployMatchCreatureResult!
+	placeMatchCreature(input: PlaceMatchCreatureInput!): PlaceMatchCreatureResult!
 	"""
 	魔力が負の間に、自分の領地を手放す
 	"""
@@ -3691,7 +3657,7 @@ type Mutation {
 	"""
 	defendMatchTerritory(input: DefendMatchTerritoryInput!): DefendMatchTerritoryResult!
 	"""
-	ターンを終える（DEPLOYING では配置しない）
+	ターンを終える（PLACING では配置しない）
 	"""
 	endMatchTurn(input: EndMatchTurnInput!): EndMatchTurnResult!
 	"""
@@ -3853,6 +3819,40 @@ union PayMatchTollResult = PayMatchTollSuccess | MatchNotFoundError | MatchNotYo
 通行料を払った（成功したら対戦の revision が進む）
 """
 type PayMatchTollSuccess {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	操作した後の対戦の revision
+	"""
+	revision: Int!
+}
+"""
+止まった空き地にクリーチャーを配置する入力
+"""
+input PlaceMatchCreatureInput {
+	"""
+	対戦の公開用の ID
+	"""
+	id: UUID!
+	"""
+	画面が見ていた対戦の revision
+	"""
+	revision: Int!
+	"""
+	配置する手札の番号（0 始まり。Match.placeChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で配置できないものは FieldNotFound）
+	"""
+	handIndex: Int!
+}
+"""
+placeMatchCreature の結果（PLACING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+"""
+union PlaceMatchCreatureResult = PlaceMatchCreatureSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+"""
+クリーチャーを配置した（そのままターンを終える。成功したら対戦の revision が進む）
+"""
+type PlaceMatchCreatureSuccess {
 	"""
 	対戦の公開用の ID
 	"""

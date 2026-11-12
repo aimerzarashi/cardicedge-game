@@ -378,7 +378,7 @@ function applyFact(
         magic: participant.magic + magic,
         passedCheckpoints: [],
       }));
-    case "MatchCreatureDeployedEvent": {
+    case "MatchCreaturePlacedEvent": {
       const { card, position, creature } = event;
       if (!card || !position || creature === undefined) return frame;
       const paid = updateParticipant(frame, seat, (participant) => ({

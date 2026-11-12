@@ -16,7 +16,6 @@ import {
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
   defendMatchTerritoryMutation,
-  deployMatchCreatureMutation,
   discardMatchCardMutation,
   drawMatchCardMutation,
   endMatchTurnMutation,
@@ -25,6 +24,7 @@ import {
   levelUpMatchTerritoryMutation,
   moveMatchCreatureMutation,
   payMatchTollMutation,
+  placeMatchCreatureMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
   useMatchSpellMutation,
@@ -169,7 +169,7 @@ export async function useMatchSpell(
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
-export async function deployMatchCreature(
+export async function placeMatchCreature(
   _previous: MatchActionState,
   form: FormData,
 ): Promise<MatchActionState> {
@@ -179,11 +179,11 @@ export async function deployMatchCreature(
   if (id === undefined || revision === undefined || handIndex === undefined) {
     return BAD_FORM;
   }
-  const result = await callCore(deployMatchCreatureMutation, {
+  const result = await callCore(placeMatchCreatureMutation, {
     input: { id, revision, handIndex },
   });
   return result.ok
-    ? finish(result.data.deployMatchCreature)
+    ? finish(result.data.placeMatchCreature)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

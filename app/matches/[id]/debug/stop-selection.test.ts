@@ -77,12 +77,12 @@ describe("selectableTerritories", () => {
 
   it("何も選んでいないときと、配置・侵略では押せる領地が無い", () => {
     assert.deepEqual(selectableTerritories(null, choices), []);
-    assert.deepEqual(selectableTerritories({ command: "deploy" }, choices), []);
+    assert.deepEqual(selectableTerritories({ command: "place" }, choices), []);
     assert.deepEqual(selectableTerritories({ command: "invade" }, choices), []);
   });
 
   it("配置・侵略を選んでいる間は、止まったマスに見るだけの印が残る", () => {
-    assert.deepEqual(previewedTiles({ command: "deploy" }, S), [S]);
+    assert.deepEqual(previewedTiles({ command: "place" }, S), [S]);
     assert.deepEqual(previewedTiles({ command: "invade" }, S), [S]);
     assert.deepEqual(previewedTiles(null, S), []);
   });

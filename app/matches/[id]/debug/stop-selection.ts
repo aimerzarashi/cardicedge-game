@@ -12,7 +12,7 @@ export type TerritoryCommand =
 // 振る前のスペルも、クリーチャーを対象にするものは同じく盤面で領地を選ぶので、ここに入れる（2026-11-11 オーナー）。
 // 見るための状態なのでイベントにしない
 export type StopSelection =
-  | { command: "deploy" }
+  | { command: "place" }
   | { command: "invade" }
   | {
       command: "territory";
@@ -119,7 +119,7 @@ export function previewedTiles(
   selection: StopSelection | null,
   stopped: Position,
 ): Position[] {
-  if (selection?.command === "deploy" || selection?.command === "invade") {
+  if (selection?.command === "place" || selection?.command === "invade") {
     return [stopped];
   }
   if (selection?.command === "territory" && selection.position !== null) {

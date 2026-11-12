@@ -44,7 +44,6 @@ import {
   chooseMatchPath,
   chooseMatchRewardPack,
   defendMatchTerritory,
-  deployMatchCreature,
   discardMatchCard,
   drawMatchCard,
   endMatchTurn,
@@ -53,6 +52,7 @@ import {
   levelUpMatchTerritory,
   moveMatchCreature,
   payMatchToll,
+  placeMatchCreature,
   relinquishMatchTerritory,
   rollMatchDice,
   useMatchSpell,
@@ -139,7 +139,7 @@ export type MatchPlayerOperations = {
     // クリーチャーを選ぶスペルの対象（自分の領地を含む）（領地の位置とクリーチャーの名前）
     targetPositions: { x: number; y: number; name: string }[];
   }[];
-  deployChoices: number[];
+  placeChoices: number[];
   invadeChoices: number[];
   itemChoices: number[];
   relinquishChoices: { x: number; y: number; name: string; magic: number }[];
@@ -251,7 +251,7 @@ function StopOperations({
   onSelect,
   onPreview,
 }: {
-  phase: "DEPLOYING" | "INVADING" | "TERRITORY_COMMANDING";
+  phase: "PLACING" | "INVADING" | "TERRITORY_COMMANDING";
   actionProps: { id: string; revision: number };
   hand: FrameCard[];
   operations: MatchPlayerOperations;
@@ -276,9 +276,9 @@ function StopOperations({
     const territories = territoryCommandPositions(operations);
     return (
       <>
-        {phase === "DEPLOYING" && operations.deployChoices.length > 0 && (
+        {phase === "PLACING" && operations.placeChoices.length > 0 && (
           <Previewing tiles={[stopped]} onPreview={onPreview}>
-            <button type="button" onClick={() => choose({ command: "deploy" })}>
+            <button type="button" onClick={() => choose({ command: "place" })}>
               配置
             </button>
           </Previewing>
@@ -323,13 +323,13 @@ function StopOperations({
       </>
     );
   }
-  if (selection.command === "deploy") {
+  if (selection.command === "place") {
     return (
       <>
-        {operations.deployChoices.map((handIndex) => (
+        {operations.placeChoices.map((handIndex) => (
           <MatchActionButton
             key={handIndex}
-            action={deployMatchCreature}
+            action={placeMatchCreature}
             values={{ handIndex }}
             {...actionProps}
           >
@@ -671,7 +671,7 @@ function Operations({
             ({position.x}, {position.y}) へ進む
           </MatchActionButton>
         ))}
-      {(latest.phase === "DEPLOYING" ||
+      {(latest.phase === "PLACING" ||
         latest.phase === "INVADING" ||
         latest.phase === "TERRITORY_COMMANDING") && (
         <StopOperations
