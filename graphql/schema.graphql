@@ -860,6 +860,27 @@ enum CreatureAbilityKind {
 	後手（戦闘で、後手の無い相手より後に攻撃する。先制と同時には持てない）
 	"""
 	LAST_STRIKE
+	"""
+	戦闘中の増減（戦闘中、AT・HP が決まった値だけ増減する）
+	"""
+	BATTLE_MODIFIER
+}
+"""
+戦闘中の増減
+"""
+type CreatureBattleModifierAbility implements CreatureAbility {
+	"""
+	能力の種類（BATTLE_MODIFIER）
+	"""
+	kind: CreatureAbilityKind!
+	"""
+	戦闘中の AT の増減（負も 0 もある）
+	"""
+	attackModifier: Int!
+	"""
+	戦闘中の HP の増減（負も 0 もある）
+	"""
+	hitPointsModifier: Int!
 }
 """
 クリーチャー
@@ -1650,6 +1671,15 @@ type Match {
 	number: Int
 }
 """
+発動した能力（このイベントが能力の発動を表す。MatchBattleAbilityActivatedEvent は別に出ない）
+"""
+type MatchAbilitySource {
+	"""
+	発動した能力（今は BATTLE_MODIFIER）
+	"""
+	ability: CreatureAbilityKind!
+}
+"""
 支援（侵略先の隣にある、攻める側の領地）
 """
 type MatchAdjacentTerritoriesSource {
@@ -1692,7 +1722,7 @@ type MatchBattleAbilityActivatedEvent implements MatchEvent {
 	"""
 	side: MatchBattleSide!
 	"""
-	発動した能力（今は FIRST_STRIKE・LAST_STRIKE）
+	発動した能力（AT・HP を変えない能力。今は FIRST_STRIKE・LAST_STRIKE）
 	"""
 	ability: CreatureAbilityKind!
 }
@@ -1735,7 +1765,7 @@ type MatchBattleStartedEvent implements MatchEvent {
 	defender: MatchBattleStats!
 }
 """
-効果 1 つが戦闘の AT・HP を変えた
+効果 1 つが戦闘の AT・HP を変えた（出どころが能力のときは、持っていれば増減が 0 でも出る）
 """
 type MatchBattleStatModifiedEvent implements MatchEvent {
 	"""
@@ -1778,7 +1808,7 @@ type MatchBattleStatModifiedEvent implements MatchEvent {
 """
 戦闘の AT・HP を変えた効果の出どころ
 """
-union MatchBattleStatSource = MatchAdjacentTerritoriesSource | MatchTerrainSource | MatchItemSource
+union MatchBattleStatSource = MatchAdjacentTerritoriesSource | MatchTerrainSource | MatchItemSource | MatchAbilitySource
 """
 戦闘の中の AT・HP
 """

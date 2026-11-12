@@ -37,6 +37,16 @@ describe("abilitiesLabel", () => {
       "先制・防御型",
     );
     assert.equal(abilitiesLabel([{ kind: "LAST_STRIKE" }]), "後手");
+    assert.equal(
+      abilitiesLabel([
+        {
+          kind: "BATTLE_MODIFIER",
+          attackModifier: -10,
+          hitPointsModifier: 20,
+        },
+      ]),
+      "戦闘中の増減 AT -10・HP +20",
+    );
   });
 });
 
