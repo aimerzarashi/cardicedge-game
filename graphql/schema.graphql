@@ -864,6 +864,10 @@ enum CreatureAbilityKind {
 	戦闘中の増減（戦闘中、AT・HP が決まった値だけ増減する）
 	"""
 	BATTLE_MODIFIER
+	"""
+	戦闘中のランダム（戦闘中、AT・HP が最小〜最大のランダムな値になる。別々に引く）
+	"""
+	BATTLE_RANDOM_STATS
 }
 """
 戦闘中の増減
@@ -881,6 +885,23 @@ type CreatureBattleModifierAbility implements CreatureAbility {
 	戦闘中の HP の増減（負も 0 もある）
 	"""
 	hitPointsModifier: Int!
+}
+"""
+戦闘中のランダム
+"""
+type CreatureBattleRandomStatsAbility implements CreatureAbility {
+	"""
+	能力の種類（BATTLE_RANDOM_STATS）
+	"""
+	kind: CreatureAbilityKind!
+	"""
+	戦闘中の AT・HP の最小
+	"""
+	minimum: Int!
+	"""
+	戦闘中の AT・HP の最大
+	"""
+	maximum: Int!
 }
 """
 クリーチャー
@@ -1675,17 +1696,17 @@ type Match {
 """
 type MatchAbilitySource {
 	"""
-	発動した能力（今は BATTLE_MODIFIER）
+	発動した能力（BATTLE_MODIFIER・BATTLE_RANDOM_STATS）
 	"""
 	ability: CreatureAbilityKind!
 	"""
-	戦闘中の AT の増減の決まった値（下限で止まる前の値）
+	戦闘中の増減の根拠（BATTLE_MODIFIER のときだけ。ほかは null）
 	"""
-	attackModifier: Int!
+	battleModifier: MatchBattleModifierBasis
 	"""
-	戦闘中の HP の増減の決まった値（下限で止まる前の値）
+	戦闘中のランダムの根拠（BATTLE_RANDOM_STATS のときだけ。ほかは null）
 	"""
-	hitPointsModifier: Int!
+	battleRandomStats: MatchBattleRandomStatsBasis
 }
 """
 支援効果（侵略先の隣にある、攻める側の領地）
@@ -1737,6 +1758,32 @@ type MatchBattleAbilityActivatedEvent implements MatchEvent {
 	発動した能力（AT・HP を変えない能力。今は FIRST_STRIKE・LAST_STRIKE）
 	"""
 	ability: CreatureAbilityKind!
+}
+"""
+戦闘中の増減の決まった値
+"""
+type MatchBattleModifierBasis {
+	"""
+	AT の増減（下限で止まる前の値）
+	"""
+	attackModifier: Int!
+	"""
+	HP の増減（下限で止まる前の値）
+	"""
+	hitPointsModifier: Int!
+}
+"""
+戦闘中のランダムの範囲（引いた値は MatchBattleStatModifiedEvent の当てた後の AT・HP）
+"""
+type MatchBattleRandomStatsBasis {
+	"""
+	範囲の最小
+	"""
+	minimum: Int!
+	"""
+	範囲の最大
+	"""
+	maximum: Int!
 }
 """
 戦闘のどちら側か

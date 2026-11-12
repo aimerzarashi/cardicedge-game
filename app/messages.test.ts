@@ -47,6 +47,12 @@ describe("abilitiesLabel", () => {
       ]),
       "戦闘中の増減 AT -10・HP +20",
     );
+    assert.equal(
+      abilitiesLabel([
+        { kind: "BATTLE_RANDOM_STATS", minimum: 10, maximum: 70 },
+      ]),
+      "戦闘中のランダム 10〜70",
+    );
   });
 });
 

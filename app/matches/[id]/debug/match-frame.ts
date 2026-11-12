@@ -27,6 +27,8 @@ export type FrameCard = {
     percent?: number;
     attackModifier?: number;
     hitPointsModifier?: number;
+    minimum?: number;
+    maximum?: number;
   }[];
   category?: ItemCategory;
   attackModifier?: number;

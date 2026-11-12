@@ -199,8 +199,8 @@ describe("eventLine", () => {
       {
         __typename: "MatchAbilitySource",
         ability: "BATTLE_MODIFIER",
-        attackModifier: -10,
-        hitPointsModifier: 20,
+        battleModifier: { attackModifier: -10, hitPointsModifier: 20 },
+        battleRandomStats: null,
       },
       "DEFENDER",
       "守る側に能力「戦闘中の増減」が発動（AT -10・HP +20 → AT 10・HP 80）",
@@ -212,8 +212,8 @@ describe("eventLine", () => {
       {
         __typename: "MatchAbilitySource",
         ability: "BATTLE_MODIFIER",
-        attackModifier: 0,
-        hitPointsModifier: 0,
+        battleModifier: { attackModifier: 0, hitPointsModifier: 0 },
+        battleRandomStats: null,
       },
       "ATTACKER",
       "攻める側に能力「戦闘中の増減」が発動（増減なし → AT 20・HP 30）",
@@ -225,13 +225,39 @@ describe("eventLine", () => {
       {
         __typename: "MatchAbilitySource",
         ability: "BATTLE_MODIFIER",
-        attackModifier: -10,
-        hitPointsModifier: 0,
+        battleModifier: { attackModifier: -10, hitPointsModifier: 0 },
+        battleRandomStats: null,
       },
       "ATTACKER",
       "攻める側に能力「戦闘中の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0 },
       { attack: 0, hitPoints: 30 },
+    ],
+    [
+      "戦闘中のランダム（範囲と、変えた差・値を出す）",
+      {
+        __typename: "MatchAbilitySource",
+        ability: "BATTLE_RANDOM_STATS",
+        battleModifier: null,
+        battleRandomStats: { minimum: 10, maximum: 70 },
+      },
+      "DEFENDER",
+      "守る側に能力「戦闘中のランダム」が発動（10〜70: AT +30・HP -10 → AT 30・HP 20）",
+      { attackDelta: 30, hitPointsDelta: -10 },
+      { attack: 30, hitPoints: 20 },
+    ],
+    [
+      "戦闘中のランダムで値が変わらない",
+      {
+        __typename: "MatchAbilitySource",
+        ability: "BATTLE_RANDOM_STATS",
+        battleModifier: null,
+        battleRandomStats: { minimum: 10, maximum: 70 },
+      },
+      "ATTACKER",
+      "攻める側に能力「戦闘中のランダム」が発動（10〜70: 増減なし → AT 20・HP 30）",
+      { attackDelta: 0, hitPointsDelta: 0 },
+      { attack: 20, hitPoints: 30 },
     ],
   ] as const) {
     it(`効果のイベントは、${name}の増減と当てた後の値を出す`, () => {

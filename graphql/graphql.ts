@@ -166,6 +166,8 @@ export type CreateRoomInput = {
 export type CreatureAbilityKind =
   /** 戦闘中の増減（戦闘中、AT・HP が決まった値だけ増減する） */
   | 'BATTLE_MODIFIER'
+  /** 戦闘中のランダム（戦闘中、AT・HP が最小〜最大のランダムな値になる。別々に引く） */
+  | 'BATTLE_RANDOM_STATS'
   /** 防御型（侵略できない。移動できない。守ることはできる） */
   | 'DEFENSIVE'
   /** 先制（戦闘で、先制の無い相手より先に攻撃する。後手と同時には持てない） */
@@ -534,6 +536,7 @@ export type CardQuery = { card:
     | { __typename: 'CardNotFoundError' }
     | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, abilities: Array<
         | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+        | { minimum: number, maximum: number, kind: CreatureAbilityKind }
         | { kind: CreatureAbilityKind }
         | { kind: CreatureAbilityKind }
         | { kind: CreatureAbilityKind }
@@ -610,6 +613,7 @@ export type MatchDebugQuery = { match:
         >, pairs: Array<{ a: { x: number, y: number }, b: { x: number, y: number } }> }, participants: Array<{ kind: MatchParticipantKind, playerId: string | null, magic: number, totalMagic: number, drawPileCount: number, turnOrder: number, rewardReceived: boolean, avatar: { name: string }, position: { x: number, y: number }, hand: Array<
           | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
               | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+              | { minimum: number, maximum: number, kind: CreatureAbilityKind }
               | { kind: CreatureAbilityKind }
               | { kind: CreatureAbilityKind }
               | { kind: CreatureAbilityKind }
@@ -647,7 +651,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchBattleAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleStartedEvent', revision: number, attacker: { attack: number, hitPoints: number }, defender: { attack: number, hitPoints: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleStatModifiedEvent', side: MatchBattleSide, attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number, revision: number, source:
-            | { __typename: 'MatchAbilitySource', ability: CreatureAbilityKind, attackModifier: number, hitPointsModifier: number }
+            | { __typename: 'MatchAbilitySource', ability: CreatureAbilityKind, battleModifier: { attackModifier: number, hitPointsModifier: number } | null, battleRandomStats: { minimum: number, maximum: number } | null }
             | { __typename: 'MatchAdjacentTerritoriesSource', bonusPerTerritory: number, positions: Array<{ x: number, y: number }> }
             | { __typename: 'MatchItemSource', attackModifier: number, hitPointsModifier: number, card:
                 | { id: string, name: string }
@@ -659,6 +663,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchCardDiscardedEvent', participant: number, handIndex: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -676,6 +681,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchCardDrawnEvent', participant: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -697,6 +703,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchCreatureExchangedEvent', participant: number, handIndex: number, creature: number, cost: number, revision: number, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -713,6 +720,7 @@ export type MatchDebugEventsQuery = { matchEvents:
           , returnedCard:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -731,6 +739,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchCreaturePlacedEvent', participant: number, handIndex: number, creature: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -758,6 +767,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchInvasionRepelledEvent', participant: number, territoryHitPoints: number, returnedHitPoints: number | null, returnedToHand: boolean, revision: number, returnedTo: { x: number, y: number } | null, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -776,6 +786,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchItemUsedEvent', participant: number, handIndex: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -810,6 +821,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchTerritoryInvadedByMoveEvent', participant: number, creature: number, defendingCreature: number, revision: number, from: { x: number, y: number }, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -831,6 +843,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchTerritoryInvadedEvent', participant: number, handIndex: number, cost: number, defendingCreature: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
                 | { kind: CreatureAbilityKind }
@@ -1680,6 +1693,10 @@ export const CardDocument = new TypedDocumentString(`
           attackModifier
           hitPointsModifier
         }
+        ... on CreatureBattleRandomStatsAbility {
+          minimum
+          maximum
+        }
       }
     }
     ... on ItemCardInfo {
@@ -1970,6 +1987,10 @@ export const MatchDebugDocument = new TypedDocumentString(`
                 attackModifier
                 hitPointsModifier
               }
+              ... on CreatureBattleRandomStatsAbility {
+                minimum
+                maximum
+              }
             }
           }
           ... on ItemCardInfo {
@@ -2084,6 +2105,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   attackModifier
                   hitPointsModifier
                 }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2159,6 +2184,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   attackModifier
                   hitPointsModifier
                 }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2212,6 +2241,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on CreatureBattleModifierAbility {
                   attackModifier
                   hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
                 }
               }
             }
@@ -2272,6 +2305,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on CreatureBattleModifierAbility {
                   attackModifier
                   hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
                 }
               }
             }
@@ -2335,6 +2372,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on CreatureBattleModifierAbility {
                   attackModifier
                   hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
                 }
               }
             }
@@ -2410,8 +2451,14 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on MatchAbilitySource {
               ability
-              attackModifier
-              hitPointsModifier
+              battleModifier {
+                attackModifier
+                hitPointsModifier
+              }
+              battleRandomStats {
+                minimum
+                maximum
+              }
             }
           }
         }
@@ -2466,6 +2513,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on CreatureBattleModifierAbility {
                   attackModifier
                   hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
                 }
               }
             }
@@ -2569,6 +2620,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   attackModifier
                   hitPointsModifier
                 }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2642,6 +2697,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   attackModifier
                   hitPointsModifier
                 }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2693,6 +2752,10 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on CreatureBattleModifierAbility {
                   attackModifier
                   hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
                 }
               }
             }

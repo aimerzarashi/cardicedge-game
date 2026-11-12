@@ -194,30 +194,48 @@ export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
   DEFENSIVE: "防御型",
   TOLL_MULTIPLIER: "通行料の倍率",
   BATTLE_MODIFIER: "戦闘中の増減",
+  BATTLE_RANDOM_STATS: "戦闘中のランダム",
   FIRST_STRIKE: "先制",
   LAST_STRIKE: "後手",
 };
 
-// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5）。無ければ「なし」）
+// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5、戦闘中のランダム 10〜70）。無ければ「なし」）
 export function abilitiesLabel(
   abilities: readonly {
     kind: CreatureAbilityKind;
     percent?: number;
     attackModifier?: number;
     hitPointsModifier?: number;
+    minimum?: number;
+    maximum?: number;
   }[],
 ): string {
   return abilities.length === 0
     ? "なし"
     : abilities
-        .map(({ kind, percent, attackModifier, hitPointsModifier }) => {
-          const label = CREATURE_ABILITY_LABELS[kind];
-          if (percent !== undefined) return `${label} ${percent}%`;
-          if (attackModifier !== undefined && hitPointsModifier !== undefined) {
-            return `${label} ${itemModifiersLabel(attackModifier, hitPointsModifier)}`;
-          }
-          return label;
-        })
+        .map(
+          ({
+            kind,
+            percent,
+            attackModifier,
+            hitPointsModifier,
+            minimum,
+            maximum,
+          }) => {
+            const label = CREATURE_ABILITY_LABELS[kind];
+            if (percent !== undefined) return `${label} ${percent}%`;
+            if (
+              attackModifier !== undefined &&
+              hitPointsModifier !== undefined
+            ) {
+              return `${label} ${itemModifiersLabel(attackModifier, hitPointsModifier)}`;
+            }
+            if (minimum !== undefined && maximum !== undefined) {
+              return `${label} ${minimum}〜${maximum}`;
+            }
+            return label;
+          },
+        )
         .join("・");
 }
 
@@ -447,6 +465,14 @@ export const MATCH_EVENT_MESSAGES = {
   // target は助詞まで含める（側は「守る側に」、位置は「(1, 0) に」と、座標の後だけ空白が要るため）
   abilityActivated: (target: string, ability: string, effect?: string) =>
     `${target}能力「${ability}」が発動${effect ? `（${effect}）` : ""}`,
+  // 戦闘中のランダム: 範囲と、AT・HP をその値に変えた差
+  battleRandomStatsEffect: (
+    minimum: number,
+    maximum: number,
+    change: string,
+    attack: number,
+    hitPoints: number,
+  ) => `${minimum}〜${maximum}: ${battleStatChange(change, attack, hitPoints)}`,
   sideTarget: (side: string) => `${side}に`,
   positionTarget: (x: number, y: number) => `(${x}, ${y}) に`,
   creatureStruck: (striker: string, damage: number, remaining: number) =>
