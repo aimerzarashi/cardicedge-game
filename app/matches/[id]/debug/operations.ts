@@ -189,6 +189,10 @@ export const matchDebugQuery = graphql(`
                   attackModifier
                   hitPointsModifier
                 }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
               }
             }
             ... on ItemCardInfo {
@@ -304,6 +308,10 @@ export const matchDebugEventsQuery = graphql(`
                     attackModifier
                     hitPointsModifier
                   }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -379,6 +387,10 @@ export const matchDebugEventsQuery = graphql(`
                     attackModifier
                     hitPointsModifier
                   }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -432,6 +444,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleModifierAbility {
                     attackModifier
                     hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
                   }
                 }
               }
@@ -492,6 +508,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleModifierAbility {
                     attackModifier
                     hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
                   }
                 }
               }
@@ -555,6 +575,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleModifierAbility {
                     attackModifier
                     hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
                   }
                 }
               }
@@ -630,8 +654,14 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on MatchAbilitySource {
                 ability
-                attackModifier
-                hitPointsModifier
+                battleModifier {
+                  attackModifier
+                  hitPointsModifier
+                }
+                battleRandomStats {
+                  minimum
+                  maximum
+                }
               }
             }
           }
@@ -686,6 +716,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleModifierAbility {
                     attackModifier
                     hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
                   }
                 }
               }
@@ -789,6 +823,10 @@ export const matchDebugEventsQuery = graphql(`
                     attackModifier
                     hitPointsModifier
                   }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -862,6 +900,10 @@ export const matchDebugEventsQuery = graphql(`
                     attackModifier
                     hitPointsModifier
                   }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -913,6 +955,10 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleModifierAbility {
                     attackModifier
                     hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
                   }
                 }
               }

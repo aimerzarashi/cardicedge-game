@@ -61,6 +61,11 @@ export type MatchEventView = {
     bonusPerLevel?: number;
     attackModifier?: number;
     hitPointsModifier?: number;
+    battleModifier?: {
+      attackModifier: number;
+      hitPointsModifier: number;
+    } | null;
+    battleRandomStats?: { minimum: number; maximum: number } | null;
   };
   level?: number;
   returnedCard?: { name: string };
@@ -157,16 +162,27 @@ function body(event: MatchEventView, names: string[]): string {
           event.source.ability
             ? CREATURE_ABILITY_LABELS[event.source.ability]
             : "",
-          m.battleStatChange(
-            battleModifierChangeLabel(
-              event.source.attackModifier ?? 0,
-              event.source.hitPointsModifier ?? 0,
-              event.attackDelta ?? 0,
-              event.hitPointsDelta ?? 0,
-            ),
-            event.attack ?? 0,
-            event.hitPoints ?? 0,
-          ),
+          event.source.battleRandomStats
+            ? m.battleRandomStatsEffect(
+                event.source.battleRandomStats.minimum,
+                event.source.battleRandomStats.maximum,
+                itemModifiersLabel(
+                  event.attackDelta ?? 0,
+                  event.hitPointsDelta ?? 0,
+                ),
+                event.attack ?? 0,
+                event.hitPoints ?? 0,
+              )
+            : m.battleStatChange(
+                battleModifierChangeLabel(
+                  event.source.battleModifier?.attackModifier ?? 0,
+                  event.source.battleModifier?.hitPointsModifier ?? 0,
+                  event.attackDelta ?? 0,
+                  event.hitPointsDelta ?? 0,
+                ),
+                event.attack ?? 0,
+                event.hitPoints ?? 0,
+              ),
         );
       }
       return m.battleStatModified(
