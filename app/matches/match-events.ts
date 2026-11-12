@@ -17,6 +17,12 @@ export type MatchEventView = {
   value?: number;
   card?: { name: string };
   defendingCreatureCard?: { name: string };
+  handCount?: number;
+  maxHandCards?: number;
+  laps?: number;
+  magicPerLap?: number;
+  baseLandValue?: number;
+  multiplier?: number;
   checkpoint?: { x: number; y: number };
   magic?: number;
   cards?: number;
@@ -112,7 +118,7 @@ function body(event: MatchEventView, names: string[]): string {
     case "MatchDiscardPileShuffledEvent":
       return m.discardPileShuffled(event.drawPileCount ?? 0);
     case "MatchHandLimitExceededEvent":
-      return m.handLimitExceeded;
+      return m.handLimitExceeded(event.handCount ?? 0, event.maxHandCards ?? 0);
     case "MatchCreaturePlacedEvent":
       return m.creaturePlaced(
         event.card?.name ?? "",
@@ -256,6 +262,8 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.element ? ELEMENT_LABELS[event.element] : "",
         event.magic ?? 0,
+        event.baseLandValue ?? 0,
+        event.multiplier ?? 0,
       );
     case "MatchCreatureExchangedEvent":
       return m.creatureExchanged(
@@ -300,7 +308,11 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
       );
     case "MatchMagicGainedEvent":
-      return m.magicGained(event.magic ?? 0);
+      return m.magicGained(
+        event.magic ?? 0,
+        event.laps ?? 0,
+        event.magicPerLap ?? 0,
+      );
     case "MatchDiceCountChangedEvent":
       return m.diceCountChanged(event.count ?? 0);
     case "MatchMovedEvent":

@@ -43,10 +43,12 @@ describe("eventLine", () => {
           position: { x: 1, y: 0 },
           element: "WATER",
           magic: 200,
+          baseLandValue: 100,
+          multiplier: 2,
         }),
         names,
       ),
-      "版 33 部屋用: 領地 (1, 0) の土地を水属性に変えた（魔力 -200）",
+      "版 33 部屋用: 領地 (1, 0) の土地を水属性に変えた（魔力 -200。基本の値 100 × 2）",
     );
   });
 
@@ -285,17 +287,34 @@ describe("eventLine", () => {
     );
   });
 
+  it("手札が上限を超えたイベントは、捨てる枚数と手札・上限の枚数を出す", () => {
+    assert.equal(
+      eventLine(
+        event(40, {
+          __typename: "MatchHandLimitExceededEvent",
+          participant: 1,
+          handCount: 8,
+          maxHandCards: 6,
+        }),
+        names,
+      ),
+      "版 40 ゴリガン: 手札が上限を超えたので、ターンを終える前に 2 枚捨てる（手札 8 枚・上限 6 枚）",
+    );
+  });
+
   it("魔力を得たイベントと、サイコロの個数が変わったイベントを出す", () => {
     assert.equal(
       eventLine(
         event(19, {
           __typename: "MatchMagicGainedEvent",
           participant: 0,
-          magic: 200,
+          magic: 600,
+          laps: 2,
+          magicPerLap: 200,
         }),
         names,
       ),
-      "版 19 部屋用: 魔力を得た（魔力 +200）",
+      "版 19 部屋用: 魔力を得た（魔力 +600。（周回 2 回 + 1）× 200）",
     );
     assert.equal(
       eventLine(

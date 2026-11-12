@@ -2496,6 +2496,14 @@ type MatchHandLimitExceededEvent implements MatchEvent {
 	手札が上限を超えた参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
+	"""
+	上限を超えた時点の手札の枚数（捨てる枚数は handCount - maxHandCards）
+	"""
+	handCount: Int!
+	"""
+	手札の上限の枚数
+	"""
+	maxHandCards: Int!
 }
 """
 全員に手札が配られた
@@ -2680,9 +2688,17 @@ type MatchLandElementChangedEvent implements MatchEvent {
 	"""
 	element: BoardTileElement!
 	"""
-	払った魔力
+	払った魔力（baseLandValue × multiplier）
 	"""
 	magic: Int!
+	"""
+	払った魔力の根拠の、土地の基本の値
+	"""
+	baseLandValue: Int!
+	"""
+	払った魔力の根拠の、実際に掛けた倍率（複属性の土地からは安い倍率）
+	"""
+	multiplier: Int!
 }
 """
 土地のレベル
@@ -2785,9 +2801,17 @@ type MatchMagicGainedEvent implements MatchEvent {
 	"""
 	participant: Int!
 	"""
-	得た魔力
+	得た魔力（(laps + 1) × magicPerLap）
 	"""
 	magic: Int!
+	"""
+	得た時点でこの対戦で周回を終えた回数
+	"""
+	laps: Int!
+	"""
+	スペルの 1 周回あたりの魔力
+	"""
+	magicPerLap: Int!
 }
 """
 クリーチャーを動かす選択肢 1 つ

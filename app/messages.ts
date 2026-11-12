@@ -403,7 +403,8 @@ export const MATCH_EVENT_MESSAGES = {
   cardDiscarded: (card: string) => `カード「${card}」を捨てた`,
   discardPileShuffled: (cards: number) =>
     `捨て札 ${cards} 枚を混ぜて山札にした`,
-  handLimitExceeded: "手札が上限を超えたので、ターンを終える前に捨てる",
+  handLimitExceeded: (handCount: number, maxHandCards: number) =>
+    `手札が上限を超えたので、ターンを終える前に ${handCount - maxHandCards} 枚捨てる（手札 ${handCount} 枚・上限 ${maxHandCards} 枚）`,
   // 複数のサイコロを同時に振ったときは 1 個ずつの目と合計（1 個のときは目だけ）
   diceRolled: (value: number, dice: number[] = [], fixedByCurse = false) =>
     fixedByCurse
@@ -418,7 +419,8 @@ export const MATCH_EVENT_MESSAGES = {
     `(${x}, ${y}) のクリーチャーに ${damage} ダメージ（残りの HP ${remaining}）`,
   creatureDestroyed: (x: number, y: number) =>
     `(${x}, ${y}) のクリーチャーが破壊された`,
-  magicGained: (magic: number) => `魔力を得た（魔力 +${magic}）`,
+  magicGained: (magic: number, laps: number, magicPerLap: number) =>
+    `魔力を得た（魔力 +${magic}。（周回 ${laps} 回 + 1）× ${magicPerLap}）`,
   diceCountChanged: (count: number) =>
     `このターンはサイコロを ${count} 個同時に振る`,
   moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
@@ -496,8 +498,15 @@ export const MATCH_EVENT_MESSAGES = {
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
   territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>
     `領地 (${x}, ${y}) をレベル ${level} に上げた（魔力 -${magic}）`,
-  landElementChanged: (x: number, y: number, element: string, magic: number) =>
-    `領地 (${x}, ${y}) の土地を${element}属性に変えた（魔力 -${magic}）`,
+  landElementChanged: (
+    x: number,
+    y: number,
+    element: string,
+    magic: number,
+    baseLandValue: number,
+    multiplier: number,
+  ) =>
+    `領地 (${x}, ${y}) の土地を${element}属性に変えた（魔力 -${magic}。基本の値 ${baseLandValue} × ${multiplier}）`,
   creatureExchanged: (
     x: number,
     y: number,

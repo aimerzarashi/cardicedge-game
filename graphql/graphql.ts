@@ -753,7 +753,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, dice: Array<number>, fixedByCurse: boolean, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDiscardPileShuffledEvent', participant: number, drawPileCount: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchEndedEvent', winners: Array<number>, ranks: Array<number>, reason: MatchEndReason, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchHandLimitExceededEvent', participant: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchHandLimitExceededEvent', participant: number, handCount: number, maxHandCards: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchHandsDealtEvent', cards: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchInvasionRepelledEvent', participant: number, territoryHitPoints: number, returnedHitPoints: number | null, returnedToHand: boolean, revision: number, returnedTo: { x: number, y: number } | null, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
@@ -790,10 +790,10 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'SpellRollDiceEffect', count: number }
                | null }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchLandElementChangedEvent', participant: number, element: BoardTileElement, magic: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchLandElementChangedEvent', participant: number, element: BoardTileElement, magic: number, baseLandValue: number, multiplier: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicDepletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchMagicGainedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchMagicGainedEvent', participant: number, magic: number, laps: number, magicPerLap: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMovedEvent', participant: number, revision: number, to: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, position: { x: number, y: number } }> } }
         | { __typename: 'MatchRewardDrawnEvent', participant: number, pack: string, revision: number, rewardCards: Array<
             | { name: string }
@@ -2129,6 +2129,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
         }
         ... on MatchHandLimitExceededEvent {
           participant
+          handCount
+          maxHandCards
         }
         ... on MatchCardDiscardedEvent {
           participant
@@ -2606,6 +2608,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
           }
           element
           magic
+          baseLandValue
+          multiplier
         }
         ... on MatchCreatureExchangedEvent {
           participant
@@ -2773,6 +2777,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
         ... on MatchMagicGainedEvent {
           participant
           magic
+          laps
+          magicPerLap
         }
         ... on MatchDiceCountChangedEvent {
           participant
