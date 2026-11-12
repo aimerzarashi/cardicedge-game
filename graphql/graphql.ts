@@ -539,7 +539,7 @@ export type CardQuery = { card:
         | { kind: CreatureAbilityKind }
         | { percent: number, kind: CreatureAbilityKind }
       > }
-    | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, attackBonus: number, hitPointsBonus: number }
+    | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, attackModifier: number, hitPointsModifier: number }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
         | { __typename: 'SpellDamageEffect', amount: number }
@@ -615,7 +615,7 @@ export type MatchDebugQuery = { match:
               | { kind: CreatureAbilityKind }
               | { percent: number, kind: CreatureAbilityKind }
             > }
-          | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
               | { __typename: 'SpellDamageEffect', amount: number }
               | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -664,7 +664,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -681,7 +681,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -702,7 +702,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -718,7 +718,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -736,7 +736,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -763,7 +763,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -781,7 +781,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -816,7 +816,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackBonus: number, hitPointsBonus: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'SpellDamageEffect', amount: number }
                 | { __typename: 'SpellDrawCardsEffect', count: number }
@@ -1660,8 +1660,8 @@ export const CardDocument = new TypedDocumentString(`
     }
     ... on ItemCardInfo {
       category
-      attackBonus
-      hitPointsBonus
+      attackModifier
+      hitPointsModifier
     }
     ... on SpellCardInfo {
       effect {
@@ -1950,8 +1950,8 @@ export const MatchDebugDocument = new TypedDocumentString(`
           }
           ... on ItemCardInfo {
             category
-            attackBonus
-            hitPointsBonus
+            attackModifier
+            hitPointsModifier
           }
           ... on SpellCardInfo {
             effect {
@@ -2061,8 +2061,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2134,8 +2134,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2188,8 +2188,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2248,8 +2248,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2307,8 +2307,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2432,8 +2432,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2551,8 +2551,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -2603,8 +2603,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {

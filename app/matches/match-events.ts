@@ -2,7 +2,7 @@ import type { BoardTileElement, CreatureAbilityKind } from "@/graphql/graphql";
 import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
   CREATURE_ABILITY_LABELS,
-  itemBonusesLabel,
+  itemModifiersLabel,
   MATCH_END_REASON_LABELS,
   MATCH_EVENT_MESSAGES,
 } from "../messages.ts";
@@ -141,7 +141,10 @@ function body(event: MatchEventView, names: string[]): string {
             ? CREATURE_ABILITY_LABELS[event.source.ability]
             : "",
           m.battleStatChange(
-            itemBonusesLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
+            itemModifiersLabel(
+              event.attackDelta ?? 0,
+              event.hitPointsDelta ?? 0,
+            ),
             event.attack ?? 0,
             event.hitPoints ?? 0,
           ),
@@ -150,7 +153,7 @@ function body(event: MatchEventView, names: string[]): string {
       return m.battleStatModified(
         event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
         battleStatSourceLabel(event.source),
-        itemBonusesLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
+        itemModifiersLabel(event.attackDelta ?? 0, event.hitPointsDelta ?? 0),
         event.attack ?? 0,
         event.hitPoints ?? 0,
       );

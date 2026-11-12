@@ -17,7 +17,7 @@ import {
   curseLabel,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
-  itemBonusesLabel,
+  itemModifiersLabel,
   itemRestrictionsLabel,
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
@@ -921,7 +921,7 @@ function FrameView({
                               card.abilities.length > 0 &&
                               `・${abilitiesLabel(card.abilities)}`}
                             {card.category &&
-                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemBonusesLabel(card.attackBonus ?? 0, card.hitPointsBonus ?? 0)}`}
+                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemModifiersLabel(card.attackModifier ?? 0, card.hitPointsModifier ?? 0)}`}
                             {card.__typename === "SpellCardInfo" &&
                               `・${spellEffectLabel(card.effect)}`}
                             ）

@@ -193,8 +193,8 @@ export const matchDebugQuery = graphql(`
             }
             ... on ItemCardInfo {
               category
-              attackBonus
-              hitPointsBonus
+              attackModifier
+              hitPointsModifier
             }
             ... on SpellCardInfo {
               effect {
@@ -305,8 +305,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -378,8 +378,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -432,8 +432,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -492,8 +492,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -551,8 +551,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -676,8 +676,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -795,8 +795,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
@@ -847,8 +847,8 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackBonus
-                hitPointsBonus
+                attackModifier
+                hitPointsModifier
               }
               ... on SpellCardInfo {
                 effect {
