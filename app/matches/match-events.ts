@@ -15,6 +15,7 @@ export type MatchEventView = {
   to?: { x: number; y: number };
   value?: number;
   card?: { name: string };
+  defendingCreatureCard?: { name: string };
   checkpoint?: { x: number; y: number };
   magic?: number;
   cards?: number;
@@ -113,6 +114,7 @@ function body(event: MatchEventView, names: string[]): string {
     case "MatchTerritoryInvadedEvent":
       return m.territoryInvaded(
         event.card?.name ?? "",
+        event.defendingCreatureCard?.name ?? "",
         event.position?.x ?? 0,
         event.position?.y ?? 0,
         event.cost ?? 0,
@@ -195,8 +197,10 @@ function body(event: MatchEventView, names: string[]): string {
       );
     case "MatchTerritoryInvadedByMoveEvent":
       return m.territoryInvadedByMove(
+        event.card?.name ?? "",
         event.from?.x ?? 0,
         event.from?.y ?? 0,
+        event.defendingCreatureCard?.name ?? "",
         event.position?.x ?? 0,
         event.position?.y ?? 0,
       );

@@ -3337,6 +3337,18 @@ type MatchTerritoryInvadedByMoveEvent implements MatchEvent {
 	動いたクリーチャーの ID
 	"""
 	creature: Int!
+	"""
+	動いたクリーチャーのカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
+	"""
+	領地にいて、これから戦う守る側のクリーチャーの ID（Match.territories の creature.id と同じ番号）
+	"""
+	defendingCreature: Int!
+	"""
+	守る側のクリーチャーのカード（性能は対戦を始めたときの写し）
+	"""
+	defendingCreatureCard: CardInfo!
 }
 """
 止まった他人の領地を、手札のクリーチャーで侵略した
@@ -3374,6 +3386,14 @@ type MatchTerritoryInvadedEvent implements MatchEvent {
 	払った魔力
 	"""
 	cost: Int!
+	"""
+	領地にいて、これから戦う守る側のクリーチャーの ID（Match.territories の creature.id と同じ番号）
+	"""
+	defendingCreature: Int!
+	"""
+	守る側のクリーチャーのカード（性能は対戦を始めたときの写し）
+	"""
+	defendingCreatureCard: CardInfo!
 }
 """
 通った自分の領地のレベルを上げた
