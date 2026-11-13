@@ -195,7 +195,10 @@ test("他人の領地に止まると通行料か侵略かを選べ、侵略す�
     { timeout: 20_000 },
   );
   await expect(events).toContainText("戦闘が始まった");
-  await expect(events).toContainText("攻める側の攻撃");
+  // 攻撃の行は、攻撃の値と相手が受けた量を分けて出す
+  await expect(events).toContainText(
+    /攻める側の攻撃 \d+ → 守る側のダメージ \d+（残りの HP \d+）/,
+  );
   await expect(events).toContainText(/を奪った|侵略に失敗した/);
   await expect(page.getByTestId("match-invasion")).toBeHidden();
 });

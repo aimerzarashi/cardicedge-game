@@ -246,11 +246,12 @@ export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
   TOLL_MULTIPLIER: "通行料の倍率",
   BATTLE_MODIFIER: "戦闘中の増減",
   BATTLE_RANDOM_STATS: "戦闘中のランダム",
+  ATTACK_IMMUNITY: "攻撃無効",
   FIRST_STRIKE: "先制",
   LAST_STRIKE: "後手",
 };
 
-// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5、戦闘中のランダム 10〜70）。無ければ「なし」）
+// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5、戦闘中のランダム 10〜70、攻撃無効 火地）。無ければ「なし」）
 export function abilitiesLabel(
   abilities: readonly {
     kind: CreatureAbilityKind;
@@ -259,6 +260,7 @@ export function abilitiesLabel(
     hitPointsModifier?: number;
     minimum?: number;
     maximum?: number;
+    elements?: readonly CreatureElement[];
   }[],
 ): string {
   return abilities.length === 0
@@ -272,6 +274,7 @@ export function abilitiesLabel(
             hitPointsModifier,
             minimum,
             maximum,
+            elements,
           }) => {
             const label = CREATURE_ABILITY_LABELS[kind];
             if (percent !== undefined) return `${label} ${percent}%`;
@@ -283,6 +286,9 @@ export function abilitiesLabel(
             }
             if (minimum !== undefined && maximum !== undefined) {
               return `${label} ${minimum}〜${maximum}`;
+            }
+            if (elements !== undefined) {
+              return `${label} ${elementsLabel(elements)}`;
             }
             return label;
           },
@@ -515,8 +521,15 @@ export const MATCH_EVENT_MESSAGES = {
   ) => `${minimum}〜${maximum}: ${battleStatChange(change, attack, hitPoints)}`,
   sideTarget: (side: string) => `${side}に`,
   positionTarget: (x: number, y: number) => `(${x}, ${y}) に`,
-  creatureStruck: (striker: string, damage: number, remaining: number) =>
-    `${striker}の攻撃 ${damage}（残りの HP ${remaining}）`,
+  // 攻撃の値と受けた量を分けて書く（攻撃無効で受けた量が 0 のときも「攻撃したけれど 0」と読めるように。2026-11-13 オーナー。game#97）
+  creatureStruck: (
+    striker: string,
+    attack: number,
+    receiver: string,
+    damage: number,
+    remaining: number,
+  ) =>
+    `${striker}の攻撃 ${attack} → ${receiver}のダメージ ${damage}（残りの HP ${remaining}）`,
   battleStarted: (
     attackerAttack: number,
     attackerHitPoints: number,

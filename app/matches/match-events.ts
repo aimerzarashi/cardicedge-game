@@ -217,6 +217,8 @@ function body(event: MatchEventView, names: string[]): string {
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
         event.striker === "DEFENDER" ? m.battleDefender : m.battleAttacker,
+        event.attack ?? 0,
+        event.striker === "DEFENDER" ? m.battleAttacker : m.battleDefender,
         event.damage ?? 0,
         event.remainingHitPoints ?? 0,
       );

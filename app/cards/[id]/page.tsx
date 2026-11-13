@@ -43,6 +43,9 @@ const cardQuery = graphql(`
             minimum
             maximum
           }
+          ... on CreatureAttackImmunityAbility {
+            elements
+          }
         }
       }
       ... on ItemCardInfo {

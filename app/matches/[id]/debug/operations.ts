@@ -193,6 +193,9 @@ export const matchDebugQuery = graphql(`
                   minimum
                   maximum
                 }
+                ... on CreatureAttackImmunityAbility {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -318,6 +321,9 @@ export const matchDebugEventsQuery = graphql(`
                     minimum
                     maximum
                   }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -398,6 +404,9 @@ export const matchDebugEventsQuery = graphql(`
                     minimum
                     maximum
                   }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -456,6 +465,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleRandomStatsAbility {
                     minimum
                     maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
                   }
                 }
               }
@@ -521,6 +533,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleRandomStatsAbility {
                     minimum
                     maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
                   }
                 }
               }
@@ -588,6 +603,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleRandomStatsAbility {
                     minimum
                     maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
                   }
                 }
               }
@@ -681,6 +699,7 @@ export const matchDebugEventsQuery = graphql(`
           }
           ... on MatchCreatureStruckEvent {
             striker
+            attack
             damage
             remainingHitPoints
           }
@@ -729,6 +748,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleRandomStatsAbility {
                     minimum
                     maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
                   }
                 }
               }
@@ -837,6 +859,9 @@ export const matchDebugEventsQuery = graphql(`
                     minimum
                     maximum
                   }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -914,6 +939,9 @@ export const matchDebugEventsQuery = graphql(`
                     minimum
                     maximum
                   }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -970,6 +998,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on CreatureBattleRandomStatsAbility {
                     minimum
                     maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
                   }
                 }
               }
