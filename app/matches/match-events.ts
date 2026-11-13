@@ -3,9 +3,12 @@ import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
   battleModifierChangeLabel,
   CREATURE_ABILITY_LABELS,
+  diceRolledLabel,
   itemModifiersLabel,
   MATCH_END_REASON_LABELS,
   MATCH_EVENT_MESSAGES,
+  type SpellEffectView,
+  spellEffectStartedLabel,
 } from "../messages.ts";
 
 // core の MatchEvent の種類ごとの型を、画面が使う項目だけの形で受ける（__typename で見分ける）
@@ -28,10 +31,11 @@ export type MatchEventView = {
   cards?: number;
   drawPileCount?: number;
   dice?: number[];
-  count?: number;
-  fixedByCurse?: boolean;
+  // 振った人に続いていたスペルの効果（振り方を決めたもの）
+  spellEffect?: SpellEffectView;
   target?: number;
-  curse?: { remainingTurns: number; effect?: { value?: number } };
+  // かかった効果（ターンをまたいで効き続けるもの）
+  effect?: { remainingTurns: number; effect?: SpellEffectView };
   order?: number[];
   winners?: number[];
   reason?: keyof typeof MATCH_END_REASON_LABELS;
@@ -298,19 +302,19 @@ function body(event: MatchEventView, names: string[]): string {
     case "MatchMagicDepletedEvent":
       return m.magicDepleted(event.magic ?? 0);
     case "MatchDiceRolledEvent":
-      return m.diceRolled(
+      return diceRolledLabel(
         event.value ?? 0,
         event.dice ?? [],
-        event.fixedByCurse ?? false,
+        event.spellEffect,
       );
-    case "MatchCurseCastEvent":
-      return m.curseCast(
+    case "MatchSpellEffectStartedEvent":
+      return spellEffectStartedLabel(
         nameOf(names, event.target ?? 0),
-        event.curse?.effect?.value ?? 0,
-        event.curse?.remainingTurns ?? 0,
+        event.effect?.effect,
+        event.effect?.remainingTurns ?? 0,
       );
-    case "MatchCurseRemovedEvent":
-      return m.curseRemoved;
+    case "MatchSpellEffectEndedEvent":
+      return m.spellEffectEnded;
     case "MatchCreatureDamagedEvent":
       return m.creatureDamaged(
         event.position?.x ?? 0,
@@ -329,8 +333,6 @@ function body(event: MatchEventView, names: string[]): string {
         event.laps ?? 0,
         event.magicPerLap ?? 0,
       );
-    case "MatchDiceCountChangedEvent":
-      return m.diceCountChanged(event.count ?? 0);
     case "MatchMovedEvent":
       return m.moved(event.to?.x ?? 0, event.to?.y ?? 0);
     case "MatchCheckpointPassedEvent":

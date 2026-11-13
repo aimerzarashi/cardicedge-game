@@ -8,6 +8,7 @@ import type {
   MatchParticipantKind,
   MatchPhase,
 } from "@/graphql/graphql";
+import type { SpellEffectView } from "../../../messages.ts";
 
 type Position = { x: number; y: number };
 
@@ -47,8 +48,8 @@ export type FrameParticipant = {
   drawPileCount: number;
   // 捨て札（入った順）。山札が空のまま引くときに混ぜて山札になる
   discardPile: FrameDiscardedCard[];
-  // かかっている呪い（今は次のサイコロの目を決めるものだけ。無ければ null）
-  curse: FrameCurse | null;
+  // 続いているスペルの効果（無ければ null）
+  lastingSpellEffect: FrameLastingSpellEffect | null;
   turnOrder: number;
   passedCheckpoints: Position[];
   rewardReceived: boolean;
@@ -57,7 +58,10 @@ export type FrameParticipant = {
 
 export type FrameDiscardedCard = { id: string; name: string };
 
-export type FrameCurse = { value: number; remainingTurns: number };
+export type FrameLastingSpellEffect = {
+  effect: SpellEffectView;
+  remainingTurns: number;
+};
 
 export type FrameTerritory = {
   position: Position;
@@ -170,7 +174,7 @@ export type PlayEvent = {
   drawPileCount?: number;
   dice?: number[];
   target?: number;
-  curse?: { remainingTurns: number; effect?: { value?: number } };
+  effect?: { remainingTurns: number; effect?: SpellEffectView };
 };
 
 // 1 歩の演出にかける時間。演出を足すときは、種類ごとにここを変える
@@ -236,14 +240,14 @@ function territoryAt(
 }
 
 // 順番は core が turnOrder で返した値の小さい順。一周したら次のラウンド
-// 終えた人の呪いは、残りのターンが 1 減る（最後のターンは、先に呪いが解けたイベントで消えている）
+// 終えた人に続いているスペルの効果は、残りのターンが 1 減る（最後のターンは、先に効果が終わったイベントで消えている）
 function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
   const passed = updateParticipant(frame, seat, (participant) => ({
     ...participant,
-    curse: participant.curse
+    lastingSpellEffect: participant.lastingSpellEffect
       ? {
-          ...participant.curse,
-          remainingTurns: participant.curse.remainingTurns - 1,
+          ...participant.lastingSpellEffect,
+          remainingTurns: participant.lastingSpellEffect.remainingTurns - 1,
         }
       : null,
   }));
@@ -433,14 +437,14 @@ function applyFact(
         invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
       };
     }
-    case "MatchCurseCastEvent": {
-      const { curse, target } = event;
-      if (!curse || target === undefined) return frame;
+    case "MatchSpellEffectStartedEvent": {
+      const { effect, target } = event;
+      if (!effect || target === undefined) return frame;
       return updateParticipant(frame, target, (participant) => ({
         ...participant,
-        curse: {
-          value: curse.effect?.value ?? 0,
-          remainingTurns: curse.remainingTurns,
+        lastingSpellEffect: {
+          effect: effect.effect,
+          remainingTurns: effect.remainingTurns,
         },
       }));
     }
@@ -478,10 +482,10 @@ function applyFact(
         ),
       };
     }
-    case "MatchCurseRemovedEvent":
+    case "MatchSpellEffectEndedEvent":
       return updateParticipant(frame, seat, (participant) => ({
         ...participant,
-        curse: null,
+        lastingSpellEffect: null,
       }));
     case "MatchMagicGainedEvent":
       return updateParticipant(frame, seat, (participant) => ({

@@ -14,11 +14,11 @@ import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
 import {
   abilitiesLabel,
-  curseLabel,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
   itemModifiersLabel,
   itemRestrictionsLabel,
+  lastingSpellEffectLabel,
   MATCH_END_REASON_LABELS,
   MATCH_PHASE_LABELS,
   MATCH_PHASE_NOT_WAITING,
@@ -137,7 +137,7 @@ export type MatchPlayerOperations = {
   // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
   awaitingParticipant: number | null;
   pathChoices: { x: number; y: number }[];
-  // 振る前に使えるスペル（core の spellChoices）。呪いは選べる対象（名前つき）があり、対象ごとにボタンを出す
+  // 振る前に使えるスペル（core の spellChoices）。対象のプレイヤーを選ぶスペルは選べる対象（名前つき）があり、対象ごとにボタンを出す
   spellChoices: {
     handIndex: number;
     targets: { index: number; name: string }[];
@@ -881,9 +881,12 @@ function FrameView({
                     </dd>
                   </div>
                   <div style={PAIR_STYLE}>
-                    <dt>呪い</dt>
-                    <dd style={{ margin: 0 }} data-testid="participant-curse">
-                      {curseLabel(participant.curse)}
+                    <dt>続いているスペルの効果</dt>
+                    <dd
+                      style={{ margin: 0 }}
+                      data-testid="participant-lasting-spell-effect"
+                    >
+                      {lastingSpellEffectLabel(participant.lastingSpellEffect)}
                     </dd>
                   </div>
                   <div style={PAIR_STYLE}>

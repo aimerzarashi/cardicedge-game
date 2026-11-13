@@ -203,20 +203,21 @@ export const matchDebugQuery = graphql(`
             ... on SpellCardInfo {
               effect {
                 __typename
-                ... on SpellDrawCardsEffect {
+                ... on DrawCardsSpellEffect {
                   count
                 }
-                ... on SpellGainMagicEffect {
+                ... on GainMagicSpellEffect {
                   perLap
                 }
-                ... on SpellRollDiceEffect {
+                ... on MultipleDiceSpellEffect {
                   count
+                  turns
                 }
-                ... on SpellFixedDiceCurseEffect {
+                ... on FixedDiceSpellEffect {
                   value
                   turns
                 }
-                ... on SpellDamageEffect {
+                ... on DamageSpellEffect {
                   amount
                 }
               }
@@ -227,12 +228,17 @@ export const matchDebugQuery = graphql(`
             id
             name
           }
-          curse {
+          lastingSpellEffect {
             remainingTurns
             effect {
               __typename
-              ... on MatchFixedDiceCurse {
+              ... on MultipleDiceSpellEffect {
+                count
+                turns
+              }
+              ... on FixedDiceSpellEffect {
                 value
+                turns
               }
             }
           }
@@ -322,20 +328,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -401,20 +408,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -459,20 +467,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -523,20 +532,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -589,20 +599,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -729,20 +740,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -835,20 +847,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -911,20 +924,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -967,20 +981,21 @@ export const matchDebugEventsQuery = graphql(`
               ... on SpellCardInfo {
                 effect {
                   __typename
-                  ... on SpellDrawCardsEffect {
+                  ... on DrawCardsSpellEffect {
                     count
                   }
-                  ... on SpellGainMagicEffect {
+                  ... on GainMagicSpellEffect {
                     perLap
                   }
-                  ... on SpellRollDiceEffect {
+                  ... on MultipleDiceSpellEffect {
                     count
+                    turns
                   }
-                  ... on SpellFixedDiceCurseEffect {
+                  ... on FixedDiceSpellEffect {
                     value
                     turns
                   }
-                  ... on SpellDamageEffect {
+                  ... on DamageSpellEffect {
                     amount
                   }
                 }
@@ -1004,22 +1019,37 @@ export const matchDebugEventsQuery = graphql(`
             participant
             value
             dice
-            fixedByCurse
+            spellEffect {
+              __typename
+              ... on MultipleDiceSpellEffect {
+                count
+                turns
+              }
+              ... on FixedDiceSpellEffect {
+                value
+                turns
+              }
+            }
           }
-          ... on MatchCurseCastEvent {
+          ... on MatchSpellEffectStartedEvent {
             participant
             target
-            curse {
+            effect {
               remainingTurns
               effect {
                 __typename
-                ... on MatchFixedDiceCurse {
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
                   value
+                  turns
                 }
               }
             }
           }
-          ... on MatchCurseRemovedEvent {
+          ... on MatchSpellEffectEndedEvent {
             participant
           }
           ... on MatchCreatureDamagedEvent {
@@ -1045,10 +1075,6 @@ export const matchDebugEventsQuery = graphql(`
             magic
             laps
             magicPerLap
-          }
-          ... on MatchDiceCountChangedEvent {
-            participant
-            count
           }
           ... on MatchMovedEvent {
             participant

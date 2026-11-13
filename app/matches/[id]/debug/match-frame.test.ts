@@ -44,7 +44,7 @@ function participant(turnOrder: number) {
     hand: [DRAGON],
     drawPileCount: 3,
     discardPile: [],
-    curse: null,
+    lastingSpellEffect: null,
     turnOrder,
     passedCheckpoints: [],
     rewardReceived: false,
@@ -525,32 +525,33 @@ describe("applyEvent", () => {
     ]);
   });
 
-  it("呪いをかけると対象に付き、対象がターンを終えると 1 減り、解けたイベントで消える", () => {
+  it("ターンをまたいで効き続ける効果がかかると対象に付き、対象がターンを終えると 1 減り、終わったイベントで消える", () => {
+    const effect = { __typename: "FixedDiceSpellEffect", value: 6, turns: 2 };
     const cast = applyEvent(
       frame(),
-      event("MatchCurseCastEvent", {
+      event("MatchSpellEffectStartedEvent", {
         target: 0,
-        curse: { remainingTurns: 2, effect: { value: 6 } },
+        effect: { remainingTurns: 2, effect },
       }),
       BASE,
     );
-    assert.deepEqual(cast.participants[0].curse, {
-      value: 6,
+    assert.deepEqual(cast.participants[0].lastingSpellEffect, {
+      effect,
       remainingTurns: 2,
     });
-    assert.equal(cast.participants[1].curse, null);
+    assert.equal(cast.participants[1].lastingSpellEffect, null);
     const passed = applyEvent(
       { ...cast, currentParticipant: 0 },
       event("MatchTurnEndedEvent", { participant: 0 }),
       BASE,
     );
-    assert.equal(passed.participants[0].curse?.remainingTurns, 1);
+    assert.equal(passed.participants[0].lastingSpellEffect?.remainingTurns, 1);
     const removed = applyEvent(
       passed,
-      event("MatchCurseRemovedEvent", { participant: 0 }),
+      event("MatchSpellEffectEndedEvent", { participant: 0 }),
       BASE,
     );
-    assert.equal(removed.participants[0].curse, null);
+    assert.equal(removed.participants[0].lastingSpellEffect, null);
   });
 
   it("ダメージでクリーチャーの HP が減り、破壊されると土地が空き、持ち主の捨て札に入る", () => {

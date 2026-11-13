@@ -10,7 +10,7 @@ INSERT INTO cards (card_id, card_type, sort_name, status, metadata) VALUES
   ('00000000-0000-4000-8000-00000000000c', 1, 'c', 'published', '{"id":"00000000-0000-4000-8000-00000000000c","name":"C","status":"published","cost":30,"rarity":"rare","creature":{"elements":["fire","water"],"attack":30,"hit_points":40,"item_restrictions":["armor","scroll"],"placement_restrictions":["wind"],"abilities":[{"defensive":{}},{"toll_multiplier":{"percent":150}},{"last_strike":{}}]}}'),
   ('00000000-0000-4000-8000-00000000000d', 2, 'd', 'published', '{"id":"00000000-0000-4000-8000-00000000000d","name":"D","status":"published","cost":15,"rarity":"normal","item":{"category":"armor","attack_modifier":-5,"hit_points_modifier":25}}'),
   ('00000000-0000-4000-8000-00000000000e', 3, 'e', 'published', '{"id":"00000000-0000-4000-8000-00000000000e","name":"E","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"draw_cards":{"count":1}}}}'),
-  ('00000000-0000-4000-8000-00000000000f', 3, 'f', 'published', '{"id":"00000000-0000-4000-8000-00000000000f","name":"F","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"fixed_dice_curse":{"value":6,"turns":1}}}}'),
+  ('00000000-0000-4000-8000-00000000000f', 3, 'f', 'published', '{"id":"00000000-0000-4000-8000-00000000000f","name":"F","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"fixed_dice":{"value":6,"turns":1}}}}'),
   ('00000000-0000-4000-8000-000000000010', 3, 'g', 'published', '{"id":"00000000-0000-4000-8000-000000000010","name":"G","status":"published","cost":10,"rarity":"normal","spell":{"effect":{"damage":{"amount":20}}}}');
 
 INSERT INTO grant_decks (grant_deck_id, sort_name, status, total_count, metadata) VALUES
