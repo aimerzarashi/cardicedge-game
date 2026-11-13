@@ -547,7 +547,6 @@ export const matchDebugEventsQuery = graphql(`
               y
             }
             cost
-            defendingCreature
             defendingCreatureCard {
               name
             }
@@ -680,7 +679,6 @@ export const matchDebugEventsQuery = graphql(`
               x
               y
             }
-            defeatedCreature
             creature
             territoryHitPoints
           }
@@ -856,7 +854,6 @@ export const matchDebugEventsQuery = graphql(`
                 }
               }
             }
-            defendingCreature
             defendingCreatureCard {
               name
             }
