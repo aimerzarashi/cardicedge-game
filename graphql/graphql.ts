@@ -817,8 +817,8 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchTerritoryConqueredEvent', participant: number, defeatedCreature: number, creature: number, territoryHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchTerritoryInvadedByMoveEvent', participant: number, creature: number, defendingCreature: number, revision: number, from: { x: number, y: number }, position: { x: number, y: number }, card:
+        | { __typename: 'MatchTerritoryConqueredEvent', participant: number, creature: number, territoryHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchTerritoryInvadedByMoveEvent', participant: number, creature: number, revision: number, from: { x: number, y: number }, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
                 | { minimum: number, maximum: number, kind: CreatureAbilityKind }
@@ -840,7 +840,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { name: string }
             | { name: string }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchTerritoryInvadedEvent', participant: number, handIndex: number, cost: number, defendingCreature: number, revision: number, card:
+        | { __typename: 'MatchTerritoryInvadedEvent', participant: number, handIndex: number, cost: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
                 | { minimum: number, maximum: number, kind: CreatureAbilityKind }
@@ -2344,7 +2344,6 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             y
           }
           cost
-          defendingCreature
           defendingCreatureCard {
             name
           }
@@ -2477,7 +2476,6 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             x
             y
           }
-          defeatedCreature
           creature
           territoryHitPoints
         }
@@ -2653,7 +2651,6 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
               }
             }
           }
-          defendingCreature
           defendingCreatureCard {
             name
           }
