@@ -291,6 +291,49 @@ describe("eventLine", () => {
     );
   });
 
+  it("攻撃無効の発動は、値を出さずに発動だけを出す", () => {
+    assert.equal(
+      eventLine(
+        event(23, {
+          __typename: "MatchBattleAbilityActivatedEvent",
+          side: "DEFENDER",
+          ability: "ATTACK_IMMUNITY",
+        }),
+        names,
+      ),
+      "版 23 守る側に能力「攻撃無効」が発動",
+    );
+  });
+
+  it("攻撃のイベントは、攻撃の値と相手が受けた量を分けて出す", () => {
+    assert.equal(
+      eventLine(
+        event(24, {
+          __typename: "MatchCreatureStruckEvent",
+          striker: "ATTACKER",
+          attack: 50,
+          damage: 0,
+          remainingHitPoints: 30,
+        }),
+        names,
+      ),
+      "版 24 攻める側の攻撃 50 → 守る側のダメージ 0（残りの HP 30）",
+    );
+    assert.equal(
+      eventLine(
+        event(25, {
+          __typename: "MatchCreatureStruckEvent",
+          striker: "DEFENDER",
+          attack: 30,
+          damage: 30,
+          remainingHitPoints: 0,
+        }),
+        names,
+      ),
+      "版 25 守る側の攻撃 30 → 攻める側のダメージ 30（残りの HP 0）",
+    );
+  });
+
   it("進んだイベントは、版・アバターの名前・行き先を出す", () => {
     assert.equal(
       eventLine(event(15, { participant: 1, to: { x: 1, y: 0 } }), names),

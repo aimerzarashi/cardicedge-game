@@ -53,6 +53,12 @@ describe("abilitiesLabel", () => {
       ]),
       "戦闘中のランダム 10〜70",
     );
+    assert.equal(
+      abilitiesLabel([
+        { kind: "ATTACK_IMMUNITY", elements: ["FIRE", "EARTH"] },
+      ]),
+      "攻撃無効 火地",
+    );
   });
 });
 

@@ -868,6 +868,23 @@ enum CreatureAbilityKind {
 	戦闘中のランダム（戦闘中、AT・HP が最小〜最大のランダムな値になる。別々に引く）
 	"""
 	BATTLE_RANDOM_STATS
+	"""
+	攻撃無効（戦闘で、属性のどれかが合うクリーチャーから攻撃を受けたとき、ダメージが 0 になる）
+	"""
+	ATTACK_IMMUNITY
+}
+"""
+攻撃無効
+"""
+type CreatureAttackImmunityAbility implements CreatureAbility {
+	"""
+	能力の種類（ATTACK_IMMUNITY）
+	"""
+	kind: CreatureAbilityKind!
+	"""
+	攻撃してきたときに無効にする相手の属性（火・地・水・風から 1 つ以上）
+	"""
+	elements: [CreatureElement!]!
 }
 """
 戦闘中の増減
@@ -1775,7 +1792,7 @@ type MatchAvatar {
 	name: String!
 }
 """
-戦闘で能力が発動した（効き目が無いとき（両方が先制で打ち消し合う等）も、持っていれば出る）
+戦闘で能力が発動した（先制・後手は、効き目が無いとき（両方が先制で打ち消し合う等）も、持っていれば出る。攻撃無効は、攻撃してきたクリーチャーの属性が合ったときだけ、その攻撃の前に出る）
 """
 type MatchBattleAbilityActivatedEvent implements MatchEvent {
 	"""
@@ -1795,7 +1812,7 @@ type MatchBattleAbilityActivatedEvent implements MatchEvent {
 	"""
 	side: MatchBattleSide!
 	"""
-	発動した能力（AT・HP を変えない能力。今は FIRST_STRIKE・LAST_STRIKE）
+	発動した能力（AT・HP を変えない能力。今は FIRST_STRIKE・LAST_STRIKE・ATTACK_IMMUNITY）
 	"""
 	ability: CreatureAbilityKind!
 }
@@ -2253,7 +2270,11 @@ type MatchCreatureStruckEvent implements MatchEvent {
 	"""
 	striker: MatchBattleSide!
 	"""
-	与えた量
+	攻撃した側の、そのときの戦闘中の AT
+	"""
+	attack: Int!
+	"""
+	受けた側が受けた量（攻撃無効が発動したら 0）
 	"""
 	damage: Int!
 	"""
