@@ -130,34 +130,85 @@ export function battleModifierChangeLabel(
   return parts.length > 0 ? parts.join("・") : "増減なし";
 }
 
+// core が返したスペルの効果（種類は __typename。効果なしは null）
+export type SpellEffectView =
+  | {
+      __typename?: string;
+      count?: number;
+      perLap?: number;
+      value?: number;
+      turns?: number;
+      amount?: number;
+    }
+  | null
+  | undefined;
+
 // スペルの効果の表示。種類は core が返した __typename で見分け、効果なし（null）は「なし」（studio の messages.ts と同じ）
-export function spellEffectLabel(
-  effect:
-    | {
-        __typename?: string;
-        count?: number;
-        perLap?: number;
-        value?: number;
-        turns?: number;
-        amount?: number;
-      }
-    | null
-    | undefined,
-): string {
+export function spellEffectLabel(effect: SpellEffectView): string {
   switch (effect?.__typename) {
-    case "SpellDrawCardsEffect":
+    case "DrawCardsSpellEffect":
       return `カードを ${effect.count} 枚引く`;
-    case "SpellGainMagicEffect":
+    case "GainMagicSpellEffect":
       return `（周回数 + 1）× ${effect.perLap} の魔力を得る`;
-    case "SpellRollDiceEffect":
-      return `サイコロを ${effect.count} 個同時に振る`;
-    case "SpellFixedDiceCurseEffect":
-      return `対象の次のサイコロの目を ${effect.value} にする呪い（${effect.turns} ターン）`;
-    case "SpellDamageEffect":
+    case "MultipleDiceSpellEffect":
+      return `対象のサイコロを ${effect.count} 個同時に振る（${effect.turns} ターン）`;
+    case "FixedDiceSpellEffect":
+      return `対象のサイコロの目を ${effect.value} に固定する（${effect.turns} ターン）`;
+    case "DamageSpellEffect":
       return `対象のクリーチャーに ${effect.amount} ダメージ`;
     default:
       return "なし";
   }
+}
+
+// ターンをまたいで効き続けるスペルの効果の名前と、効き方の値（再生の行・参加者の欄で使う）
+function lastingSpellEffectParts(
+  effect: SpellEffectView,
+): { name: string; detail: string } | null {
+  switch (effect?.__typename) {
+    case "MultipleDiceSpellEffect":
+      return { name: "サイコロを複数振る", detail: `${effect.count} 個` };
+    case "FixedDiceSpellEffect":
+      return { name: "サイコロの目を固定する", detail: `目 ${effect.value}` };
+    default:
+      return null;
+  }
+}
+
+// 参加者に続いているスペルの効果の表示（無ければ「なし」）
+export function lastingSpellEffectLabel(
+  lasting: { effect: SpellEffectView; remainingTurns: number } | null,
+): string {
+  const parts = lasting && lastingSpellEffectParts(lasting.effect);
+  return parts
+    ? `${parts.name}（${parts.detail}・残り ${lasting.remainingTurns} ターン）`
+    : "なし";
+}
+
+// スペルを使い、対象にターンをまたいで効き続ける効果がかかった行（使ったときに発動する。2026-11-13 オーナー）
+export function spellEffectStartedLabel(
+  target: string,
+  effect: SpellEffectView,
+  turns: number,
+): string {
+  const parts = lastingSpellEffectParts(effect);
+  return parts
+    ? `${target}にスペル「${parts.name}」が発動（${parts.detail}・${turns} ターン）`
+    : `${target}にスペルが発動（${turns} ターン）`;
+}
+
+// 振った目（複数のサイコロを同時に振ったときは 1 個ずつの目と合計）。続いていたスペルの効果で振ったときは、その効果を添える
+export function diceRolledLabel(
+  value: number,
+  dice: number[],
+  effect: SpellEffectView,
+): string {
+  const rolled =
+    dice.length > 1
+      ? `サイコロ ${dice.join(" + ")} = ${value}`
+      : `サイコロ ${value}`;
+  const parts = lastingSpellEffectParts(effect);
+  return parts ? `${rolled}（スペル「${parts.name}」の効果）` : rolled;
 }
 
 // 所持カードの絞り込みの選択肢（core の CardType。結果の種類は __typename で見分けるので CARD_TYPE_LABELS とは別）
@@ -423,24 +474,13 @@ export const MATCH_EVENT_MESSAGES = {
     `捨て札 ${cards} 枚を混ぜて山札にした`,
   handLimitExceeded: (handCount: number, maxHandCards: number) =>
     `手札が上限を超えたので、ターンを終える前に ${handCount - maxHandCards} 枚捨てる（手札 ${handCount} 枚・上限 ${maxHandCards} 枚）`,
-  // 複数のサイコロを同時に振ったときは 1 個ずつの目と合計（1 個のときは目だけ）
-  diceRolled: (value: number, dice: number[] = [], fixedByCurse = false) =>
-    fixedByCurse
-      ? `サイコロ ${value}（呪いで決まった目）`
-      : dice.length > 1
-        ? `サイコロ ${dice.join(" + ")} = ${value}`
-        : `サイコロ ${value}`,
-  curseCast: (target: string, value: number, turns: number) =>
-    `${target}に呪い「次のサイコロは ${value}」（${turns} ターン）をかけた`,
-  curseRemoved: "呪いが解けた",
+  spellEffectEnded: "続いていたスペルの効果が終わった",
   creatureDamaged: (x: number, y: number, damage: number, remaining: number) =>
     `(${x}, ${y}) のクリーチャーに ${damage} ダメージ（残りの HP ${remaining}）`,
   creatureDestroyed: (x: number, y: number) =>
     `(${x}, ${y}) のクリーチャーが破壊された`,
   magicGained: (magic: number, laps: number, magicPerLap: number) =>
     `魔力を得た（魔力 +${magic}。（周回 ${laps} 回 + 1）× ${magicPerLap}）`,
-  diceCountChanged: (count: number) =>
-    `このターンはサイコロを ${count} 個同時に振る`,
   moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
   checkpointPassed: (x: number, y: number, magic: number) =>
     `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,
@@ -572,12 +612,3 @@ export const MATCH_REVIEW_MESSAGES = {
   rewardCards: (cards: string) => `戦利品: ${cards}`,
   backToRoom: "部屋に戻る",
 };
-
-// 参加者にかかっている呪いの表示（無ければ「なし」）
-export function curseLabel(
-  curse: { value: number; remainingTurns: number } | null,
-): string {
-  return curse
-    ? `次のサイコロは ${curse.value}（残り ${curse.remainingTurns} ターン）`
-    : "なし";
-}

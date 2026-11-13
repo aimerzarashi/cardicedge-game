@@ -329,7 +329,7 @@ describe("eventLine", () => {
     );
   });
 
-  it("魔力を得たイベントと、サイコロの個数が変わったイベントを出す", () => {
+  it("魔力を得たイベントを出す", () => {
     assert.equal(
       eventLine(
         event(19, {
@@ -343,31 +343,42 @@ describe("eventLine", () => {
       ),
       "版 19 部屋用: 魔力を得た（魔力 +600。（周回 2 回 + 1）× 200）",
     );
-    assert.equal(
-      eventLine(
-        event(20, {
-          __typename: "MatchDiceCountChangedEvent",
-          participant: 0,
-          count: 2,
-        }),
-        names,
-      ),
-      "版 20 部屋用: このターンはサイコロを 2 個同時に振る",
-    );
   });
 
-  it("呪いのイベントは、かけられた人の名前と決まる目・ターン数、呪いで決まった目を出す", () => {
+  it("ターンをまたいで効き続けるスペルは、使ったときに対象の名前と効き方・ターン数で発動を出し、振るときは効いた効果を添える", () => {
+    const fixedDice = {
+      __typename: "FixedDiceSpellEffect",
+      value: 6,
+      turns: 3,
+    };
+    const multipleDice = {
+      __typename: "MultipleDiceSpellEffect",
+      count: 2,
+      turns: 3,
+    };
     assert.equal(
       eventLine(
         event(22, {
-          __typename: "MatchCurseCastEvent",
+          __typename: "MatchSpellEffectStartedEvent",
           participant: 0,
           target: 1,
-          curse: { remainingTurns: 1, effect: { value: 6 } },
+          effect: { remainingTurns: 3, effect: fixedDice },
         }),
         names,
       ),
-      `版 22 部屋用: ${names[1]}に呪い「次のサイコロは 6」（1 ターン）をかけた`,
+      `版 22 部屋用: ${names[1]}にスペル「サイコロの目を固定する」が発動（目 6・3 ターン）`,
+    );
+    assert.equal(
+      eventLine(
+        event(22, {
+          __typename: "MatchSpellEffectStartedEvent",
+          participant: 0,
+          target: 1,
+          effect: { remainingTurns: 3, effect: multipleDice },
+        }),
+        names,
+      ),
+      `版 22 部屋用: ${names[1]}にスペル「サイコロを複数振る」が発動（2 個・3 ターン）`,
     );
     assert.equal(
       eventLine(
@@ -375,18 +386,32 @@ describe("eventLine", () => {
           __typename: "MatchDiceRolledEvent",
           participant: 0,
           value: 6,
-          fixedByCurse: true,
+          dice: [],
+          spellEffect: fixedDice,
         }),
         names,
       ),
-      "版 23 部屋用: サイコロ 6（呪いで決まった目）",
+      "版 23 部屋用: サイコロ 6（スペル「サイコロの目を固定する」の効果）",
     );
     assert.equal(
       eventLine(
-        event(24, { __typename: "MatchCurseRemovedEvent", participant: 0 }),
+        event(23, {
+          __typename: "MatchDiceRolledEvent",
+          participant: 0,
+          value: 8,
+          dice: [3, 5],
+          spellEffect: multipleDice,
+        }),
         names,
       ),
-      "版 24 部屋用: 呪いが解けた",
+      "版 23 部屋用: サイコロ 3 + 5 = 8（スペル「サイコロを複数振る」の効果）",
+    );
+    assert.equal(
+      eventLine(
+        event(24, { __typename: "MatchSpellEffectEndedEvent", participant: 0 }),
+        names,
+      ),
+      "版 24 部屋用: 続いていたスペルの効果が終わった",
     );
   });
 

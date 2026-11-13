@@ -3,9 +3,9 @@ import { describe, it } from "node:test";
 import {
   abilitiesLabel,
   continuesLabel,
-  curseLabel,
   fieldErrorMessage,
   itemRestrictionsLabel,
+  lastingSpellEffectLabel,
   matchNumberLabel,
   placementRestrictionsLabel,
   RULE_LABELS,
@@ -123,7 +123,7 @@ describe("matchNumberLabel", () => {
 describe("spellEffectLabel", () => {
   it("効果の種類ごとに、core が返した値で言う", () => {
     assert.equal(
-      spellEffectLabel({ __typename: "SpellDrawCardsEffect", count: 1 }),
+      spellEffectLabel({ __typename: "DrawCardsSpellEffect", count: 1 }),
       "カードを 1 枚引く",
     );
   });
@@ -134,29 +134,51 @@ describe("spellEffectLabel", () => {
 
   it("ダメージは、core が返した値で言う", () => {
     assert.equal(
-      spellEffectLabel({ __typename: "SpellDamageEffect", amount: 20 }),
+      spellEffectLabel({ __typename: "DamageSpellEffect", amount: 20 }),
       "対象のクリーチャーに 20 ダメージ",
     );
   });
 
-  it("魔力を得る・サイコロを複数振るも、core が返した値で言う", () => {
+  it("魔力を得る・サイコロを複数振る・サイコロの目を固定するも、core が返した値で言う", () => {
     assert.equal(
-      spellEffectLabel({ __typename: "SpellGainMagicEffect", perLap: 100 }),
+      spellEffectLabel({ __typename: "GainMagicSpellEffect", perLap: 100 }),
       "（周回数 + 1）× 100 の魔力を得る",
     );
     assert.equal(
-      spellEffectLabel({ __typename: "SpellRollDiceEffect", count: 2 }),
-      "サイコロを 2 個同時に振る",
+      spellEffectLabel({
+        __typename: "MultipleDiceSpellEffect",
+        count: 2,
+        turns: 1,
+      }),
+      "対象のサイコロを 2 個同時に振る（1 ターン）",
+    );
+    assert.equal(
+      spellEffectLabel({
+        __typename: "FixedDiceSpellEffect",
+        value: 6,
+        turns: 3,
+      }),
+      "対象のサイコロの目を 6 に固定する（3 ターン）",
     );
   });
 });
 
-describe("curseLabel", () => {
-  it("かかっている呪いは決まる目と残りのターン、無ければ「なし」", () => {
+describe("lastingSpellEffectLabel", () => {
+  it("続いているスペルの効果は名前と効き方・残りのターン、無ければ「なし」", () => {
     assert.equal(
-      curseLabel({ value: 6, remainingTurns: 1 }),
-      "次のサイコロは 6（残り 1 ターン）",
+      lastingSpellEffectLabel({
+        effect: { __typename: "FixedDiceSpellEffect", value: 6, turns: 3 },
+        remainingTurns: 1,
+      }),
+      "サイコロの目を固定する（目 6・残り 1 ターン）",
     );
-    assert.equal(curseLabel(null), "なし");
+    assert.equal(
+      lastingSpellEffectLabel({
+        effect: { __typename: "MultipleDiceSpellEffect", count: 2, turns: 3 },
+        remainingTurns: 2,
+      }),
+      "サイコロを複数振る（2 個・残り 2 ターン）",
+    );
+    assert.equal(lastingSpellEffectLabel(null), "なし");
   });
 });

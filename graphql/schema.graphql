@@ -1014,6 +1014,15 @@ type CreatureTollMultiplierAbility implements CreatureAbility {
 	percent: Int!
 }
 """
+対象のクリーチャーにダメージ（今の HP から amount を引き、0 になれば破壊する）
+"""
+type DamageSpellEffect {
+	"""
+	ダメージ（1 以上）
+	"""
+	amount: Int!
+}
+"""
 日時（RFC 3339 の文字列。例: 2026-10-17T09:00:00Z）
 """
 scalar DateTime
@@ -1219,6 +1228,15 @@ type DiscardMatchCardSuccess {
 	revision: Int!
 }
 """
+カードを引く効果（山札の先頭から引く。山札が空なら捨て札を混ぜてから）
+"""
+type DrawCardsSpellEffect {
+	"""
+	引く枚数（1 以上）
+	"""
+	count: Int!
+}
+"""
 カードを引く入力
 """
 input DrawMatchCardInput {
@@ -1420,6 +1438,28 @@ type FieldTooSmall implements FieldError {
 	下限（この値を含む）
 	"""
 	min: Int!
+}
+"""
+サイコロの目を固定する効果（対象のプレイヤーが振るとき、目は value になる。turns ターン効き続ける）
+"""
+type FixedDiceSpellEffect {
+	"""
+	固定する目（1 以上）
+	"""
+	value: Int!
+	"""
+	効き続けるターン数（1 以上。かかった人が自分のターンを終えるたびに 1 減り、0 で終わる）
+	"""
+	turns: Int!
+}
+"""
+魔力を得る効果（使った人が（周回数 + 1）× perLap の魔力を得る。周回数はその対戦で周回を終えた回数）
+"""
+type GainMagicSpellEffect {
+	"""
+	周回数 1 つあたりの魔力（1 以上）
+	"""
+	perLap: Int!
 }
 """
 ゲーム全体のルール
@@ -2222,73 +2262,6 @@ type MatchCreatureStruckEvent implements MatchEvent {
 	remainingHitPoints: Int!
 }
 """
-プレイヤーにかかっている呪い（1 人に 1 つまで）
-"""
-type MatchCurse {
-	"""
-	効き方（種類は __typename で見分ける）
-	"""
-	effect: MatchCurseEffect!
-	"""
-	解けるまでのターン数（かけられた人が自分のターンを終えるたびに 1 減り、0 で解ける）
-	"""
-	remainingTurns: Int!
-}
-"""
-スペルで、対象のプレイヤーに呪いをかけた（かかっていた呪いは上書きする）
-"""
-type MatchCurseCastEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	使った参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	かけられた参加者（Match.participants の何番目か）
-	"""
-	target: Int!
-	"""
-	かけた呪い
-	"""
-	curse: MatchCurse!
-}
-"""
-呪いの効き方
-"""
-union MatchCurseEffect = MatchFixedDiceCurse
-"""
-自分のターンを終えて、かかっていた呪いが解けた
-"""
-type MatchCurseRemovedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	呪いが解けた参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-}
-"""
 山札が混ざった（並びは見せないので、項目を持たない）
 """
 type MatchDecksShuffledEvent implements MatchEvent {
@@ -2304,31 +2277,6 @@ type MatchDecksShuffledEvent implements MatchEvent {
 	このイベントで変わった、描画に要る core の決まりで決まる値
 	"""
 	changes: MatchEventChanges!
-}
-"""
-スペルの効果で、このターンに振るサイコロの個数が変わった（count 個を同時に振り、合計の分だけ進む）
-"""
-type MatchDiceCountChangedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	使った参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	このターンに振るサイコロの個数（2 以上）
-	"""
-	count: Int!
 }
 """
 サイコロを振った
@@ -2359,9 +2307,9 @@ type MatchDiceRolledEvent implements MatchEvent {
 	"""
 	dice: [Int!]!
 	"""
-	呪いで目が決まった（サイコロは 1 個）
+	振った参加者に続いていたスペルの効果（振り方を決めたもの。無ければ null）
 	"""
-	fixedByCurse: Boolean!
+	spellEffect: SpellEffect
 }
 """
 山札が空のまま引くときに、捨て札を混ぜて山札にした（並びは見せない）
@@ -2513,15 +2461,6 @@ type MatchExchangeChoice {
 	払う魔力（出すクリーチャーのコスト）
 	"""
 	magic: Int!
-}
-"""
-次のサイコロの目を決める（複数のサイコロを振るスペルより優先し、サイコロ 1 個でその目だけ進む）
-"""
-type MatchFixedDiceCurse {
-	"""
-	決まる目
-	"""
-	value: Int!
 }
 """
 ターンを終えるときに、手札が上限を超えていた（上限まで捨ててからターンを終える）
@@ -2786,6 +2725,19 @@ type MatchLapCompletedEvent implements MatchEvent {
 	magic: Int!
 }
 """
+参加者に続いているスペルの効果（ターンをまたいで効き続けるもの。1 人に 1 つまでで、新しく使うと上書きする）
+"""
+type MatchLastingSpellEffect {
+	"""
+	使ったスペルの効果（種類は __typename で見分ける）
+	"""
+	effect: SpellEffect!
+	"""
+	終わるまでのターン数（かかった人が自分のターンを終えるたびに 1 減り、0 で終わる）
+	"""
+	remainingTurns: Int!
+}
+"""
 領地のレベルを上げる選択肢 1 つ
 """
 type MatchLevelUpChoice {
@@ -2978,9 +2930,9 @@ type MatchParticipant {
 	"""
 	turnOrder: Int!
 	"""
-	かかっている呪い（無ければ null）
+	続いているスペルの効果（無ければ null）
 	"""
-	curse: MatchCurse
+	lastingSpellEffect: MatchLastingSpellEffect
 	"""
 	拠点を出てから印を付けたチェックポイントの位置（拠点に戻って周回を終えると空に戻る）
 	"""
@@ -3272,13 +3224,63 @@ type MatchSpellChoice {
 	"""
 	handIndex: Int!
 	"""
-	選べる対象のプレイヤー（Match.participants の何番目か。呪いのスペルだけ中身があり、自分を含む。対象を選ばないスペルは空）
+	選べる対象のプレイヤー（Match.participants の何番目か。対象のプレイヤーを選ぶスペルだけ中身があり、自分を含む。対象を選ばないスペルは空）
 	"""
 	targets: [Int!]!
 	"""
 	選べる対象のクリーチャーがいる領地の位置（クリーチャーを選ぶスペルだけ中身がある。自分の領地を含む。領地ができた順）
 	"""
 	targetPositions: [BoardPosition!]!
+}
+"""
+自分のターンを終えて、続いていたスペルの効果が終わった
+"""
+type MatchSpellEffectEndedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	効果が終わった参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+}
+"""
+スペルを使い、対象のプレイヤーにターンをまたいで効き続ける効果がかかった（続いていた効果は上書きする）
+"""
+type MatchSpellEffectStartedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	使った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	対象の参加者（Match.participants の何番目か）
+	"""
+	target: Int!
+	"""
+	かかった効果
+	"""
+	effect: MatchLastingSpellEffect!
 }
 """
 サイコロを振る前に、手札のスペルを使った（効果は続くイベント。スペルは捨て札に入る）
@@ -3735,6 +3737,19 @@ type MoveMatchCreatureSuccess {
 	操作した後の対戦の revision
 	"""
 	revision: Int!
+}
+"""
+サイコロを複数振る効果（対象のプレイヤーが振るとき、count 個を同時に振り、合計の分だけ進む。turns ターン効き続ける）
+"""
+type MultipleDiceSpellEffect {
+	"""
+	振るサイコロの個数（2 以上）
+	"""
+	count: Int!
+	"""
+	効き続けるターン数（1 以上。かかった人が自分のターンを終えるたびに 1 減り、0 で終わる）
+	"""
+	turns: Int!
 }
 type Mutation {
 	"""
@@ -4810,58 +4825,9 @@ type SpellCardInfo implements CardInfo {
 	effect: SpellEffect
 }
 """
-対象のクリーチャーにダメージ（今の HP から amount を引き、0 になれば破壊する）
+スペルの効果（種類は __typename で見分ける。スペルは使ったときに発動する）
 """
-type SpellDamageEffect {
-	"""
-	ダメージ（1 以上）
-	"""
-	amount: Int!
-}
-"""
-カードを引く効果（山札の先頭から引く。山札が空なら捨て札を混ぜてから）
-"""
-type SpellDrawCardsEffect {
-	"""
-	引く枚数（1 以上）
-	"""
-	count: Int!
-}
-"""
-スペルの効果（種類は __typename で見分ける）
-"""
-union SpellEffect = SpellDrawCardsEffect | SpellGainMagicEffect | SpellRollDiceEffect | SpellFixedDiceCurseEffect | SpellDamageEffect
-"""
-次のサイコロの目を決める呪い（対象のプレイヤーが次に振ると、目は value になる。turns ターンで解ける）
-"""
-type SpellFixedDiceCurseEffect {
-	"""
-	決める目（1 以上）
-	"""
-	value: Int!
-	"""
-	解けるまでのターン数（1 以上。かけられた人が自分のターンを終えるたびに 1 減り、0 で解ける）
-	"""
-	turns: Int!
-}
-"""
-魔力を得る効果（使った人が（周回数 + 1）× perLap の魔力を得る。周回数はその対戦で周回を終えた回数）
-"""
-type SpellGainMagicEffect {
-	"""
-	周回数 1 つあたりの魔力（1 以上）
-	"""
-	perLap: Int!
-}
-"""
-サイコロを複数振る効果（使った人は、そのターンのサイコロを count 個同時に振り、合計の分だけ進む）
-"""
-type SpellRollDiceEffect {
-	"""
-	振るサイコロの個数（2 以上）
-	"""
-	count: Int!
-}
+union SpellEffect = DrawCardsSpellEffect | GainMagicSpellEffect | MultipleDiceSpellEffect | FixedDiceSpellEffect | DamageSpellEffect
 """
 スターターの配布の状態
 """
@@ -4910,7 +4876,7 @@ input UseMatchSpellInput {
 	"""
 	handIndex: Int!
 	"""
-	対象のプレイヤー（Match.participants の何番目か。spellChoices の targets の中から選ぶ。呪いのスペルで無ければ FieldRequired、対象を選ばないスペルに付けた・選べない対象は FieldNotFound）
+	対象のプレイヤー（Match.participants の何番目か。spellChoices の targets の中から選ぶ。対象のプレイヤーを選ぶスペルで無ければ FieldRequired、対象を選ばないスペルに付けた・選べない対象は FieldNotFound）
 	"""
 	target: Int
 	"""

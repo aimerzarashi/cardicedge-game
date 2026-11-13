@@ -75,15 +75,7 @@ export default async function MatchDebugPage({
     currentParticipant: match.currentParticipant ?? null,
     participants: match.participants.map((participant) => ({
       ...participant,
-      curse: participant.curse
-        ? {
-            value:
-              participant.curse.effect.__typename === "MatchFixedDiceCurse"
-                ? participant.curse.effect.value
-                : 0,
-            remainingTurns: participant.curse.remainingTurns,
-          }
-        : null,
+      lastingSpellEffect: participant.lastingSpellEffect ?? null,
     })),
     territories: match.territories,
     invasion: match.invasion ?? null,

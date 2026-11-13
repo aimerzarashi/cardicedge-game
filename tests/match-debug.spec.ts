@@ -252,15 +252,15 @@ test("振る前に手札のスペルを使うと、コストを払ってカー�
   await expect(useSpell).toHaveCount(0);
 });
 
-test("呪いのスペルを相手に使うと、相手の欄に呪いが出て、相手の次の目が決まる", async ({
+test("サイコロの目を固定するスペルを相手に使うと、相手の欄に続いている効果が出て、相手の次の目が決まる", async ({
   page,
   request,
 }) => {
   test.setTimeout(150_000);
-  await openNewRoom(page, request, "match-curse");
+  await openNewRoom(page, request, "match-fixed-dice");
   await decideSeats(page);
   await decideRules(page);
-  // 水のデッキに、次の目を 6 にする呪いのスペル F（コスト 10・1 ターン）が 1 枚入っている（local/core-master/master.sql）
+  // 水のデッキに、サイコロの目を 6 に固定するスペル F（コスト 10・1 ターン）が 1 枚入っている（local/core-master/master.sql）
   await reloadUntilVisible(page, seatItem(page, 0).getByLabel("デッキ"));
   await seatItem(page, 0).getByLabel("デッキ").selectOption({ label: "水" });
   await seatItem(page, 0)
@@ -275,53 +275,58 @@ test("呪いのスペルを相手に使うと、相手の欄に呪いが出て�
 
   const frame = page.getByTestId("match-frame");
   // スペルを選んでから、対象の NPC（炎の剣士）を選ぶ
-  const curse = page.getByRole("button", { name: "Fを使う" });
+  const fixedDice = page.getByRole("button", { name: "Fを使う" });
   const operations = matchOperations(page);
   for (let step = 0; step < 40; step++) {
-    await expect(curse.or(operations).first()).toBeVisible({
+    await expect(fixedDice.or(operations).first()).toBeVisible({
       timeout: 20_000,
     });
-    if (await curse.isVisible()) {
+    if (await fixedDice.isVisible()) {
       break;
     }
     const revision = await frame.getAttribute("data-revision");
     await operations.first().click();
     await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
   }
-  await curse.click();
+  await fixedDice.click();
   await expect(page.getByText("Fを誰に使いますか")).toBeVisible();
   // やめると、スペルを選ぶところに戻る
   await page.getByRole("button", { name: "やめる" }).click();
-  await expect(curse).toBeVisible();
-  await curse.click();
+  await expect(fixedDice).toBeVisible();
+  await fixedDice.click();
   const revision = await frame.getAttribute("data-revision");
   await page.getByRole("button", { name: "炎の剣士に使う" }).click();
   await expect(frame).not.toHaveAttribute("data-revision", revision ?? "");
 
   const events = page.getByTestId("match-events");
   await expect(events).toContainText(
-    "炎の剣士に呪い「次のサイコロは 6」（1 ターン）をかけた",
+    "炎の剣士にスペル「サイコロの目を固定する」が発動（目 6・1 ターン）",
   );
   const npc = page
     .getByTestId("match-participants")
     .getByRole("listitem")
     .filter({ hasText: "炎の剣士" });
-  await expect(npc.getByTestId("participant-curse")).toHaveText(
-    "次のサイコロは 6（残り 1 ターン）",
+  await expect(npc.getByTestId("participant-lasting-spell-effect")).toHaveText(
+    "サイコロの目を固定する（目 6・残り 1 ターン）",
   );
-  // 自分の番を終えると NPC の番になり、NPC の目は呪いで 6 に決まり、NPC のターンの終わりに解ける
+  // 自分の番を終えると NPC の番になり、NPC の目は 6 に固定され、NPC のターンの終わりに効果が終わる
   for (let step = 0; step < 20; step++) {
-    if (await events.getByText("呪いが解けた").isVisible()) break;
+    if (await events.getByText("続いていたスペルの効果が終わった").isVisible())
+      break;
     await expect(operations.first()).toBeVisible({ timeout: 20_000 });
     const before = await frame.getAttribute("data-revision");
     await operations.first().click();
     await expect(frame).not.toHaveAttribute("data-revision", before ?? "");
   }
   await expect(events).toContainText(
-    "炎の剣士: サイコロ 6（呪いで決まった目）",
+    "炎の剣士: サイコロ 6（スペル「サイコロの目を固定する」の効果）",
   );
-  await expect(events).toContainText("炎の剣士: 呪いが解けた");
-  await expect(npc.getByTestId("participant-curse")).toHaveText("なし");
+  await expect(events).toContainText(
+    "炎の剣士: 続いていたスペルの効果が終わった",
+  );
+  await expect(npc.getByTestId("participant-lasting-spell-effect")).toHaveText(
+    "なし",
+  );
 });
 
 test("ダメージのスペルを相手のクリーチャーに使うと、HP が減るか破壊される", async ({
