@@ -893,20 +893,28 @@ function FrameView({
                   <div style={PAIR_STYLE}>
                     <dt style={{ flexShrink: 0 }}>捨て札</dt>
                     <dd style={{ margin: 0 }}>
-                      <span data-testid="participant-discard-pile-count">
-                        {participant.discardPile.length}
-                      </span>
-                      <ul
-                        data-testid="participant-discard-pile"
-                        style={HAND_STYLE}
-                      >
-                        {participant.discardPile.map((card, cardIndex) => (
-                          // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、入った順で区別する
-                          <li key={cardIndex}>
-                            <Link href={`/cards/${card.id}`}>{card.name}</Link>
-                          </li>
-                        ))}
-                      </ul>
+                      {/* 対戦が進むと長くなり、ほかの欄を押し下げるため、枚数だけを見せて折り畳む（2026-11-14 オーナー。game#98） */}
+                      <details>
+                        <summary>
+                          <span data-testid="participant-discard-pile-count">
+                            {participant.discardPile.length}
+                          </span>{" "}
+                          枚
+                        </summary>
+                        <ul
+                          data-testid="participant-discard-pile"
+                          style={HAND_STYLE}
+                        >
+                          {participant.discardPile.map((card, cardIndex) => (
+                            // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、入った順で区別する
+                            <li key={cardIndex}>
+                              <Link href={`/cards/${card.id}`}>
+                                {card.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
                     </dd>
                   </div>
                   <div style={PAIR_STYLE}>
