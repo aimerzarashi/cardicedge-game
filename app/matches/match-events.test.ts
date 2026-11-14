@@ -152,127 +152,115 @@ describe("eventLine", () => {
     );
   });
 
-  for (const [name, source, side, change, delta, stats] of [
+  // 発動のイベントは出どころごとに種類が分かれ、増減と当てた後の値を change に持つ（core#175・game#98）
+  for (const [name, fields, line, change] of [
     [
       "支援効果",
       {
-        __typename: "MatchAdjacentTerritoriesSource",
+        __typename: "MatchBattleSupportEffectActivatedEvent",
+        side: "ATTACKER",
         positions: [
           { x: 1, y: 0 },
           { x: 3, y: 0 },
         ],
         bonusPerTerritory: 10,
       },
-      "ATTACKER",
       "攻める側に支援効果（隣の領地 2 つ × AT +10）: AT +20 → AT 50・HP 40",
-      { attackDelta: 20, hitPointsDelta: 0 },
-      { attack: 50, hitPoints: 40 },
+      { attackDelta: 20, hitPointsDelta: 0, attack: 50, hitPoints: 40 },
     ],
     [
       "地形効果",
       {
-        __typename: "MatchTerrainSource",
+        __typename: "MatchBattleTerrainEffectActivatedEvent",
+        side: "DEFENDER",
         element: "FIRE",
         level: 2,
         bonusPerLevel: 10,
       },
-      "DEFENDER",
       "守る側に地形効果（火属性 レベル 2 × HP +10）: HP +20 → AT 20・HP 60",
-      { attackDelta: 0, hitPointsDelta: 20 },
-      { attack: 20, hitPoints: 60 },
+      { attackDelta: 0, hitPointsDelta: 20, attack: 20, hitPoints: 60 },
     ],
     [
       "アイテムで HP が 0（下限で止まった）",
       {
-        __typename: "MatchItemSource",
+        __typename: "MatchBattleItemAbilityActivatedEvent",
+        side: "ATTACKER",
+        ability: "BATTLE_MODIFIER",
         card: { name: "呪いの指輪" },
         attackModifier: 0,
         hitPointsModifier: -99,
       },
-      "ATTACKER",
       "攻める側にアイテム「呪いの指輪」: HP -99（-40 で止まった） → AT 30・HP 0（破壊された）",
-      { attackDelta: 0, hitPointsDelta: -40 },
-      { attack: 30, hitPoints: 0 },
+      { attackDelta: 0, hitPointsDelta: -40, attack: 30, hitPoints: 0 },
     ],
     [
-      "能力（効果のイベント 1 つが発動を表す）",
+      "クリーチャーの能力",
       {
-        __typename: "MatchAbilitySource",
+        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        side: "DEFENDER",
         ability: "BATTLE_MODIFIER",
         battleModifier: { attackModifier: -10, hitPointsModifier: 20 },
         battleRandomStats: null,
       },
-      "DEFENDER",
       "守る側に能力「戦闘中の増減」が発動（AT -10・HP +20 → AT 10・HP 80）",
-      { attackDelta: -10, hitPointsDelta: 20 },
-      { attack: 10, hitPoints: 80 },
+      { attackDelta: -10, hitPointsDelta: 20, attack: 10, hitPoints: 80 },
     ],
     [
       "増減が 0 の能力",
       {
-        __typename: "MatchAbilitySource",
+        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        side: "ATTACKER",
         ability: "BATTLE_MODIFIER",
         battleModifier: { attackModifier: 0, hitPointsModifier: 0 },
         battleRandomStats: null,
       },
-      "ATTACKER",
       "攻める側に能力「戦闘中の増減」が発動（増減なし → AT 20・HP 30）",
-      { attackDelta: 0, hitPointsDelta: 0 },
-      { attack: 20, hitPoints: 30 },
+      { attackDelta: 0, hitPointsDelta: 0, attack: 20, hitPoints: 30 },
     ],
     [
       "AT が 0 で変わらなかった能力",
       {
-        __typename: "MatchAbilitySource",
+        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        side: "ATTACKER",
         ability: "BATTLE_MODIFIER",
         battleModifier: { attackModifier: -10, hitPointsModifier: 0 },
         battleRandomStats: null,
       },
-      "ATTACKER",
       "攻める側に能力「戦闘中の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
-      { attackDelta: 0, hitPointsDelta: 0 },
-      { attack: 0, hitPoints: 30 },
+      { attackDelta: 0, hitPointsDelta: 0, attack: 0, hitPoints: 30 },
     ],
     [
       "戦闘中のランダム（範囲と、変えた差・値を出す）",
       {
-        __typename: "MatchAbilitySource",
+        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        side: "DEFENDER",
         ability: "BATTLE_RANDOM_STATS",
         battleModifier: null,
         battleRandomStats: { minimum: 10, maximum: 70 },
       },
-      "DEFENDER",
       "守る側に能力「戦闘中のランダム」が発動（10〜70: AT +30・HP -10 → AT 30・HP 20）",
-      { attackDelta: 30, hitPointsDelta: -10 },
-      { attack: 30, hitPoints: 20 },
+      { attackDelta: 30, hitPointsDelta: -10, attack: 30, hitPoints: 20 },
     ],
     [
       "戦闘中のランダムで値が変わらない",
       {
-        __typename: "MatchAbilitySource",
+        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        side: "ATTACKER",
         ability: "BATTLE_RANDOM_STATS",
         battleModifier: null,
         battleRandomStats: { minimum: 10, maximum: 70 },
       },
-      "ATTACKER",
       "攻める側に能力「戦闘中のランダム」が発動（10〜70: 増減なし → AT 20・HP 30）",
-      { attackDelta: 0, hitPointsDelta: 0 },
-      { attack: 20, hitPoints: 30 },
+      { attackDelta: 0, hitPointsDelta: 0, attack: 20, hitPoints: 30 },
     ],
   ] as const) {
-    it(`効果のイベントは、${name}の増減と当てた後の値を出す`, () => {
+    it(`発動のイベントは、${name}の増減と当てた後の値を出す`, () => {
       assert.equal(
         eventLine(
-          event(21, {
-            __typename: "MatchBattleStatModifiedEvent",
-            side,
-            source: source as MatchEventView["source"],
-            ...delta,
-            ...stats,
-          }),
+          event(21, { ...(fields as Partial<MatchEventView>), change }),
           names,
         ),
-        `版 21 ${change}`,
+        `版 21 ${line}`,
       );
     });
   }
@@ -281,7 +269,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(22, {
-          __typename: "MatchBattleAbilityActivatedEvent",
+          __typename: "MatchBattleCreatureAbilityActivatedEvent",
           side: "DEFENDER",
           ability: "FIRST_STRIKE",
         }),
@@ -295,7 +283,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(23, {
-          __typename: "MatchBattleAbilityActivatedEvent",
+          __typename: "MatchBattleCreatureAbilityActivatedEvent",
           side: "DEFENDER",
           ability: "ATTACK_IMMUNITY",
         }),

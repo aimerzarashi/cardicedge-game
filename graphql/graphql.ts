@@ -658,18 +658,29 @@ export type MatchDebugEventsQueryVariables = Exact<{
 
 export type MatchDebugEventsQuery = { matchEvents:
     | { __typename: 'MatchEventList', events: Array<
-        | { __typename: 'MatchBattleAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchBattleCreatureAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, revision: number, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, battleModifier: { attackModifier: number, hitPointsModifier: number } | null, battleRandomStats: { minimum: number, maximum: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchBattleItemAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, attackModifier: number, hitPointsModifier: number, revision: number, card:
+            | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
+                | { elements: Array<CreatureElement>, kind: CreatureAbilityKind }
+                | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
+                | { minimum: number, maximum: number, kind: CreatureAbilityKind }
+                | { kind: CreatureAbilityKind }
+                | { kind: CreatureAbilityKind }
+                | { kind: CreatureAbilityKind }
+                | { percent: number, kind: CreatureAbilityKind }
+              > }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'DamageSpellEffect', amount: number }
+                | { __typename: 'DrawCardsSpellEffect', count: number }
+                | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                | { __typename: 'GainMagicSpellEffect', perLap: number }
+                | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+               | null }
+          , change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleStartedEvent', revision: number, attacker: { attack: number, hitPoints: number }, defender: { attack: number, hitPoints: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchBattleStatModifiedEvent', side: MatchBattleSide, attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number, revision: number, source:
-            | { __typename: 'MatchAbilitySource', ability: CreatureAbilityKind, battleModifier: { attackModifier: number, hitPointsModifier: number } | null, battleRandomStats: { minimum: number, maximum: number } | null }
-            | { __typename: 'MatchAdjacentTerritoriesSource', bonusPerTerritory: number, positions: Array<{ x: number, y: number }> }
-            | { __typename: 'MatchItemSource', attackModifier: number, hitPointsModifier: number, card:
-                | { id: string, name: string }
-                | { id: string, name: string }
-                | { id: string, name: string }
-               }
-            | { __typename: 'MatchTerrainSource', element: BoardTileElement, level: number, bonusPerLevel: number }
-          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchBattleSupportEffectActivatedEvent', side: MatchBattleSide, bonusPerTerritory: number, revision: number, positions: Array<{ x: number, y: number }>, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchBattleTerrainEffectActivatedEvent', side: MatchBattleSide, element: BoardTileElement, level: number, bonusPerLevel: number, revision: number, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCardDiscardedEvent', participant: number, handIndex: number, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { elements: Array<CreatureElement>, kind: CreatureAbilityKind }
@@ -2483,50 +2494,119 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             hitPoints
           }
         }
-        ... on MatchBattleStatModifiedEvent {
+        ... on MatchBattleSupportEffectActivatedEvent {
           side
-          attackDelta
-          hitPointsDelta
-          attack
-          hitPoints
-          source {
+          positions {
+            x
+            y
+          }
+          bonusPerTerritory
+          change {
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+          }
+        }
+        ... on MatchBattleTerrainEffectActivatedEvent {
+          side
+          element
+          level
+          bonusPerLevel
+          change {
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+          }
+        }
+        ... on MatchBattleCreatureAbilityActivatedEvent {
+          side
+          ability
+          change {
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+          }
+          battleModifier {
+            attackModifier
+            hitPointsModifier
+          }
+          battleRandomStats {
+            minimum
+            maximum
+          }
+        }
+        ... on MatchBattleItemAbilityActivatedEvent {
+          side
+          ability
+          card {
             __typename
-            ... on MatchAdjacentTerritoriesSource {
-              positions {
-                x
-                y
+            id
+            name
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              abilities {
+                kind
+                ... on CreatureTollMultiplierAbility {
+                  percent
+                }
+                ... on CreatureBattleModifierAbility {
+                  attackModifier
+                  hitPointsModifier
+                }
+                ... on CreatureBattleRandomStatsAbility {
+                  minimum
+                  maximum
+                }
+                ... on CreatureAttackImmunityAbility {
+                  elements
+                }
               }
-              bonusPerTerritory
             }
-            ... on MatchTerrainSource {
-              element
-              level
-              bonusPerLevel
-            }
-            ... on MatchItemSource {
-              card {
-                id
-                name
-              }
+            ... on ItemCardInfo {
+              category
               attackModifier
               hitPointsModifier
             }
-            ... on MatchAbilitySource {
-              ability
-              battleModifier {
-                attackModifier
-                hitPointsModifier
-              }
-              battleRandomStats {
-                minimum
-                maximum
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
               }
             }
           }
-        }
-        ... on MatchBattleAbilityActivatedEvent {
-          side
-          ability
+          attackModifier
+          hitPointsModifier
+          change {
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+          }
         }
         ... on MatchCreatureStruckEvent {
           striker

@@ -69,6 +69,7 @@ export function BoardGrid({
   selectable = [],
   previewed = [],
   onTile,
+  legend = "below",
 }: {
   width: number;
   height: number;
@@ -83,10 +84,15 @@ export function BoardGrid({
   // 見るだけの印を付けるマス（選択肢にフォーカスが当たっている間の、その行動の対象。押せない）
   previewed?: Position[];
   onTile?: (position: Position) => void;
+  // 凡例の出し方。below は盤面の下にいつも出す、toggle は操作の並びのボタンで開閉する（対戦の画面は盤面の下に戦闘を出すため。
+  // game だけの違い。2026-11-14 オーナー。game#98）
+  legend?: "below" | "toggle";
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   // 見るだけの切り替えなのでイベントにせず、ここで持つ（開き直すと通行料の表示に戻る）
   const [showsStats, setShowsStats] = useState(false);
+  // 見るだけの開閉なので、ここで持つ
+  const [showsLegend, setShowsLegend] = useState(false);
   const [size, setSize] = useState<Size | null>(null);
   // null の間は、ボード全体が枠に収まる大きさで中央に置く
   const [view, setView] = useState<View | null>(null);
@@ -331,7 +337,17 @@ export function BoardGrid({
             {showsStats ? "通行料を表示" : "AT・HP を表示"}
           </button>
         )}
+        {legend === "toggle" && (
+          <button
+            type="button"
+            aria-expanded={showsLegend}
+            onClick={() => setShowsLegend(!showsLegend)}
+          >
+            {showsLegend ? "凡例を閉じる" : "凡例"}
+          </button>
+        )}
       </div>
+      {legend === "toggle" && showsLegend && <BoardLegend />}
       <div
         ref={viewport}
         data-scale={shown ? shown.scale.toFixed(3) : undefined}
@@ -382,34 +398,7 @@ export function BoardGrid({
           {cells}
         </div>
       </div>
-      <ul
-        aria-label="凡例"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "1rem",
-          listStyle: "none",
-          padding: 0,
-        }}
-      >
-        {LEGEND.map((sample) => (
-          <li key={tileLabel(sample)}>
-            <span
-              aria-hidden
-              style={{
-                ...paint(sample),
-                display: "inline-block",
-                boxSizing: "border-box",
-                width: "1em",
-                height: "1em",
-                marginRight: "0.25em",
-                verticalAlign: "middle",
-              }}
-            />
-            {tileLabel(sample)}
-          </li>
-        ))}
-      </ul>
+      {legend === "below" && <BoardLegend />}
     </fieldset>
   );
 }
@@ -565,5 +554,39 @@ function TileButton({
         </span>
       )}
     </button>
+  );
+}
+
+// マスの種類の凡例（studio の道具と同じ並び）
+export function BoardLegend() {
+  return (
+    <ul
+      aria-label="凡例"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "1rem",
+        listStyle: "none",
+        padding: 0,
+      }}
+    >
+      {LEGEND.map((sample) => (
+        <li key={tileLabel(sample)}>
+          <span
+            aria-hidden
+            style={{
+              ...paint(sample),
+              display: "inline-block",
+              boxSizing: "border-box",
+              width: "1em",
+              height: "1em",
+              marginRight: "0.25em",
+              verticalAlign: "middle",
+            }}
+          />
+          {tileLabel(sample)}
+        </li>
+      ))}
+    </ul>
   );
 }

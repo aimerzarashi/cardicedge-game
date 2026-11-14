@@ -469,6 +469,39 @@ function battleStatChange(change: string, attack: number, hitPoints: number) {
   return `${change} → AT ${attack}・HP ${hitPoints}${hitPoints === 0 ? "（破壊された）" : ""}`;
 }
 
+// 戦闘の描画（デバッグの画面。game#98）
+export const BATTLE_SCENE_LABELS = {
+  attackerItem: "攻める側のアイテム選択",
+  defenderItem: "守る側のアイテム選択",
+  firstStrike: "先攻",
+  secondStrike: "後攻",
+  result: "結果",
+} as const;
+
+export const BATTLE_VIEW_MESSAGES = {
+  title: "戦闘",
+  attacker: "攻める側",
+  defender: "守る側",
+  item: "アイテム",
+  noItem: "出さなかった",
+  noItemShort: "アイテムなし",
+  notChosen: "まだ選んでいない",
+  initial: "戦闘の前",
+  modifiers: "効果ごとの増減",
+  noModifiers: "なし",
+  states: "得た状態",
+  damages: "受けたダメージ",
+  current: "今",
+  stats: (attack: number, hitPoints: number) => `AT ${attack}・HP ${hitPoints}`,
+  supportSource: "支援効果",
+  terrainSource: "地形効果",
+  itemSource: (name: string) => `アイテム「${name}」`,
+  abilitySource: (ability: string) => `能力「${ability}」`,
+  firstMark: "（先攻）",
+  conquered: "攻める側が奪った",
+  repelled: "侵略に失敗した",
+} as const;
+
 export const MATCH_EVENT_MESSAGES = {
   created: "対戦が始まった",
   decksShuffled: "山札が混ざった",

@@ -652,50 +652,119 @@ export const matchDebugEventsQuery = graphql(`
               hitPoints
             }
           }
-          ... on MatchBattleStatModifiedEvent {
+          ... on MatchBattleSupportEffectActivatedEvent {
             side
-            attackDelta
-            hitPointsDelta
-            attack
-            hitPoints
-            source {
+            positions {
+              x
+              y
+            }
+            bonusPerTerritory
+            change {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
+          }
+          ... on MatchBattleTerrainEffectActivatedEvent {
+            side
+            element
+            level
+            bonusPerLevel
+            change {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
+          }
+          ... on MatchBattleCreatureAbilityActivatedEvent {
+            side
+            ability
+            change {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
+            battleModifier {
+              attackModifier
+              hitPointsModifier
+            }
+            battleRandomStats {
+              minimum
+              maximum
+            }
+          }
+          ... on MatchBattleItemAbilityActivatedEvent {
+            side
+            ability
+            card {
               __typename
-              ... on MatchAdjacentTerritoriesSource {
-                positions {
-                  x
-                  y
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                abilities {
+                  kind
+                  ... on CreatureTollMultiplierAbility {
+                    percent
+                  }
+                  ... on CreatureBattleModifierAbility {
+                    attackModifier
+                    hitPointsModifier
+                  }
+                  ... on CreatureBattleRandomStatsAbility {
+                    minimum
+                    maximum
+                  }
+                  ... on CreatureAttackImmunityAbility {
+                    elements
+                  }
                 }
-                bonusPerTerritory
               }
-              ... on MatchTerrainSource {
-                element
-                level
-                bonusPerLevel
-              }
-              ... on MatchItemSource {
-                card {
-                  id
-                  name
-                }
+              ... on ItemCardInfo {
+                category
                 attackModifier
                 hitPointsModifier
               }
-              ... on MatchAbilitySource {
-                ability
-                battleModifier {
-                  attackModifier
-                  hitPointsModifier
-                }
-                battleRandomStats {
-                  minimum
-                  maximum
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on DrawCardsSpellEffect {
+                    count
+                  }
+                  ... on GainMagicSpellEffect {
+                    perLap
+                  }
+                  ... on MultipleDiceSpellEffect {
+                    count
+                    turns
+                  }
+                  ... on FixedDiceSpellEffect {
+                    value
+                    turns
+                  }
+                  ... on DamageSpellEffect {
+                    amount
+                  }
                 }
               }
             }
-          }
-          ... on MatchBattleAbilityActivatedEvent {
-            side
-            ability
+            attackModifier
+            hitPointsModifier
+            change {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
           }
           ... on MatchCreatureStruckEvent {
             striker
