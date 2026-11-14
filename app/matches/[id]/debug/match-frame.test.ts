@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   applyEvent,
+  battleScene,
   eventDurationMs,
+  type FrameBattle,
+  type FrameBattleSide,
   type FrameCard,
   type FrameTerritory,
   type MatchFrame,
@@ -93,9 +96,29 @@ const INVASION = {
   hitPoints: 20,
 };
 
-const BATTLE = {
-  attacker: { attack: 40, hitPoints: 20 },
-  defender: { attack: 30, hitPoints: 25 },
+function battleSide(
+  name: string,
+  attack: number,
+  hitPoints: number,
+): FrameBattleSide {
+  return {
+    name,
+    item: null,
+    initial: { attack, hitPoints },
+    modifiers: [],
+    states: [],
+    damages: [],
+    current: { attack, hitPoints },
+  };
+}
+
+const BATTLE: FrameBattle = {
+  attacker: battleSide("ナイト", 40, 20),
+  defender: battleSide("ドラゴン", 30, 25),
+  firstStriker: null,
+  strikes: 0,
+  result: null,
+  highlight: null,
 };
 
 describe("applyEvent", () => {
@@ -135,44 +158,128 @@ describe("applyEvent", () => {
     assert.equal(next.participants[1].magic, 600);
   });
 
-  it("戦闘が始まると、効果を当てる前の両方の AT・HP が出る", () => {
+  it("両方が選んだアイテムが侵略の欄に残り、選んだ側に色が付く", () => {
+    const attacking = applyEvent(
+      frame({ invasion: INVASION, currentParticipant: 1 }),
+      event("MatchItemUsedEvent", {
+        participant: 1,
+        handIndex: 0,
+        card: { ...DRAGON, id: "i1", name: "剣" },
+        cost: 0,
+      }),
+      BASE,
+    );
+    assert.equal(attacking.invasion?.attackerItem, "剣");
+    assert.equal(attacking.invasion?.chosenBy, "ATTACKER");
+    const defending = applyEvent(
+      attacking,
+      event("MatchItemSkippedEvent", { participant: 0 }),
+      BASE,
+    );
+    assert.equal(defending.invasion?.defenderItem, null);
+    assert.equal(defending.invasion?.chosenBy, "DEFENDER");
+  });
+
+  it("戦闘が始まると、両方の名前と出したアイテムと戦闘の前の AT・HP が出る", () => {
     const next = applyEvent(
-      frame({ invasion: INVASION }),
+      frame({
+        territories: [TERRITORY],
+        invasion: { ...INVASION, attackerItem: "剣", defenderItem: null },
+      }),
       event("MatchBattleStartedEvent", {
         attacker: { attack: 40, hitPoints: 20 },
         defender: { attack: 30, hitPoints: 25 },
       }),
       BASE,
     );
-    assert.deepEqual(next.battle, BATTLE);
+    assert.deepEqual(next.battle, {
+      ...BATTLE,
+      attacker: { ...BATTLE.attacker, item: "剣" },
+    });
   });
 
-  it("効果のイベントは、受けた側の AT・HP を core の値に置き換える", () => {
-    const start = frame({ invasion: INVASION, battle: BATTLE });
-    const attacker = applyEvent(
-      start,
-      event("MatchBattleStatModifiedEvent", {
+  it("発動の増減は出どころつきで積み上がり、今の AT・HP は core の値になり、その発動に色が付く", () => {
+    const change = (
+      attackDelta: number,
+      hitPointsDelta: number,
+      attack: number,
+      hitPoints: number,
+    ) => ({ attackDelta, hitPointsDelta, attack, hitPoints });
+    let next = frame({ invasion: INVASION, battle: BATTLE });
+    for (const activated of [
+      event("MatchBattleSupportEffectActivatedEvent", {
         side: "ATTACKER",
-        attack: 60,
-        hitPoints: 20,
+        change: change(20, 0, 60, 20),
       }),
-      BASE,
-    );
-    assert.deepEqual(attacker.battle?.attacker, { attack: 60, hitPoints: 20 });
-    assert.deepEqual(attacker.battle?.defender, BATTLE.defender);
-    const defender = applyEvent(
-      attacker,
-      event("MatchBattleStatModifiedEvent", {
+      event("MatchBattleItemAbilityActivatedEvent", {
+        side: "ATTACKER",
+        ability: "BATTLE_MODIFIER",
+        card: { ...DRAGON, id: "i1", name: "剣" },
+        change: change(25, 0, 85, 20),
+      }),
+      event("MatchBattleTerrainEffectActivatedEvent", {
         side: "DEFENDER",
-        attack: 30,
-        hitPoints: 45,
+        change: change(0, 10, 30, 35),
       }),
-      BASE,
-    );
-    assert.deepEqual(defender.battle?.defender, { attack: 30, hitPoints: 45 });
+      event("MatchBattleCreatureAbilityActivatedEvent", {
+        side: "DEFENDER",
+        ability: "BATTLE_MODIFIER",
+        change: change(0, 20, 30, 55),
+      }),
+    ]) {
+      next = applyEvent(next, activated, BASE);
+    }
+    assert.deepEqual(next.battle?.attacker.modifiers, [
+      { source: { kind: "support" }, attackDelta: 20, hitPointsDelta: 0 },
+      {
+        source: { kind: "item", name: "剣" },
+        attackDelta: 25,
+        hitPointsDelta: 0,
+      },
+    ]);
+    assert.deepEqual(next.battle?.defender.modifiers, [
+      { source: { kind: "terrain" }, attackDelta: 0, hitPointsDelta: 10 },
+      {
+        source: { kind: "ability", ability: "BATTLE_MODIFIER" },
+        attackDelta: 0,
+        hitPointsDelta: 20,
+      },
+    ]);
+    assert.deepEqual(next.battle?.attacker.current, {
+      attack: 85,
+      hitPoints: 20,
+    });
+    assert.deepEqual(next.battle?.defender.current, {
+      attack: 30,
+      hitPoints: 55,
+    });
+    assert.deepEqual(next.battle?.highlight, {
+      side: "DEFENDER",
+      part: "modifier",
+      index: 1,
+    });
   });
 
-  it("攻撃は戦闘の中の体力だけを変え、領地のクリーチャーの体力は戦闘が終わるまで変えない", () => {
+  it("AT・HP を変えない能力の発動は、得た状態に入り、増減は変えない", () => {
+    const next = applyEvent(
+      frame({ invasion: INVASION, battle: BATTLE }),
+      event("MatchBattleCreatureAbilityActivatedEvent", {
+        side: "DEFENDER",
+        ability: "FIRST_STRIKE",
+        change: null,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.battle?.defender.states, ["FIRST_STRIKE"]);
+    assert.deepEqual(next.battle?.defender.modifiers, []);
+    assert.deepEqual(next.battle?.highlight, {
+      side: "DEFENDER",
+      part: "state",
+      index: 0,
+    });
+  });
+
+  it("攻撃は受けた側のダメージと今の HP を変え、先に攻撃した側と回数が残り、領地のクリーチャーの体力は変えない", () => {
     const start = frame({
       territories: [TERRITORY],
       invasion: INVASION,
@@ -182,22 +289,92 @@ describe("applyEvent", () => {
       start,
       event("MatchCreatureStruckEvent", {
         striker: "ATTACKER",
+        damage: 20,
         remainingHitPoints: 5,
       }),
       BASE,
     );
-    assert.equal(struck.battle?.defender.hitPoints, 5);
-    assert.equal(struck.battle?.attacker.hitPoints, 20);
+    assert.deepEqual(struck.battle?.defender.damages, [20]);
+    assert.equal(struck.battle?.defender.current.hitPoints, 5);
+    assert.equal(struck.battle?.attacker.current.hitPoints, 20);
+    assert.equal(struck.battle?.firstStriker, "ATTACKER");
+    assert.deepEqual(struck.battle?.highlight, {
+      side: "DEFENDER",
+      part: "damage",
+      index: 0,
+    });
     const countered = applyEvent(
       struck,
       event("MatchCreatureStruckEvent", {
         striker: "DEFENDER",
+        damage: 8,
         remainingHitPoints: 12,
       }),
       BASE,
     );
-    assert.equal(countered.battle?.attacker.hitPoints, 12);
+    assert.equal(countered.battle?.attacker.current.hitPoints, 12);
+    assert.equal(countered.battle?.firstStriker, "ATTACKER");
+    assert.equal(countered.battle?.strikes, 2);
     assert.equal(countered.territories[0].creature.hitPoints, 20);
+  });
+
+  it("戦闘以外のイベントでは、直前の発動の色が消える", () => {
+    const next = applyEvent(
+      frame({
+        invasion: INVASION,
+        battle: { ...BATTLE, highlight: { part: "result" } },
+      }),
+      event("MatchTollPaidEvent", { participant: 1, owner: 0, magic: 0 }),
+      BASE,
+    );
+    assert.equal(next.battle?.highlight, null);
+  });
+
+  it("シーンは、攻める側のアイテム選択 → 守る側のアイテム選択 → 先攻 → 後攻 → 結果と進む", () => {
+    assert.equal(battleScene(frame()), null);
+    assert.equal(
+      battleScene(frame({ invasion: INVASION, phase: "ATTACKING" })),
+      "attackerItem",
+    );
+    assert.equal(
+      battleScene(frame({ invasion: INVASION, phase: "DEFENDING" })),
+      "defenderItem",
+    );
+    assert.equal(
+      battleScene(frame({ invasion: INVASION, battle: BATTLE })),
+      "firstStrike",
+    );
+    assert.equal(
+      battleScene(
+        frame({ invasion: INVASION, battle: { ...BATTLE, strikes: 1 } }),
+      ),
+      "secondStrike",
+    );
+    assert.equal(
+      battleScene(frame({ battle: { ...BATTLE, result: "repelled" } })),
+      "result",
+    );
+  });
+
+  it("戦闘の結果は次の侵略が始まるまで残る", () => {
+    const ended = applyEvent(
+      frame({ battle: { ...BATTLE, result: "repelled" } }),
+      event("MatchTurnEndedEvent", { participant: 0 }),
+      BASE,
+    );
+    assert.equal(ended.battle?.result, "repelled");
+    const next = applyEvent(
+      ended,
+      event("MatchTerritoryInvadedEvent", {
+        participant: 0,
+        card: INVASION.card,
+        handIndex: 0,
+        position: INVASION.position,
+        cost: 0,
+      }),
+      BASE,
+    );
+    assert.equal(next.battle, null);
   });
 
   it("奪うと領地の持ち主とクリーチャーが変わり、レベルは残り、侵略の欄が消える", () => {
@@ -215,7 +392,8 @@ describe("applyEvent", () => {
       BASE,
     );
     assert.equal(next.invasion, null);
-    assert.equal(next.battle, null);
+    assert.equal(next.battle?.result, "conquered");
+    assert.deepEqual(next.battle?.highlight, { part: "result" });
     assert.equal(next.territories[0].owner, 1);
     assert.equal(next.territories[0].level, 2);
     assert.deepEqual(next.territories[0].creature, {
@@ -245,7 +423,7 @@ describe("applyEvent", () => {
       }),
       BASE,
     );
-    assert.equal(next.battle, null);
+    assert.equal(next.battle?.result, "repelled");
     assert.equal(next.territories[0].creature.hitPoints, 9);
   });
 

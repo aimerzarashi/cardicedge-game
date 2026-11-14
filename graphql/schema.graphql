@@ -1749,36 +1749,6 @@ type Match {
 	number: Int
 }
 """
-発動した能力（このイベントが能力の発動を表す。MatchBattleAbilityActivatedEvent は別に出ない）
-"""
-type MatchAbilitySource {
-	"""
-	発動した能力（BATTLE_MODIFIER・BATTLE_RANDOM_STATS）
-	"""
-	ability: CreatureAbilityKind!
-	"""
-	戦闘中の増減の根拠（BATTLE_MODIFIER のときだけ。ほかは null）
-	"""
-	battleModifier: MatchBattleModifierBasis
-	"""
-	戦闘中のランダムの根拠（BATTLE_RANDOM_STATS のときだけ。ほかは null）
-	"""
-	battleRandomStats: MatchBattleRandomStatsBasis
-}
-"""
-支援効果（侵略先の隣にある、攻める側の領地）
-"""
-type MatchAdjacentTerritoriesSource {
-	"""
-	隣の領地の位置
-	"""
-	positions: [BoardPosition!]!
-	"""
-	隣の領地 1 つあたりの AT の増加
-	"""
-	bonusPerTerritory: Int!
-}
-"""
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
 """
 type MatchAvatar {
@@ -1792,9 +1762,10 @@ type MatchAvatar {
 	name: String!
 }
 """
-戦闘で能力が発動した（先制・後手は、効き目が無いとき（両方が先制で打ち消し合う等）も、持っていれば出る。攻撃無効は、攻撃してきたクリーチャーの属性が合ったときだけ、その攻撃の前に出る）
+クリーチャーの能力が発動した。先制・後手は効き目が無いとき（両方が先制で打ち消し合う等）も持っていれば出る。攻撃無効は、攻撃してきた
+クリーチャーの属性が合ったときだけ、その攻撃の前に出る。AT・HP を変える能力（戦闘中の増減・戦闘中のランダム）は増減が 0 でも出る
 """
-type MatchBattleAbilityActivatedEvent implements MatchEvent {
+type MatchBattleCreatureAbilityActivatedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -1812,9 +1783,62 @@ type MatchBattleAbilityActivatedEvent implements MatchEvent {
 	"""
 	side: MatchBattleSide!
 	"""
-	発動した能力（AT・HP を変えない能力。今は FIRST_STRIKE・LAST_STRIKE・ATTACK_IMMUNITY）
+	発動した能力
 	"""
 	ability: CreatureAbilityKind!
+	"""
+	増減と当てた後の値（AT・HP を変える能力のときだけ。ほかは null）
+	"""
+	change: MatchBattleStatChange
+	"""
+	戦闘中の増減の根拠（BATTLE_MODIFIER のときだけ。ほかは null）
+	"""
+	battleModifier: MatchBattleModifierBasis
+	"""
+	戦闘中のランダムの根拠（BATTLE_RANDOM_STATS のときだけ。ほかは null）
+	"""
+	battleRandomStats: MatchBattleRandomStatsBasis
+}
+"""
+出したアイテムの能力が発動した（今のアイテムの AT・HP の増減は、能力「戦闘中の増減」として増減が 0 でも出る。巻物は効かないので出ない）
+"""
+type MatchBattleItemAbilityActivatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	アイテムを出した側
+	"""
+	side: MatchBattleSide!
+	"""
+	発動した能力（今は BATTLE_MODIFIER だけ）
+	"""
+	ability: CreatureAbilityKind!
+	"""
+	アイテムのカード（性能は対戦を始めたときの写し）
+	"""
+	card: CardInfo!
+	"""
+	アイテムの決まった AT の増減（下限で止まる前の値）
+	"""
+	attackModifier: Int!
+	"""
+	アイテムの決まった HP の増減（下限で止まる前の値）
+	"""
+	hitPointsModifier: Int!
+	"""
+	増減と当てた後の値
+	"""
+	change: MatchBattleStatChange
 }
 """
 戦闘中の増減の決まった値
@@ -1830,7 +1854,7 @@ type MatchBattleModifierBasis {
 	hitPointsModifier: Int!
 }
 """
-戦闘中のランダムの範囲（引いた値は MatchBattleStatModifiedEvent の当てた後の AT・HP）
+戦闘中のランダムの範囲（引いた値は change の当てた後の AT・HP）
 """
 type MatchBattleRandomStatsBasis {
 	"""
@@ -1856,7 +1880,7 @@ enum MatchBattleSide {
 	DEFENDER
 }
 """
-戦闘が始まった（効果を当てる前の両方の AT・HP）
+戦闘が始まった（効果を当てる前の両方の AT・HP。領地のクリーチャーは、ボード上の効果と傷が残った今の値）
 """
 type MatchBattleStartedEvent implements MatchEvent {
 	"""
@@ -1881,29 +1905,9 @@ type MatchBattleStartedEvent implements MatchEvent {
 	defender: MatchBattleStats!
 }
 """
-効果 1 つが戦闘の AT・HP を変えた（出どころが能力のときは、持っていれば増減が 0 でも出る）
+戦闘の AT・HP の増減と、当てた後の値
 """
-type MatchBattleStatModifiedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	効果を受けた側
-	"""
-	side: MatchBattleSide!
-	"""
-	何の効果か
-	"""
-	source: MatchBattleStatSource!
+type MatchBattleStatChange {
 	"""
 	AT の増減（下限の 0 で止まった後の実際の増減）
 	"""
@@ -1922,10 +1926,6 @@ type MatchBattleStatModifiedEvent implements MatchEvent {
 	hitPoints: Int!
 }
 """
-戦闘の AT・HP を変えた効果の出どころ
-"""
-union MatchBattleStatSource = MatchAdjacentTerritoriesSource | MatchTerrainSource | MatchItemSource | MatchAbilitySource
-"""
 戦闘の中の AT・HP
 """
 type MatchBattleStats {
@@ -1937,6 +1937,76 @@ type MatchBattleStats {
 	体力
 	"""
 	hitPoints: Int!
+}
+"""
+攻める側に支援効果が発動した（隣の自分の領地の数 × 1 つあたりの値だけ AT が増える。隣の領地が無ければ出ない）
+"""
+type MatchBattleSupportEffectActivatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	効果を受けた側（いつも ATTACKER）
+	"""
+	side: MatchBattleSide!
+	"""
+	侵略先の隣にある、攻める側の領地の位置
+	"""
+	positions: [BoardPosition!]!
+	"""
+	隣の領地 1 つあたりの AT の増加
+	"""
+	bonusPerTerritory: Int!
+	"""
+	増減と当てた後の値（いつもある）
+	"""
+	change: MatchBattleStatChange
+}
+"""
+守る側に地形効果が発動した（土地の属性がクリーチャーの属性と合えば、レベル × 1 レベルあたりの値だけ HP が増える。合わなければ出ない）
+"""
+type MatchBattleTerrainEffectActivatedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	効果を受けた側（いつも DEFENDER）
+	"""
+	side: MatchBattleSide!
+	"""
+	土地の属性
+	"""
+	element: BoardTileElement!
+	"""
+	土地のレベル
+	"""
+	level: Int!
+	"""
+	レベル 1 つあたりの HP の増加
+	"""
+	bonusPerLevel: Int!
+	"""
+	増減と当てた後の値（いつもある）
+	"""
+	change: MatchBattleStatChange
 }
 """
 対戦の盤面。始めた時点のボードの写し（対戦が自分の写しを持つので、ボードのマスタが変わっても変わらない）。
@@ -2615,23 +2685,6 @@ type MatchItemSkippedEvent implements MatchEvent {
 	出さなかった参加者（Match.participants の何番目か）
 	"""
 	participant: Int!
-}
-"""
-戦闘に出したアイテム
-"""
-type MatchItemSource {
-	"""
-	アイテムのカード（性能は対戦を始めたときの写し）
-	"""
-	card: CardInfo!
-	"""
-	アイテムの決まった AT の増減（下限で止まる前の値）
-	"""
-	attackModifier: Int!
-	"""
-	アイテムの決まった HP の増減（下限で止まる前の値）
-	"""
-	hitPointsModifier: Int!
 }
 """
 戦闘に手札のアイテムを出した（攻める側も守る側も同じ。効果はまだ無い）
@@ -3335,23 +3388,6 @@ type MatchSpellUsedEvent implements MatchEvent {
 	払った魔力
 	"""
 	cost: Int!
-}
-"""
-地形効果（効いた土地）
-"""
-type MatchTerrainSource {
-	"""
-	土地の属性
-	"""
-	element: BoardTileElement!
-	"""
-	土地のレベル
-	"""
-	level: Int!
-	"""
-	レベル 1 つあたりの HP の増加
-	"""
-	bonusPerLevel: Int!
 }
 """
 領地（クリーチャーを配置した土地）

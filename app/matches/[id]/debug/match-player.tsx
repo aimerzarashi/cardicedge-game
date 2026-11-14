@@ -64,6 +64,7 @@ import {
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
 import { loadMatchDebugEvents } from "./actions";
+import { BattleView } from "./battle-view";
 import {
   applyEvent,
   eventDurationMs,
@@ -952,13 +953,6 @@ function FrameView({
           {frame.invasion.hitPoints}）
         </p>
       )}
-      {frame.battle && (
-        <p data-testid="match-battle">
-          戦闘: 攻める側 AT {frame.battle.attacker.attack}・HP{" "}
-          {frame.battle.attacker.hitPoints} ／ 守る側 AT{" "}
-          {frame.battle.defender.attack}・HP {frame.battle.defender.hitPoints}
-        </p>
-      )}
 
       <h2>領地</h2>
       {frame.territories.length === 0 ? (
@@ -1088,32 +1082,36 @@ export function MatchPlayer({
 
   return (
     <div style={COLUMNS_STYLE}>
-      <BoardGrid
-        {...board}
-        tiles={board.tiles.map((tile) => {
-          const changed = frame.landElements.find(
-            (candidate) =>
-              candidate.position.x === tile.x &&
-              candidate.position.y === tile.y,
-          );
-          return changed && tile.__typename === "LandTile"
-            ? { ...tile, element: changed.element }
-            : tile;
-        })}
-        territories={territoryMarks(frame.territories)}
-        landLevels={frame.landLevels.map((land) => ({
-          ...land.position,
-          level: land.level,
-        }))}
-        pieces={participantPieces(frame.participants)}
-        selectable={selectable}
-        previewed={previewed}
-        onTile={(position) => {
-          if (selection) {
-            setSelection(selectTile(selection, position));
-          }
-        }}
-      />
+      <div>
+        <BoardGrid
+          {...board}
+          legend="toggle"
+          tiles={board.tiles.map((tile) => {
+            const changed = frame.landElements.find(
+              (candidate) =>
+                candidate.position.x === tile.x &&
+                candidate.position.y === tile.y,
+            );
+            return changed && tile.__typename === "LandTile"
+              ? { ...tile, element: changed.element }
+              : tile;
+          })}
+          territories={territoryMarks(frame.territories)}
+          landLevels={frame.landLevels.map((land) => ({
+            ...land.position,
+            level: land.level,
+          }))}
+          pieces={participantPieces(frame.participants)}
+          selectable={selectable}
+          previewed={previewed}
+          onTile={(position) => {
+            if (selection) {
+              setSelection(selectTile(selection, position));
+            }
+          }}
+        />
+        <BattleView frame={frame} />
+      </div>
       <div>
         {caughtUp ? (
           <Operations

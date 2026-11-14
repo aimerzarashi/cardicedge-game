@@ -83,14 +83,61 @@ export type FrameInvasion = {
   hitPoints: number;
   // 移動で侵略したときだけ持つ。元の領地の位置（動いたクリーチャーは戦闘の間もそこにいる）
   from?: Position;
+  // 両方が選んだアイテムの名前。選ぶ前は undefined、出さなかったら null
+  attackerItem?: string | null;
+  defenderItem?: string | null;
+  // 直前に選んだ側（その間だけ画面で色を変える）
+  chosenBy?: "ATTACKER" | "DEFENDER" | null;
 };
 
 export type FrameBattleStats = { attack: number; hitPoints: number };
 
-// 戦闘が始まってから終わるまでの両方の AT・HP。効果と攻撃の結果を core の値のまま持つ
+// 戦闘の中で AT・HP を変えた発動 1 つ。出どころは支援効果・地形効果・アイテム（名前）・クリーチャーの能力（種類）
+export type FrameBattleModifier = {
+  source:
+    | { kind: "support" }
+    | { kind: "terrain" }
+    | { kind: "item"; name: string }
+    | { kind: "ability"; ability: CreatureAbilityKind };
+  attackDelta: number;
+  hitPointsDelta: number;
+};
+
+// 戦闘の中の片方。core の戦闘の中の値の層（戦闘の前・効果ごとの増減・得た状態・受けたダメージ）と同じ形で持ち、
+// 今の AT・HP は core の値のまま持つ（計算しない。描画がイベントの過不足に気づく場になるように。game#98）
+export type FrameBattleSide = {
+  name: string;
+  // 出したアイテムの名前（出さなかったら null）
+  item: string | null;
+  initial: FrameBattleStats;
+  modifiers: FrameBattleModifier[];
+  // 発動で得た状態（先制・後手・攻撃無効）
+  states: CreatureAbilityKind[];
+  // 攻撃で受けたダメージ（受けた順）
+  damages: number[];
+  current: FrameBattleStats;
+};
+
+// 直前のイベントで変わった所（その間だけ画面で色を変え、何が起きたかを追いやすくする。2026-11-14 オーナー。game#98）
+export type FrameBattleHighlight =
+  | {
+      side: "ATTACKER" | "DEFENDER";
+      part: "modifier" | "damage" | "state";
+      index: number;
+    }
+  | { side: "ATTACKER" | "DEFENDER"; part: "item" }
+  | { part: "result" };
+
+// 戦闘が始まってから、次の侵略が始まるまで（結果を確かめられるよう、奪う・退けた後も、ターンが終わった後も残す。
+// 再生は 1 歩が短く、ターンの終わりで消すと開いたときには見えないため。2026-11-14 オーナー。game#98）
 export type FrameBattle = {
-  attacker: FrameBattleStats;
-  defender: FrameBattleStats;
+  attacker: FrameBattleSide;
+  defender: FrameBattleSide;
+  // 先に攻撃した側（まだ攻撃が無ければ null）と、攻撃の回数
+  firstStriker: "ATTACKER" | "DEFENDER" | null;
+  strikes: number;
+  result: "conquered" | "repelled" | null;
+  highlight: FrameBattleHighlight | null;
 };
 
 // 画面に映すものすべて。表示はこのフレームだけから作る
@@ -169,8 +216,14 @@ export type PlayEvent = {
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
-  attack?: number;
-  hitPoints?: number;
+  ability?: CreatureAbilityKind;
+  damage?: number;
+  change?: {
+    attackDelta: number;
+    hitPointsDelta: number;
+    attack: number;
+    hitPoints: number;
+  } | null;
   drawPileCount?: number;
   dice?: number[];
   target?: number;
@@ -185,8 +238,24 @@ const NO_DRAWING_EVENTS = new Set([
   "MatchRewardsCompletedEvent",
 ]);
 
+// 戦闘の出来事は、効果の積み上げと攻撃を目で追えるよう長く見せる（2026-11-14 オーナー。game#98）
+const BATTLE_DURATION_MS = 1200;
+const BATTLE_EVENTS = new Set([
+  "MatchBattleStartedEvent",
+  "MatchBattleSupportEffectActivatedEvent",
+  "MatchBattleTerrainEffectActivatedEvent",
+  "MatchBattleCreatureAbilityActivatedEvent",
+  "MatchBattleItemAbilityActivatedEvent",
+  "MatchCreatureStruckEvent",
+  "MatchTerritoryConqueredEvent",
+  "MatchInvasionRepelledEvent",
+]);
+
 export function eventDurationMs(event: PlayEvent): number {
-  return NO_DRAWING_EVENTS.has(event.__typename) ? 0 : DEFAULT_DURATION_MS;
+  if (NO_DRAWING_EVENTS.has(event.__typename)) return 0;
+  return BATTLE_EVENTS.has(event.__typename)
+    ? BATTLE_DURATION_MS
+    : DEFAULT_DURATION_MS;
 }
 
 function samePosition(a: Position, b: Position): boolean {
@@ -239,6 +308,13 @@ function territoryAt(
   );
 }
 
+function withResult(
+  battle: FrameBattle | null,
+  result: "conquered" | "repelled",
+): FrameBattle | null {
+  return battle ? { ...battle, result, highlight: { part: "result" } } : null;
+}
+
 // 順番は core が turnOrder で返した値の小さい順。一周したら次のラウンド
 // 終えた人に続いているスペルの効果は、残りのターンが 1 減る（最後のターンは、先に効果が終わったイベントで消えている）
 function afterTurnEnded(frame: MatchFrame, seat: number): MatchFrame {
@@ -289,7 +365,7 @@ function conquered(
     return {
       ...frame,
       invasion: null,
-      battle: null,
+      battle: withResult(frame.battle, "conquered"),
       territories: frame.territories
         .filter((territory) => !samePosition(territory.position, origin))
         .map((territory) =>
@@ -309,7 +385,7 @@ function conquered(
   return {
     ...frame,
     invasion: null,
-    battle: null,
+    battle: withResult(frame.battle, "conquered"),
     territories: frame.territories.map((territory) =>
       samePosition(territory.position, position)
         ? {
@@ -328,6 +404,78 @@ function conquered(
         : territory,
     ),
   };
+}
+
+// 侵略の番の人（攻める側）か、領地の持ち主（守る側）が選んだアイテムを、侵略の欄に残す
+function withChosenItem(
+  frame: MatchFrame,
+  seat: number,
+  item: string | null,
+): MatchFrame {
+  const { invasion } = frame;
+  if (!invasion) return frame;
+  return {
+    ...frame,
+    invasion:
+      seat === frame.currentParticipant
+        ? { ...invasion, attackerItem: item, chosenBy: "ATTACKER" }
+        : { ...invasion, defenderItem: item, chosenBy: "DEFENDER" },
+  };
+}
+
+function updateBattleSide(
+  frame: MatchFrame,
+  side: "ATTACKER" | "DEFENDER",
+  update: (side: FrameBattleSide) => FrameBattleSide,
+): MatchFrame {
+  const { battle } = frame;
+  if (!battle) return frame;
+  return {
+    ...frame,
+    battle:
+      side === "DEFENDER"
+        ? { ...battle, defender: update(battle.defender) }
+        : { ...battle, attacker: update(battle.attacker) },
+  };
+}
+
+// 発動で得た増減を足し、今の AT・HP を core の当てた後の値に置き換える
+function withBattleModifier(
+  frame: MatchFrame,
+  side: "ATTACKER" | "DEFENDER",
+  source: FrameBattleModifier["source"],
+  event: PlayEvent,
+): MatchFrame {
+  const { change } = event;
+  if (!change) return frame;
+  const index = frame.battle
+    ? (side === "DEFENDER" ? frame.battle.defender : frame.battle.attacker)
+        .modifiers.length
+    : 0;
+  return withHighlight(
+    updateBattleSide(frame, side, (current) => ({
+      ...current,
+      modifiers: [
+        ...current.modifiers,
+        {
+          source,
+          attackDelta: change.attackDelta,
+          hitPointsDelta: change.hitPointsDelta,
+        },
+      ],
+      current: { attack: change.attack, hitPoints: change.hitPoints },
+    })),
+    { side, part: "modifier", index },
+  );
+}
+
+function withHighlight(
+  frame: MatchFrame,
+  highlight: FrameBattleHighlight,
+): MatchFrame {
+  return frame.battle
+    ? { ...frame, battle: { ...frame.battle, highlight } }
+    : frame;
 }
 
 // イベントが述べた事実だけを当てる。決まりは持たない
@@ -435,6 +583,7 @@ function applyFact(
           magic: participant.magic - (event.cost ?? 0),
         })),
         invasion: { position, card, hitPoints: card.hitPoints ?? 0 },
+        battle: null,
       };
     }
     case "MatchSpellEffectStartedEvent": {
@@ -504,44 +653,114 @@ function applyFact(
         event.card,
       );
     case "MatchItemUsedEvent":
-      return discarded(
-        updateParticipant(frame, seat, (participant) => ({
-          ...participant,
-          hand: withoutCard(participant.hand, event.handIndex ?? 0),
-          magic: participant.magic - (event.cost ?? 0),
-        })),
+      return withChosenItem(
+        discarded(
+          updateParticipant(frame, seat, (participant) => ({
+            ...participant,
+            hand: withoutCard(participant.hand, event.handIndex ?? 0),
+            magic: participant.magic - (event.cost ?? 0),
+          })),
+          seat,
+          event.card,
+        ),
         seat,
-        event.card,
+        event.card?.name ?? null,
       );
+    case "MatchItemSkippedEvent":
+      return withChosenItem(frame, seat, null);
     case "MatchBattleStartedEvent": {
       const { attacker, defender } = event;
-      if (!attacker || !defender) return frame;
-      return { ...frame, battle: { attacker, defender } };
-    }
-    case "MatchBattleStatModifiedEvent": {
-      const { battle } = frame;
-      const { attack, hitPoints, side } = event;
-      if (!battle || attack === undefined || hitPoints === undefined) {
-        return frame;
-      }
+      const { invasion } = frame;
+      if (!attacker || !defender || !invasion) return frame;
+      const side = (
+        name: string,
+        item: string | null | undefined,
+        initial: FrameBattleStats,
+      ): FrameBattleSide => ({
+        name,
+        item: item ?? null,
+        initial,
+        modifiers: [],
+        states: [],
+        damages: [],
+        current: initial,
+      });
       return {
         ...frame,
-        battle:
-          side === "DEFENDER"
-            ? { ...battle, defender: { attack, hitPoints } }
-            : { ...battle, attacker: { attack, hitPoints } },
+        battle: {
+          attacker: side(invasion.card.name, invasion.attackerItem, attacker),
+          defender: side(
+            territoryAt(frame, invasion.position)?.creature.card.name ?? "",
+            invasion.defenderItem,
+            defender,
+          ),
+          firstStriker: null,
+          strikes: 0,
+          result: null,
+          highlight: null,
+        },
       };
     }
+    case "MatchBattleSupportEffectActivatedEvent":
+      return withBattleModifier(frame, "ATTACKER", { kind: "support" }, event);
+    case "MatchBattleTerrainEffectActivatedEvent":
+      return withBattleModifier(frame, "DEFENDER", { kind: "terrain" }, event);
+    case "MatchBattleItemAbilityActivatedEvent":
+      return withBattleModifier(
+        frame,
+        event.side ?? "ATTACKER",
+        { kind: "item", name: event.card?.name ?? "" },
+        event,
+      );
+    case "MatchBattleCreatureAbilityActivatedEvent": {
+      const { ability } = event;
+      if (!ability) return frame;
+      if (event.change) {
+        return withBattleModifier(
+          frame,
+          event.side ?? "ATTACKER",
+          { kind: "ability", ability },
+          event,
+        );
+      }
+      const owner = event.side ?? "ATTACKER";
+      const index = frame.battle
+        ? (owner === "DEFENDER" ? frame.battle.defender : frame.battle.attacker)
+            .states.length
+        : 0;
+      return withHighlight(
+        updateBattleSide(frame, owner, (side) => ({
+          ...side,
+          states: [...side.states, ability],
+        })),
+        { side: owner, part: "state", index },
+      );
+    }
     case "MatchCreatureStruckEvent": {
-      const battle = frame.battle;
+      const { battle } = frame;
       if (!battle) return frame;
-      const hitPoints = event.remainingHitPoints ?? 0;
+      const striker = event.striker ?? "ATTACKER";
+      const receiver = striker === "DEFENDER" ? "ATTACKER" : "DEFENDER";
+      const damageIndex = (
+        receiver === "DEFENDER" ? battle.defender : battle.attacker
+      ).damages.length;
+      const struck = updateBattleSide(frame, receiver, (side) => ({
+        ...side,
+        damages: [...side.damages, event.damage ?? 0],
+        current: {
+          ...side.current,
+          hitPoints: event.remainingHitPoints ?? 0,
+        },
+      }));
+      if (!struck.battle) return struck;
       return {
-        ...frame,
-        battle:
-          event.striker === "DEFENDER"
-            ? { ...battle, attacker: { ...battle.attacker, hitPoints } }
-            : { ...battle, defender: { ...battle.defender, hitPoints } },
+        ...struck,
+        battle: {
+          ...struck.battle,
+          firstStriker: battle.firstStriker ?? striker,
+          strikes: battle.strikes + 1,
+          highlight: { side: receiver, part: "damage", index: damageIndex },
+        },
       };
     }
     case "MatchTerritoryConqueredEvent": {
@@ -558,7 +777,7 @@ function applyFact(
       const cleared = {
         ...frame,
         invasion: null,
-        battle: null,
+        battle: withResult(frame.battle, "repelled"),
         territories: frame.territories.map((territory) =>
           position && samePosition(territory.position, position)
             ? {
@@ -679,6 +898,7 @@ function applyFact(
           hitPoints: origin.creature.hitPoints,
           from,
         },
+        battle: null,
       };
     }
     case "MatchLandElementChangedEvent": {
@@ -807,7 +1027,49 @@ export function applyEvent(
   base: Position,
 ): MatchFrame {
   return {
-    ...withChanges(applyFact(frame, event, base), event.changes),
+    ...withChanges(
+      applyFact(withoutHighlight(frame), event, base),
+      event.changes,
+    ),
     revision: event.revision,
   };
+}
+
+// 色を変えるのは直前のイベントで変わった所だけなので、次のイベントを当てる前に消す
+function withoutHighlight(frame: MatchFrame): MatchFrame {
+  return {
+    ...frame,
+    battle: frame.battle ? { ...frame.battle, highlight: null } : null,
+    invasion: frame.invasion ? { ...frame.invasion, chosenBy: null } : null,
+  };
+}
+
+// 戦闘のシーン。攻める側のアイテム選択 → 守る側のアイテム選択 → 先攻 → 後攻 → 結果（2026-11-14 オーナー。game#98）。
+// 先攻のシーンは、戦闘が始まって効果を当て、先に攻撃するまで
+export type BattleScene =
+  | "attackerItem"
+  | "defenderItem"
+  | "firstStrike"
+  | "secondStrike"
+  | "result";
+
+export const BATTLE_SCENES: BattleScene[] = [
+  "attackerItem",
+  "defenderItem",
+  "firstStrike",
+  "secondStrike",
+  "result",
+];
+
+// 今のシーン（侵略していなければ null）
+export function battleScene(frame: MatchFrame): BattleScene | null {
+  const { battle } = frame;
+  if (battle) {
+    if (battle.result) return "result";
+    return battle.strikes === 0 ? "firstStrike" : "secondStrike";
+  }
+  if (!frame.invasion) return null;
+  if (frame.phase === "ATTACKING") return "attackerItem";
+  if (frame.phase === "DEFENDING") return "defenderItem";
+  return null;
 }

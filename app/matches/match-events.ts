@@ -54,57 +54,59 @@ export type MatchEventView = {
   percent?: number;
   toll?: number;
   multipliedToll?: number;
-  source?: {
-    __typename?: string;
-    positions?: { x: number; y: number }[];
-    element?: BoardTileElement;
-    level?: number;
-    card?: { name: string };
-    ability?: CreatureAbilityKind;
-    bonusPerTerritory?: number;
-    bonusPerLevel?: number;
-    attackModifier?: number;
-    hitPointsModifier?: number;
-    battleModifier?: {
-      attackModifier: number;
-      hitPointsModifier: number;
-    } | null;
-    battleRandomStats?: { minimum: number; maximum: number } | null;
-  };
+  positions?: { x: number; y: number }[];
+  bonusPerTerritory?: number;
+  bonusPerLevel?: number;
+  attackModifier?: number;
+  hitPointsModifier?: number;
+  battleModifier?: {
+    attackModifier: number;
+    hitPointsModifier: number;
+  } | null;
+  battleRandomStats?: { minimum: number; maximum: number } | null;
+  // 戦闘の発動で得た増減と、当てた後の値（AT・HP を変えない能力は null）
+  change?: {
+    attackDelta: number;
+    hitPointsDelta: number;
+    attack: number;
+    hitPoints: number;
+  } | null;
   level?: number;
   returnedCard?: { name: string };
   from?: { x: number; y: number };
   returnedTo?: { x: number; y: number } | null;
   element?: BoardTileElement;
-  attackDelta?: number;
-  hitPointsDelta?: number;
   attack?: number;
-  hitPoints?: number;
 };
 
 function nameOf(names: string[], seat: number): string {
   return names[seat] ?? `参加者 ${seat + 1}`;
 }
 
-function battleStatSourceLabel(source: MatchEventView["source"]): string {
+// AT・HP を変える能力の具体的な効果（ほかの能力は値を出さない）
+function creatureAbilityEffect(event: MatchEventView): string | undefined {
   const m = MATCH_EVENT_MESSAGES;
-  switch (source?.__typename) {
-    case "MatchAdjacentTerritoriesSource":
-      return m.adjacentTerritoriesSource(
-        source.positions?.length ?? 0,
-        source.bonusPerTerritory ?? 0,
-      );
-    case "MatchTerrainSource":
-      return m.terrainSource(
-        source.element ? ELEMENT_LABELS[source.element] : "",
-        source.level ?? 0,
-        source.bonusPerLevel ?? 0,
-      );
-    case "MatchItemSource":
-      return m.itemSource(source.card?.name ?? "");
-    default:
-      return m.unknown;
+  const { change } = event;
+  if (!change) return undefined;
+  if (event.battleRandomStats) {
+    return m.battleRandomStatsEffect(
+      event.battleRandomStats.minimum,
+      event.battleRandomStats.maximum,
+      itemModifiersLabel(change.attackDelta, change.hitPointsDelta),
+      change.attack,
+      change.hitPoints,
+    );
   }
+  return m.battleStatChange(
+    battleModifierChangeLabel(
+      event.battleModifier?.attackModifier ?? 0,
+      event.battleModifier?.hitPointsModifier ?? 0,
+      change.attackDelta,
+      change.hitPointsDelta,
+    ),
+    change.attack,
+    change.hitPoints,
+  );
 }
 
 function body(event: MatchEventView, names: string[]): string {
@@ -156,63 +158,56 @@ function body(event: MatchEventView, names: string[]): string {
         event.defender?.attack ?? 0,
         event.defender?.hitPoints ?? 0,
       );
-    case "MatchBattleStatModifiedEvent":
-      // 能力はこのイベント 1 つが発動を表す（core が発動のイベントを別に出さない。core#163）ので、発動の形で出す
-      if (event.source?.__typename === "MatchAbilitySource") {
-        return m.abilityActivated(
-          m.sideTarget(
-            event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
-          ),
-          event.source.ability
-            ? CREATURE_ABILITY_LABELS[event.source.ability]
-            : "",
-          event.source.battleRandomStats
-            ? m.battleRandomStatsEffect(
-                event.source.battleRandomStats.minimum,
-                event.source.battleRandomStats.maximum,
-                itemModifiersLabel(
-                  event.attackDelta ?? 0,
-                  event.hitPointsDelta ?? 0,
-                ),
-                event.attack ?? 0,
-                event.hitPoints ?? 0,
-              )
-            : m.battleStatChange(
-                battleModifierChangeLabel(
-                  event.source.battleModifier?.attackModifier ?? 0,
-                  event.source.battleModifier?.hitPointsModifier ?? 0,
-                  event.attackDelta ?? 0,
-                  event.hitPointsDelta ?? 0,
-                ),
-                event.attack ?? 0,
-                event.hitPoints ?? 0,
-              ),
-        );
-      }
+    case "MatchBattleSupportEffectActivatedEvent":
+      return m.battleStatModified(
+        m.battleAttacker,
+        m.adjacentTerritoriesSource(
+          event.positions?.length ?? 0,
+          event.bonusPerTerritory ?? 0,
+        ),
+        itemModifiersLabel(
+          event.change?.attackDelta ?? 0,
+          event.change?.hitPointsDelta ?? 0,
+        ),
+        event.change?.attack ?? 0,
+        event.change?.hitPoints ?? 0,
+      );
+    case "MatchBattleTerrainEffectActivatedEvent":
+      return m.battleStatModified(
+        m.battleDefender,
+        m.terrainSource(
+          event.element ? ELEMENT_LABELS[event.element] : "",
+          event.level ?? 0,
+          event.bonusPerLevel ?? 0,
+        ),
+        itemModifiersLabel(
+          event.change?.attackDelta ?? 0,
+          event.change?.hitPointsDelta ?? 0,
+        ),
+        event.change?.attack ?? 0,
+        event.change?.hitPoints ?? 0,
+      );
+    case "MatchBattleItemAbilityActivatedEvent":
+      // アイテムは決まった増減を持つので、下限で止まったときに本来の値を添える
       return m.battleStatModified(
         event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
-        battleStatSourceLabel(event.source),
-        // アイテムは決まった増減を持つので、下限で止まったときに本来の値を添える。支援効果・地形効果は増やすだけで止まらない
-        event.source?.__typename === "MatchItemSource"
-          ? battleModifierChangeLabel(
-              event.source.attackModifier ?? 0,
-              event.source.hitPointsModifier ?? 0,
-              event.attackDelta ?? 0,
-              event.hitPointsDelta ?? 0,
-            )
-          : itemModifiersLabel(
-              event.attackDelta ?? 0,
-              event.hitPointsDelta ?? 0,
-            ),
-        event.attack ?? 0,
-        event.hitPoints ?? 0,
+        m.itemSource(event.card?.name ?? ""),
+        battleModifierChangeLabel(
+          event.attackModifier ?? 0,
+          event.hitPointsModifier ?? 0,
+          event.change?.attackDelta ?? 0,
+          event.change?.hitPointsDelta ?? 0,
+        ),
+        event.change?.attack ?? 0,
+        event.change?.hitPoints ?? 0,
       );
-    case "MatchBattleAbilityActivatedEvent":
+    case "MatchBattleCreatureAbilityActivatedEvent":
       return m.abilityActivated(
         m.sideTarget(
           event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
         ),
         event.ability ? CREATURE_ABILITY_LABELS[event.ability] : "",
+        creatureAbilityEffect(event),
       );
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
