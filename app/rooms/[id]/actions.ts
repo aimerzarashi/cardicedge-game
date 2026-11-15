@@ -25,6 +25,7 @@ import {
   resumeRoomMutation,
   roomMatchQuery,
 } from "../operations";
+import { waitStartedMatch } from "../wait-match";
 import { waitRoom } from "../wait-room";
 
 export type RoomActionState = { error?: string };
@@ -188,15 +189,11 @@ export async function declareRoomReady(
   if (state.error !== undefined) {
     return state;
   }
-  // 全員がそろうと対戦が始まる（Room.match は準備完了と同じ版で変わる）。詳細が操作の結果の版に届いているので、1 回読めば
-  // 始まったかが分かる。始まっていれば対戦の画面へ移し、まだなら（ほかのプレイヤーの待ち）今の部屋を出し直したままにする。
-  // Room.match は次の対戦を始めるまで終わった対戦のままなので、準備完了の前の対戦の ID と違うかで見分ける
-  const after = await callCore(roomMatchQuery, { id });
-  const matchId =
-    after.ok && after.data.room.__typename === "Room"
-      ? after.data.room.match?.id
-      : undefined;
-  if (matchId && matchId !== previousId) {
+  // 全員がそろうと部屋が対戦中になり、ポリシーが対戦を作る。対戦が出るまで読み直し、出れば対戦の画面へ移す。対戦中でなければ
+  // （ほかのプレイヤーの待ち）今の部屋を出し直したままにする。Room.match は次の対戦を始めるまで終わった対戦のままなので、
+  // 準備完了の前の対戦の ID と違うかで見分ける（待ち方は wait-match.ts）
+  const matchId = await waitStartedMatch(id, previousId);
+  if (matchId) {
     redirect(`/matches/${matchId}/debug`);
   }
   return state;

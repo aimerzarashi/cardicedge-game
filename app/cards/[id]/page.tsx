@@ -7,7 +7,8 @@ import {
   CARD_TYPE_LABELS,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
-  itemModifiersLabel,
+  itemEffectsLabel,
+  itemEffectView,
   itemRestrictionsLabel,
   placementRestrictionsLabel,
   RARITY_LABELS,
@@ -50,8 +51,28 @@ const cardQuery = graphql(`
       }
       ... on ItemCardInfo {
         category
-        attackModifier
-        hitPointsModifier
+        effects {
+          __typename
+          kind
+          ... on ItemAttackModifierEffect {
+            value
+          }
+          ... on ItemHitPointsModifierEffect {
+            value
+          }
+          ... on ItemAttackOverrideEffect {
+            value
+          }
+          ... on ItemAttackMultiplierEffect {
+            percent
+            constraints {
+              kind
+              ... on ItemOpponentElementConstraint {
+                elements
+              }
+            }
+          }
+        }
       }
       ... on SpellCardInfo {
         effect {
@@ -164,10 +185,8 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
           <>
             <dt>分類</dt>
             <dd>{ITEM_CATEGORY_LABELS[card.category]}</dd>
-            <dt>増減</dt>
-            <dd>
-              {itemModifiersLabel(card.attackModifier, card.hitPointsModifier)}
-            </dd>
+            <dt>効果</dt>
+            <dd>{itemEffectsLabel(card.effects.map(itemEffectView))}</dd>
           </>
         )}
         {card.__typename === "SpellCardInfo" && (

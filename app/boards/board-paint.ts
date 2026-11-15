@@ -55,10 +55,12 @@ export const PIECE_GLYPH = "\u265F\uFE0E";
 // 配置したクリーチャーの記号。コマと同じくチェスの記号にして、持ち主の色で塗る。絵文字は色を変えられないため採らなかった（2026-11-08 オーナー）
 export const CREATURE_GLYPH = "\u265E\uFE0E";
 
-// マスの厚み（盤面の座標の px）。マスの間（LINK）より小さくして、隣のマスにかからないようにする
-const TILE_THICKNESS = 10;
+// 板 1 枚の厚み（盤面の座標の px）。マスの間（LINK）より小さくして、隣のマスにかからないようにする。レベルの分だけ積むので、
+// 10px ではレベル 5 で 50px になり盤面を覆う。1 枚目だけ厚くすると上の板が溝のように見えたため、どの板も同じ厚みで薄くした
+// （2026-11-15 オーナー。game#99）
+const TILE_THICKNESS = 6;
 const VACANT_SIDE_COLOR = "#3a4256";
-const TILE_SIDE_SHADE = 3;
+const TILE_SIDE_SHADE = 2;
 const TILE_RADIUS = 7;
 
 // マスを薄い板に見せる側面。領地は持ち主の色、空きは暗い灰色。盤面は rotate(45deg) しているので、右下へずらした影を重ねると画面の真下へ伸びる。

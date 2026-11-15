@@ -16,7 +16,8 @@ import {
   abilitiesLabel,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
-  itemModifiersLabel,
+  itemEffectsLabel,
+  itemEffectView,
   itemRestrictionsLabel,
   lastingSpellEffectLabel,
   MATCH_END_REASON_LABELS,
@@ -938,7 +939,7 @@ function FrameView({
                               card.abilities.length > 0 &&
                               `・${abilitiesLabel(card.abilities)}`}
                             {card.category &&
-                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemModifiersLabel(card.attackModifier ?? 0, card.hitPointsModifier ?? 0)}`}
+                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemEffectsLabel((card.effects ?? []).map(itemEffectView))}`}
                             {card.__typename === "SpellCardInfo" &&
                               `・${spellEffectLabel(card.effect)}`}
                             ）

@@ -6,6 +6,7 @@ import {
 } from "./battle-lines";
 import {
   BATTLE_SCENES,
+  battleOnView,
   battleScene,
   type FrameBattleHighlight,
   type FrameBattleSide,
@@ -27,11 +28,6 @@ function Parts({ parts }: { parts: BattleLinePart[] }) {
 }
 
 const m = BATTLE_VIEW_MESSAGES;
-
-function itemLabel(item: string | null | undefined): string {
-  if (item === undefined) return m.notChosen;
-  return item ?? m.noItem;
-}
 
 function SideView({
   testId,
@@ -70,7 +66,7 @@ function SideView({
 export function BattleView({ frame }: { frame: MatchFrame }) {
   const scene = battleScene(frame);
   if (!scene) return null;
-  const { battle, invasion } = frame;
+  const battle = battleOnView(frame);
   return (
     <section data-testid="match-battle" style={{ marginTop: "0.5rem" }}>
       <h2 style={{ margin: "0 0 0.25rem" }}>{m.title}</h2>
@@ -99,7 +95,7 @@ export function BattleView({ frame }: { frame: MatchFrame }) {
           </strong>
         )}
       </p>
-      {battle ? (
+      {battle && (
         <div
           style={{
             display: "grid",
@@ -125,14 +121,6 @@ export function BattleView({ frame }: { frame: MatchFrame }) {
             highlight={battle.highlight}
           />
         </div>
-      ) : (
-        invasion && (
-          <p style={{ margin: "0.25rem 0 0" }}>
-            {m.attacker}: {invasion.card.name}（
-            {itemLabel(invasion.attackerItem)}） ／ {m.defender}:{" "}
-            {itemLabel(invasion.defenderItem)}
-          </p>
-        )
       )}
     </section>
   );

@@ -4,6 +4,7 @@ import type {
   CreatureAbilityKind,
   CreatureElement,
   ItemCategory,
+  ItemEffectKind,
   MatchEndReason,
   MatchParticipantKind,
   MatchPhase,
@@ -32,10 +33,17 @@ export type FrameCard = {
     maximum?: number;
   }[];
   category?: ItemCategory;
-  attackModifier?: number;
-  hitPointsModifier?: number;
+  // アイテムの効果（core の ItemEffect の並び）
+  effects?: FrameItemEffect[];
   // スペルの効果（効果なしは null）
   effect?: { __typename: string; count?: number } | null;
+};
+
+export type FrameItemEffect = {
+  kind: ItemEffectKind;
+  value?: number;
+  percent?: number;
+  constraints?: { elements?: CreatureElement[] }[];
 };
 
 export type FrameParticipant = {
@@ -92,12 +100,12 @@ export type FrameInvasion = {
 
 export type FrameBattleStats = { attack: number; hitPoints: number };
 
-// 戦闘の中で AT・HP を変えた発動 1 つ。出どころは支援効果・地形効果・アイテム（名前）・クリーチャーの能力（種類）
+// 戦闘の中で AT・HP を変えた発動 1 つ。出どころは支援効果・地形効果・アイテム（名前と効果の種類）・クリーチャーの能力（種類）
 export type FrameBattleModifier = {
   source:
     | { kind: "support" }
     | { kind: "terrain" }
-    | { kind: "item"; name: string }
+    | { kind: "item"; name: string; effect: ItemEffectKind }
     | { kind: "ability"; ability: CreatureAbilityKind };
   attackDelta: number;
   hitPointsDelta: number;
@@ -107,14 +115,16 @@ export type FrameBattleModifier = {
 // 今の AT・HP は core の値のまま持つ（計算しない。描画がイベントの過不足に気づく場になるように。game#98）
 export type FrameBattleSide = {
   name: string;
-  // 出したアイテムの名前（出さなかったら null）
-  item: string | null;
+  // 出したアイテムの名前（出さなかったら null、戦闘が始まる前でまだ選んでいなければ undefined）
+  item: string | null | undefined;
   initial: FrameBattleStats;
   modifiers: FrameBattleModifier[];
   // 発動で得た状態（先制・後手・攻撃無効）
   states: CreatureAbilityKind[];
   // 攻撃で受けたダメージ（受けた順）
   damages: number[];
+  // 相手の効果「地形効果を無視する」で、地形効果の分を数えなくなったか（core の BattleCreature.TerrainEffectIgnored。core#177）
+  terrainIgnored: boolean;
   current: FrameBattleStats;
 };
 
@@ -125,6 +135,7 @@ export type FrameBattleHighlight =
       part: "modifier" | "damage" | "state";
       index: number;
     }
+  | { side: "ATTACKER" | "DEFENDER"; part: "terrainIgnored" }
   | { side: "ATTACKER" | "DEFENDER"; part: "item" }
   | { part: "result" };
 
@@ -217,6 +228,15 @@ export type PlayEvent = {
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
   ability?: CreatureAbilityKind;
+  // アイテムの効果の発動で、発動したカードの効果
+  cardEffect?: FrameItemEffect;
+  // 地形効果を無視するの、相手の増減と当てた後の値
+  opponentChange?: {
+    attackDelta: number;
+    hitPointsDelta: number;
+    attack: number;
+    hitPoints: number;
+  } | null;
   damage?: number;
   change?: {
     attackDelta: number;
@@ -245,7 +265,7 @@ const BATTLE_EVENTS = new Set([
   "MatchBattleSupportEffectActivatedEvent",
   "MatchBattleTerrainEffectActivatedEvent",
   "MatchBattleCreatureAbilityActivatedEvent",
-  "MatchBattleItemAbilityActivatedEvent",
+  "MatchBattleItemEffectActivatedEvent",
   "MatchCreatureStruckEvent",
   "MatchTerritoryConqueredEvent",
   "MatchInvasionRepelledEvent",
@@ -683,6 +703,7 @@ function applyFact(
         modifiers: [],
         states: [],
         damages: [],
+        terrainIgnored: false,
         current: initial,
       });
       return {
@@ -705,13 +726,35 @@ function applyFact(
       return withBattleModifier(frame, "ATTACKER", { kind: "support" }, event);
     case "MatchBattleTerrainEffectActivatedEvent":
       return withBattleModifier(frame, "DEFENDER", { kind: "terrain" }, event);
-    case "MatchBattleItemAbilityActivatedEvent":
+    case "MatchBattleItemEffectActivatedEvent": {
+      const effect = event.cardEffect;
+      if (!effect) return frame;
+      const owner = event.side ?? "ATTACKER";
+      if (effect.kind === "IGNORE_TERRAIN_EFFECT") {
+        // 無視されるのは相手の地形効果なので、相手の側を変える。今の値は core の値のまま
+        const opponent = owner === "DEFENDER" ? "ATTACKER" : "DEFENDER";
+        const { opponentChange } = event;
+        return withHighlight(
+          updateBattleSide(frame, opponent, (side) => ({
+            ...side,
+            terrainIgnored: true,
+            current: opponentChange
+              ? {
+                  attack: opponentChange.attack,
+                  hitPoints: opponentChange.hitPoints,
+                }
+              : side.current,
+          })),
+          { side: opponent, part: "terrainIgnored" },
+        );
+      }
       return withBattleModifier(
         frame,
-        event.side ?? "ATTACKER",
-        { kind: "item", name: event.card?.name ?? "" },
+        owner,
+        { kind: "item", name: event.card?.name ?? "", effect: effect.kind },
         event,
       );
+    }
     case "MatchBattleCreatureAbilityActivatedEvent": {
       const { ability } = event;
       if (!ability) return frame;
@@ -1062,6 +1105,46 @@ export const BATTLE_SCENES: BattleScene[] = [
 ];
 
 // 今のシーン（侵略していなければ null）
+// 戦闘の欄に出す両方の側。戦闘が始まる前（アイテムを選ぶ間）も、侵略したクリーチャーと領地のクリーチャーを出す
+// （侵略した時点から誰と誰が戦うかを見せるため。2026-11-15 オーナー。game#99）。始まる前の値は、侵略したクリーチャーの
+// カードの AT と今の HP、領地のクリーチャーのカードの AT と今の HP で、始まった後は core の値（MatchBattleStartedEvent）
+export function battleOnView(frame: MatchFrame): FrameBattle | null {
+  if (frame.battle) return frame.battle;
+  const { invasion } = frame;
+  if (!invasion) return null;
+  const defending = territoryAt(frame, invasion.position);
+  const side = (
+    name: string,
+    item: string | null | undefined,
+    initial: FrameBattleStats,
+  ): FrameBattleSide => ({
+    name,
+    item,
+    initial,
+    modifiers: [],
+    states: [],
+    damages: [],
+    terrainIgnored: false,
+    current: initial,
+  });
+  return {
+    attacker: side(invasion.card.name, invasion.attackerItem, {
+      attack: invasion.card.attack ?? 0,
+      hitPoints: invasion.hitPoints,
+    }),
+    defender: side(defending?.creature.card.name ?? "", invasion.defenderItem, {
+      attack: defending?.creature.card.attack ?? 0,
+      hitPoints: defending?.creature.hitPoints ?? 0,
+    }),
+    firstStriker: null,
+    strikes: 0,
+    result: null,
+    highlight: invasion.chosenBy
+      ? { side: invasion.chosenBy, part: "item" }
+      : null,
+  };
+}
+
 export function battleScene(frame: MatchFrame): BattleScene | null {
   const { battle } = frame;
   if (battle) {

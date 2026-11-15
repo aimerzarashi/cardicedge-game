@@ -181,17 +181,37 @@ describe("eventLine", () => {
       { attackDelta: 0, hitPointsDelta: 20, attack: 20, hitPoints: 60 },
     ],
     [
-      "アイテムで HP が 0（下限で止まった）",
+      "アイテムの HP の増減で HP が 0（下限で止まった）",
       {
-        __typename: "MatchBattleItemAbilityActivatedEvent",
+        __typename: "MatchBattleItemEffectActivatedEvent",
         side: "ATTACKER",
-        ability: "BATTLE_MODIFIER",
         card: { name: "呪いの指輪" },
-        attackModifier: 0,
-        hitPointsModifier: -99,
+        cardEffect: { kind: "HIT_POINTS_MODIFIER", value: -99 },
       },
-      "攻める側にアイテム「呪いの指輪」: HP -99（-40 で止まった） → AT 30・HP 0（破壊された）",
+      "攻める側にアイテム「呪いの指輪」の効果「HP の増減」が発動（HP -99（-40 で止まった） → AT 30・HP 0（破壊された））",
       { attackDelta: 0, hitPointsDelta: -40, attack: 30, hitPoints: 0 },
+    ],
+    [
+      "アイテムの AT の上書き",
+      {
+        __typename: "MatchBattleItemEffectActivatedEvent",
+        side: "ATTACKER",
+        card: { name: "アクアブラスト" },
+        cardEffect: { kind: "ATTACK_OVERRIDE", value: 30 },
+      },
+      "攻める側にアイテム「アクアブラスト」の効果「AT の上書き」が発動（AT を 30 に: AT +10 → AT 30・HP 40）",
+      { attackDelta: 10, hitPointsDelta: 0, attack: 30, hitPoints: 40 },
+    ],
+    [
+      "アイテムの強打",
+      {
+        __typename: "MatchBattleItemEffectActivatedEvent",
+        side: "DEFENDER",
+        card: { name: "ファイアダガー" },
+        cardEffect: { kind: "ATTACK_MULTIPLIER", percent: 150 },
+      },
+      "守る側にアイテム「ファイアダガー」の効果「強打」が発動（150%: AT +17 → AT 52・HP 40）",
+      { attackDelta: 17, hitPointsDelta: 0, attack: 52, hitPoints: 40 },
     ],
     [
       "クリーチャーの能力",
@@ -264,6 +284,28 @@ describe("eventLine", () => {
       );
     });
   }
+
+  it("地形効果を無視するのイベントは、相手の HP が地形効果の分を除いた値になることを出す", () => {
+    assert.equal(
+      eventLine(
+        event(22, {
+          __typename: "MatchBattleItemEffectActivatedEvent",
+          side: "ATTACKER",
+          card: { name: "ストーンバレット" },
+          cardEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
+          change: null,
+          opponentChange: {
+            attackDelta: 0,
+            hitPointsDelta: -20,
+            attack: 10,
+            hitPoints: 40,
+          },
+        }),
+        names,
+      ),
+      "版 22 攻める側にアイテム「ストーンバレット」の効果「地形効果を無視する」が発動（守る側の地形効果の分を除く: HP -20 → AT 10・HP 40）",
+    );
+  });
 
   it("能力の発動のイベントは、どちらの側の何の能力かを出す", () => {
     assert.equal(

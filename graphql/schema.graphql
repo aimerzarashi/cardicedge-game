@@ -1526,6 +1526,49 @@ type InvadeMatchTerritorySuccess {
 	revision: Int!
 }
 """
+AT の増減
+"""
+type ItemAttackModifierEffect implements ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+	"""
+	増減の値（負は下げる）
+	"""
+	value: Int!
+}
+"""
+AT の倍率
+"""
+type ItemAttackMultiplierEffect implements ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+	"""
+	倍率（百分率。150 で 1.5 倍）
+	"""
+	percent: Int!
+	"""
+	発動する制約（すべてを満たすときに発動する。無ければ空でいつも発動する）
+	"""
+	constraints: [ItemConstraint!]!
+}
+"""
+AT の上書き
+"""
+type ItemAttackOverrideEffect implements ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+	"""
+	上書きした後の AT
+	"""
+	value: Int!
+}
+"""
 アイテム
 """
 type ItemCardInfo implements CardInfo {
@@ -1550,13 +1593,9 @@ type ItemCardInfo implements CardInfo {
 	"""
 	category: ItemCategory!
 	"""
-	戦闘中に足す攻撃力（負は下げる）
+	効果の並び（並びの順に当てる。無ければ空）
 	"""
-	attackModifier: Int!
-	"""
-	戦闘中に足す体力（負は下げる）
-	"""
-	hitPointsModifier: Int!
+	effects: [ItemEffect!]!
 }
 """
 アイテムの分類
@@ -1574,6 +1613,93 @@ enum ItemCategory {
 	巻物
 	"""
 	SCROLL
+}
+"""
+効果の制約（種類ごとの型）
+"""
+interface ItemConstraint {
+	"""
+	制約の種類
+	"""
+	kind: ItemConstraintKind!
+}
+"""
+効果の制約の種類
+"""
+enum ItemConstraintKind {
+	"""
+	相手の属性（戦う相手のクリーチャーの属性のどれかが合うとき）
+	"""
+	OPPONENT_ELEMENT
+}
+"""
+アイテムの効果（種類ごとの型）
+"""
+interface ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+}
+"""
+アイテムの効果の種類
+"""
+enum ItemEffectKind {
+	"""
+	AT の増減（戦闘中、AT が決まった値だけ増減する）
+	"""
+	ATTACK_MODIFIER
+	"""
+	HP の増減（戦闘中、HP が決まった値だけ増減する）
+	"""
+	HIT_POINTS_MODIFIER
+	"""
+	AT の上書き（戦闘中、AT が決まった値になる）
+	"""
+	ATTACK_OVERRIDE
+	"""
+	AT の倍率（制約を満たすとき、増減・上書きの後に AT に倍率を掛ける。発動したうち一番高い倍率を 1 回だけ）
+	"""
+	ATTACK_MULTIPLIER
+	"""
+	地形効果を無視する（相手の地形効果を無視してダメージを与える）
+	"""
+	IGNORE_TERRAIN_EFFECT
+}
+"""
+HP の増減
+"""
+type ItemHitPointsModifierEffect implements ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+	"""
+	増減の値（負は下げる）
+	"""
+	value: Int!
+}
+"""
+地形効果を無視する
+"""
+type ItemIgnoreTerrainEffect implements ItemEffect {
+	"""
+	効果の種類
+	"""
+	kind: ItemEffectKind!
+}
+"""
+相手の属性の制約
+"""
+type ItemOpponentElementConstraint implements ItemConstraint {
+	"""
+	制約の種類
+	"""
+	kind: ItemConstraintKind!
+	"""
+	合えば満たす相手の属性（火・地・水・風・無の順）
+	"""
+	elements: [CreatureElement!]!
 }
 """
 土地（ふつうのマス）
@@ -1800,9 +1926,9 @@ type MatchBattleCreatureAbilityActivatedEvent implements MatchEvent {
 	battleRandomStats: MatchBattleRandomStatsBasis
 }
 """
-出したアイテムの能力が発動した（今のアイテムの AT・HP の増減は、能力「戦闘中の増減」として増減が 0 でも出る。巻物は効かないので出ない）
+出したアイテムの効果が発動した（増減・上書きは増減が 0 でも出る。倍率は掛けたものだけ、地形効果を無視するは相手に地形効果があるときだけ出る）
 """
-type MatchBattleItemAbilityActivatedEvent implements MatchEvent {
+type MatchBattleItemEffectActivatedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -1820,25 +1946,21 @@ type MatchBattleItemAbilityActivatedEvent implements MatchEvent {
 	"""
 	side: MatchBattleSide!
 	"""
-	発動した能力（今は BATTLE_MODIFIER だけ）
-	"""
-	ability: CreatureAbilityKind!
-	"""
 	アイテムのカード（性能は対戦を始めたときの写し）
 	"""
 	card: CardInfo!
 	"""
-	アイテムの決まった AT の増減（下限で止まる前の値）
+	発動したカードの効果（種類と、下限で止まる前の値。倍率は制約を満たす一番高いもの）
 	"""
-	attackModifier: Int!
+	cardEffect: ItemEffect!
 	"""
-	アイテムの決まった HP の増減（下限で止まる前の値）
-	"""
-	hitPointsModifier: Int!
-	"""
-	増減と当てた後の値
+	アイテムを出した側の増減と当てた後の値（AT・HP を変える効果のときだけ。地形効果を無視するは null）
 	"""
 	change: MatchBattleStatChange
+	"""
+	相手の増減と当てた後の値（地形効果を無視するときだけ。相手の HP が地形効果の分を除いた値になる。ほかは null）
+	"""
+	opponentChange: MatchBattleStatChange
 }
 """
 戦闘中の増減の決まった値

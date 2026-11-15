@@ -6,6 +6,7 @@ import type {
   CreatureAbilityKind,
   CreatureElement,
   ItemCategory,
+  ItemEffectKind,
   MatchEndReason,
   MatchPhase,
   RoomStatus,
@@ -104,6 +105,68 @@ export function itemModifiersLabel(
     ...(hitPointsModifier !== 0 ? [`HP ${signed(hitPointsModifier)}`] : []),
   ];
   return parts.length > 0 ? parts.join("・") : "増減なし";
+}
+
+// アイテムの効果の画面のラベル。「強打」は AT の倍率の画面のラベル（2026-11-14 オーナー。core#177）。
+// Record<ItemEffectKind, …> にするのは、core に効果が足されたときの足し忘れを型検査で見つけるため
+export const ITEM_EFFECT_LABELS: Record<ItemEffectKind, string> = {
+  ATTACK_MODIFIER: "AT の増減",
+  HIT_POINTS_MODIFIER: "HP の増減",
+  ATTACK_OVERRIDE: "AT の上書き",
+  ATTACK_MULTIPLIER: "強打",
+  IGNORE_TERRAIN_EFFECT: "地形効果を無視する",
+};
+
+// core が返したアイテムの効果 1 つ（値の要る効果だけが値を持つ。制約は今は相手の属性だけ）
+export type ItemEffectView = {
+  kind: ItemEffectKind;
+  value?: number;
+  percent?: number;
+  opponentElements?: CreatureElement[];
+};
+
+// core の効果の型（種類は __typename）から、表示の形にする
+export function itemEffectView(effect: {
+  kind: ItemEffectKind;
+  value?: number;
+  percent?: number;
+  constraints?: readonly { elements?: CreatureElement[] }[];
+}): ItemEffectView {
+  return {
+    kind: effect.kind,
+    value: effect.value,
+    percent: effect.percent,
+    opponentElements: effect.constraints?.flatMap(
+      ({ elements }) => elements ?? [],
+    ),
+  };
+}
+
+// 効果 1 つの表示（例: AT +25、AT を 30 に上書き、強打 150%（相手が水）、地形効果を無視する）
+export function itemEffectLabel(effect: ItemEffectView): string {
+  switch (effect.kind) {
+    case "ATTACK_MODIFIER":
+      return `AT ${signed(effect.value ?? 0)}`;
+    case "HIT_POINTS_MODIFIER":
+      return `HP ${signed(effect.value ?? 0)}`;
+    case "ATTACK_OVERRIDE":
+      return `AT を ${effect.value ?? 0} に上書き`;
+    case "ATTACK_MULTIPLIER": {
+      const elements = effect.opponentElements ?? [];
+      return elements.length === 0
+        ? `強打 ${effect.percent ?? 0}%`
+        : `強打 ${effect.percent ?? 0}%（相手が${elementsLabel(elements)}）`;
+    }
+    case "IGNORE_TERRAIN_EFFECT":
+      return "地形効果を無視する";
+  }
+}
+
+// アイテムの効果の表示（core が返した並びのまま。無ければ「効果なし」）
+export function itemEffectsLabel(effects: readonly ItemEffectView[]): string {
+  return effects.length === 0
+    ? "効果なし"
+    : effects.map(itemEffectLabel).join("・");
 }
 
 // 戦闘の増減の行の、決まった増減（modifier）と実際の増減（delta）。下限の 0 で止まって違うときだけ実際の量を添える
@@ -495,7 +558,12 @@ export const BATTLE_VIEW_MESSAGES = {
   stats: (attack: number, hitPoints: number) => `AT ${attack}・HP ${hitPoints}`,
   supportSource: "支援効果",
   terrainSource: "地形効果",
-  itemSource: (name: string) => `アイテム「${name}」`,
+  // 増減の効果は名前だけ、ほかの効果（上書き・強打）は効果の名前も添える
+  itemSource: (name: string, effect: ItemEffectKind) =>
+    effect === "ATTACK_MODIFIER" || effect === "HIT_POINTS_MODIFIER"
+      ? `アイテム「${name}」`
+      : `アイテム「${name}」の${ITEM_EFFECT_LABELS[effect]}`,
+  ignoredSuffix: "（無視された）",
   abilitySource: (ability: string) => `能力「${ability}」`,
   firstMark: "（先攻）",
   conquered: "攻める側が奪った",
@@ -583,6 +651,33 @@ export const MATCH_EVENT_MESSAGES = {
   terrainSource: (element: string, level: number, bonusPerLevel: number) =>
     `地形効果（${element}属性 レベル ${level} × HP +${bonusPerLevel}）`,
   itemSource: (card: string) => `アイテム「${card}」`,
+  // アイテムの効果の発動。能力の発動と同じ「〈どこに〉〈何〉が発動（〈具体的な効果〉）」の形にそろえる（core#177）
+  itemEffectActivated: (
+    target: string,
+    card: string,
+    effect: string,
+    detail: string,
+  ) => `${target}アイテム「${card}」の効果「${effect}」が発動（${detail}）`,
+  attackOverrideEffect: (
+    value: number,
+    change: string,
+    attack: number,
+    hitPoints: number,
+  ) => `AT を ${value} に: ${battleStatChange(change, attack, hitPoints)}`,
+  attackMultiplierEffect: (
+    percent: number,
+    change: string,
+    attack: number,
+    hitPoints: number,
+  ) => `${percent}%: ${battleStatChange(change, attack, hitPoints)}`,
+  // 相手の HP が地形効果の分を除いた値になる（地形効果は発動したまま、この攻撃では無視される）
+  ignoreTerrainEffect: (
+    opponent: string,
+    change: string,
+    attack: number,
+    hitPoints: number,
+  ) =>
+    `${opponent}の地形効果の分を除く: ${battleStatChange(change, attack, hitPoints)}`,
   battleAttacker: "攻める側",
   battleDefender: "守る側",
   territoryConquered: (x: number, y: number) => `(${x}, ${y}) を奪った`,
