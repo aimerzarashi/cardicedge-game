@@ -1356,7 +1356,7 @@ export const matchDebugEventsQuery = graphql(`
             damage
             remainingHitPoints
           }
-          ... on MatchTerritoryConqueredEvent {
+          ... on MatchInvasionSucceededEvent {
             participant
             position {
               x
@@ -1365,7 +1365,7 @@ export const matchDebugEventsQuery = graphql(`
             creature
             territoryHitPoints
           }
-          ... on MatchInvasionRepelledEvent {
+          ... on MatchInvasionFailedEvent {
             participant
             territoryHitPoints
             returnedTo {
@@ -1494,7 +1494,7 @@ export const matchDebugEventsQuery = graphql(`
             }
             returnedToHand
           }
-          ... on MatchTollMultiplierActivatedEvent {
+          ... on MatchTollCreatureEffectActivatedEvent {
             position {
               x
               y
@@ -1512,7 +1512,7 @@ export const matchDebugEventsQuery = graphql(`
             }
             magic
           }
-          ... on MatchTerritoryLeveledUpEvent {
+          ... on MatchLandLeveledUpEvent {
             participant
             position {
               x
@@ -1974,13 +1974,47 @@ export const matchDebugEventsQuery = graphql(`
             damage
             remainingHitPoints
           }
-          ... on MatchCreatureDestroyedEvent {
+          ... on MatchBoardCreatureDestroyedEvent {
             participant
             position {
               x
               y
             }
-            creature
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+            }
+          }
+          ... on MatchInvadingCreatureDestroyedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+            }
+          }
+          ... on MatchDefendingCreatureDestroyedEvent {
+            participant
+            position {
+              x
+              y
+            }
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+            }
           }
           ... on MatchMagicGainedEvent {
             participant
@@ -1988,7 +2022,7 @@ export const matchDebugEventsQuery = graphql(`
             laps
             magicPerLap
           }
-          ... on MatchMovedEvent {
+          ... on MatchPieceMovedEvent {
             participant
             to {
               x

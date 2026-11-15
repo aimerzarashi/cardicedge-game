@@ -246,8 +246,8 @@ export type PlayEvent = {
 const DEFAULT_DURATION_MS = 300;
 const NO_DRAWING_EVENTS = new Set([
   "MatchCreatedEvent",
-  "MatchDecksShuffledEvent",
-  "MatchRewardsCompletedEvent",
+  "MatchDrawPilesShuffledEvent",
+  "MatchAllRewardsReceivedEvent",
 ]);
 
 // 戦闘の出来事は、効果の積み上げと攻撃を目で追えるよう長く見せる（2026-11-14 オーナー。game#98）
@@ -259,8 +259,10 @@ const BATTLE_EVENTS = new Set([
   "MatchBattleCreatureEffectActivatedEvent",
   "MatchBattleItemEffectActivatedEvent",
   "MatchCreatureStruckEvent",
-  "MatchTerritoryConqueredEvent",
-  "MatchInvasionRepelledEvent",
+  "MatchInvadingCreatureDestroyedEvent",
+  "MatchDefendingCreatureDestroyedEvent",
+  "MatchInvasionSucceededEvent",
+  "MatchInvasionFailedEvent",
 ]);
 
 export function eventDurationMs(event: PlayEvent): number {
@@ -359,7 +361,8 @@ function nextTurn(frame: MatchFrame, seat: number): MatchFrame {
   };
 }
 
-// 奪った後の盤面。移動で侵略したクリーチャーは同じ 1 体のまま移り、元の土地は空き地になる
+// 奪った後の盤面。守るクリーチャーは直前の破壊で領地から外れているので、空いた土地に領地を足す（core#181）。
+// 移動で侵略したクリーチャーは同じ 1 体のまま移り、元の土地は空き地になる
 function conquered(
   frame: MatchFrame,
   event: PlayEvent,
@@ -374,46 +377,81 @@ function conquered(
     const mover = frame.territories.find((territory) =>
       samePosition(territory.position, origin),
     );
+    if (!mover) return frame;
     return {
       ...frame,
       invasion: null,
       battle: withResult(frame.battle, "conquered"),
-      territories: frame.territories
-        .filter((territory) => !samePosition(territory.position, origin))
-        .map((territory) =>
-          samePosition(territory.position, position) && mover
-            ? {
-                ...territory,
-                owner: seat,
-                creature: {
-                  ...mover.creature,
-                  hitPoints: event.territoryHitPoints ?? 0,
-                },
-              }
-            : territory,
+      territories: [
+        ...frame.territories.filter(
+          (territory) => !samePosition(territory.position, origin),
         ),
+        newTerritory(frame, position, seat, {
+          ...mover.creature,
+          hitPoints: event.territoryHitPoints ?? 0,
+        }),
+      ],
     };
   }
   return {
     ...frame,
     invasion: null,
     battle: withResult(frame.battle, "conquered"),
-    territories: frame.territories.map((territory) =>
-      samePosition(territory.position, position)
-        ? {
-            ...territory,
-            owner: seat,
-            creature: {
-              id: creature,
-              hitPoints: event.territoryHitPoints ?? 0,
-              card: {
-                id: invasion.card.id,
-                name: invasion.card.name,
-                attack: invasion.card.attack ?? 0,
-              },
-            },
-          }
-        : territory,
+    territories: [
+      ...frame.territories,
+      newTerritory(frame, position, seat, {
+        id: creature,
+        hitPoints: event.territoryHitPoints ?? 0,
+        card: {
+          id: invasion.card.id,
+          name: invasion.card.name,
+          attack: invasion.card.attack ?? 0,
+        },
+      }),
+    ],
+  };
+}
+
+// 空き地に入った領地。レベルは土地に残っていたものを引き継ぎ、価値と通行料は続けて当てる changes の値で決まる
+function newTerritory(
+  frame: MatchFrame,
+  position: Position,
+  owner: number,
+  creature: FrameTerritory["creature"],
+): FrameTerritory {
+  return {
+    position,
+    owner,
+    level: landLevelAt(frame, position),
+    value: 0,
+    toll: 0,
+    creature,
+  };
+}
+
+// 領地のクリーチャーが破壊された後の盤面。持ち主の捨て札に入り、土地は空く（レベルは土地に残る）
+function territoryCreatureDestroyed(
+  frame: MatchFrame,
+  position: Position | undefined,
+): MatchFrame {
+  const destroyed = territoryAt(frame, position);
+  if (!destroyed) return frame;
+  const discardedFrame = discarded(
+    frame,
+    destroyed.owner,
+    destroyed.creature.card,
+  );
+  return {
+    ...discardedFrame,
+    // レベルは土地に残るので、次に入るクリーチャーが引き継げるよう landLevels に残す
+    landLevels: [
+      ...discardedFrame.landLevels.filter(
+        (land) => !samePosition(land.position, destroyed.position),
+      ),
+      { position: destroyed.position, level: destroyed.level },
+    ],
+    territories: discardedFrame.territories.filter(
+      (territory) => !samePosition(territory.position, destroyed.position),
     ),
   };
 }
@@ -530,7 +568,7 @@ function applyFact(
         diceFaces: event.dice ?? [],
         remainingSteps: event.value ?? 0,
       };
-    case "MatchMovedEvent": {
+    case "MatchPieceMovedEvent": {
       const to = event.to;
       if (!to) return frame;
       return {
@@ -627,22 +665,8 @@ function applyFact(
         ),
       };
     }
-    case "MatchCreatureDestroyedEvent": {
-      // 破壊されたクリーチャーは持ち主の捨て札に入り、土地は空く（レベルは土地に残る）
-      const destroyed = territoryAt(frame, event.position);
-      if (!destroyed) return frame;
-      const discardedFrame = discarded(
-        frame,
-        destroyed.owner,
-        destroyed.creature.card,
-      );
-      return {
-        ...discardedFrame,
-        territories: discardedFrame.territories.filter(
-          (territory) => !samePosition(territory.position, destroyed.position),
-        ),
-      };
-    }
+    case "MatchBoardCreatureDestroyedEvent":
+      return territoryCreatureDestroyed(frame, event.position);
     case "MatchSpellEffectEndedEvent":
       return updateParticipant(frame, seat, (participant) => ({
         ...participant,
@@ -803,16 +827,17 @@ function applyFact(
         },
       };
     }
-    case "MatchTerritoryConqueredEvent": {
-      const { position, creature } = event;
-      const defeated = territoryAt(frame, position);
-      // 倒されたクリーチャーは持ち主の捨て札に入る
-      const frameWithDefeated = defeated
-        ? discarded(frame, defeated.owner, defeated.creature.card)
-        : frame;
-      return conquered(frameWithDefeated, event, seat, position, creature);
+    case "MatchDefendingCreatureDestroyedEvent":
+      return territoryCreatureDestroyed(frame, event.position);
+    case "MatchInvadingCreatureDestroyedEvent": {
+      // 侵略したクリーチャーは今の番の人の捨て札に入る。移動で侵略していたら元の土地が空く
+      const origin = frame.invasion?.from;
+      if (origin) return territoryCreatureDestroyed(frame, origin);
+      return discarded(frame, seat, frame.invasion?.card);
     }
-    case "MatchInvasionRepelledEvent": {
+    case "MatchInvasionSucceededEvent":
+      return conquered(frame, event, seat, event.position, event.creature);
+    case "MatchInvasionFailedEvent": {
       const { card, position } = event;
       const cleared = {
         ...frame,
@@ -832,21 +857,9 @@ function applyFact(
       };
       const origin = frame.invasion?.from;
       if (origin) {
-        // 移動で侵略したときは、生き残れば元の領地に戻り（傷は残る）、倒れれば元の土地が空き地になり、捨て札に入る
+        // 移動で侵略したときは、生き残れば元の領地に戻る（傷は残る）。倒れていれば直前の破壊で元の土地は空いている
         const { returnedTo, returnedHitPoints } = event;
-        if (!returnedTo) {
-          const destroyed = discarded(
-            cleared,
-            seat,
-            territoryAt(frame, origin)?.creature.card,
-          );
-          return {
-            ...destroyed,
-            territories: destroyed.territories.filter(
-              (territory) => !samePosition(territory.position, origin),
-            ),
-          };
-        }
+        if (!returnedTo) return cleared;
         return {
           ...cleared,
           territories: cleared.territories.map((territory) =>
@@ -862,8 +875,8 @@ function applyFact(
           ),
         };
       }
-      if (!card) return cleared;
-      if (!event.returnedToHand) return discarded(cleared, seat, card);
+      // 倒れていれば、直前の破壊で捨て札に入っている
+      if (!card || !event.returnedToHand) return cleared;
       return updateParticipant(cleared, seat, (participant) => ({
         ...participant,
         hand: [...participant.hand, card],
@@ -879,7 +892,7 @@ function applyFact(
         magic: participant.magic + magic,
       }));
     }
-    case "MatchTerritoryLeveledUpEvent": {
+    case "MatchLandLeveledUpEvent": {
       const { position, level } = event;
       if (!position || level === undefined) return frame;
       const paid = updateParticipant(frame, seat, (participant) => ({
