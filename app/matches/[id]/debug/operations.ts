@@ -200,8 +200,28 @@ export const matchDebugQuery = graphql(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -328,8 +348,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -411,8 +451,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -473,8 +533,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -541,8 +621,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -611,8 +711,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -696,9 +816,8 @@ export const matchDebugEventsQuery = graphql(`
               maximum
             }
           }
-          ... on MatchBattleItemAbilityActivatedEvent {
+          ... on MatchBattleItemEffectActivatedEvent {
             side
-            ability
             card {
               __typename
               id
@@ -731,8 +850,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -757,8 +896,34 @@ export const matchDebugEventsQuery = graphql(`
                 }
               }
             }
-            attackModifier
-            hitPointsModifier
+            cardEffect {
+              __typename
+              kind
+              ... on ItemAttackModifierEffect {
+                value
+              }
+              ... on ItemHitPointsModifierEffect {
+                value
+              }
+              ... on ItemAttackOverrideEffect {
+                value
+              }
+              ... on ItemAttackMultiplierEffect {
+                percent
+                constraints {
+                  kind
+                  ... on ItemOpponentElementConstraint {
+                    elements
+                  }
+                }
+              }
+            }
+            opponentChange {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
             change {
               attackDelta
               hitPointsDelta
@@ -825,8 +990,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -935,8 +1120,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -1015,8 +1220,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {
@@ -1075,8 +1300,28 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on ItemCardInfo {
                 category
-                attackModifier
-                hitPointsModifier
+                effects {
+                  __typename
+                  kind
+                  ... on ItemAttackModifierEffect {
+                    value
+                  }
+                  ... on ItemHitPointsModifierEffect {
+                    value
+                  }
+                  ... on ItemAttackOverrideEffect {
+                    value
+                  }
+                  ... on ItemAttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on ItemOpponentElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                }
               }
               ... on SpellCardInfo {
                 effect {

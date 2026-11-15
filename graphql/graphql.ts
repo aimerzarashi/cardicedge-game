@@ -277,6 +277,24 @@ export type ItemCategory =
   /** 武器 */
   | 'WEAPON';
 
+/** 効果の制約の種類 */
+export type ItemConstraintKind =
+  /** 相手の属性（戦う相手のクリーチャーの属性のどれかが合うとき） */
+  | 'OPPONENT_ELEMENT';
+
+/** アイテムの効果の種類 */
+export type ItemEffectKind =
+  /** AT の増減（戦闘中、AT が決まった値だけ増減する） */
+  | 'ATTACK_MODIFIER'
+  /** AT の倍率（制約を満たすとき、増減・上書きの後に AT に倍率を掛ける。発動したうち一番高い倍率を 1 回だけ） */
+  | 'ATTACK_MULTIPLIER'
+  /** AT の上書き（戦闘中、AT が決まった値になる） */
+  | 'ATTACK_OVERRIDE'
+  /** HP の増減（戦闘中、HP が決まった値だけ増減する） */
+  | 'HIT_POINTS_MODIFIER'
+  /** 地形効果を無視する（相手の地形効果を無視してダメージを与える） */
+  | 'IGNORE_TERRAIN_EFFECT';
+
 /** 通った自分の領地のレベルを上げる入力 */
 export type LevelUpMatchTerritoryInput = {
   /** 対戦の公開用の ID */
@@ -545,7 +563,13 @@ export type CardQuery = { card:
         | { kind: CreatureAbilityKind }
         | { percent: number, kind: CreatureAbilityKind }
       > }
-    | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, attackModifier: number, hitPointsModifier: number }
+    | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, effects: Array<
+        | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+        | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+        | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+        | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+        | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+      > }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
         | { __typename: 'DamageSpellEffect', amount: number }
@@ -623,7 +647,13 @@ export type MatchDebugQuery = { match:
               | { kind: CreatureAbilityKind }
               | { percent: number, kind: CreatureAbilityKind }
             > }
-          | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+              | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+              | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+              | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+              | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+              | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+            > }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
               | { __typename: 'DamageSpellEffect', amount: number }
               | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -659,7 +689,7 @@ export type MatchDebugEventsQueryVariables = Exact<{
 export type MatchDebugEventsQuery = { matchEvents:
     | { __typename: 'MatchEventList', events: Array<
         | { __typename: 'MatchBattleCreatureAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, revision: number, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, battleModifier: { attackModifier: number, hitPointsModifier: number } | null, battleRandomStats: { minimum: number, maximum: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchBattleItemAbilityActivatedEvent', side: MatchBattleSide, ability: CreatureAbilityKind, attackModifier: number, hitPointsModifier: number, revision: number, card:
+        | { __typename: 'MatchBattleItemEffectActivatedEvent', side: MatchBattleSide, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<CreatureElement>, id: string, name: string, cost: number, rarity: CardRarity, abilities: Array<
                 | { elements: Array<CreatureElement>, kind: CreatureAbilityKind }
                 | { attackModifier: number, hitPointsModifier: number, kind: CreatureAbilityKind }
@@ -669,7 +699,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -677,7 +713,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'GainMagicSpellEffect', perLap: number }
                 | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
                | null }
-          , change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+          , cardEffect:
+            | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+            | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+            | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+            | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+            | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+          , opponentChange: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleStartedEvent', revision: number, attacker: { attack: number, hitPoints: number }, defender: { attack: number, hitPoints: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleSupportEffectActivatedEvent', side: MatchBattleSide, bonusPerTerritory: number, revision: number, positions: Array<{ x: number, y: number }>, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleTerrainEffectActivatedEvent', side: MatchBattleSide, element: BoardTileElement, level: number, bonusPerLevel: number, revision: number, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
@@ -691,7 +733,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -710,7 +758,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -733,7 +787,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -751,7 +811,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -771,7 +837,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -803,7 +875,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -823,7 +901,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -867,7 +951,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -890,7 +980,13 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { kind: CreatureAbilityKind }
                 | { percent: number, kind: CreatureAbilityKind }
               > }
-            | { __typename: 'ItemCardInfo', category: ItemCategory, attackModifier: number, hitPointsModifier: number, id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'ItemAttackModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemAttackMultiplierEffect', percent: number, kind: ItemEffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: ItemConstraintKind }> }
+                | { __typename: 'ItemAttackOverrideEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemHitPointsModifierEffect', value: number, kind: ItemEffectKind }
+                | { __typename: 'ItemIgnoreTerrainEffect', kind: ItemEffectKind }
+              > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
                 | { __typename: 'DrawCardsSpellEffect', count: number }
@@ -1535,7 +1631,7 @@ export type RoomMatchQueryVariables = Exact<{
 
 export type RoomMatchQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', match: { id: string } | null }
+    | { __typename: 'Room', status: RoomStatus, match: { id: string } | null }
     | { __typename: 'RoomNotFoundError' }
    };
 
@@ -1745,8 +1841,28 @@ export const CardDocument = new TypedDocumentString(`
     }
     ... on ItemCardInfo {
       category
-      attackModifier
-      hitPointsModifier
+      effects {
+        __typename
+        kind
+        ... on ItemAttackModifierEffect {
+          value
+        }
+        ... on ItemHitPointsModifierEffect {
+          value
+        }
+        ... on ItemAttackOverrideEffect {
+          value
+        }
+        ... on ItemAttackMultiplierEffect {
+          percent
+          constraints {
+            kind
+            ... on ItemOpponentElementConstraint {
+              elements
+            }
+          }
+        }
+      }
     }
     ... on SpellCardInfo {
       effect {
@@ -2043,8 +2159,28 @@ export const MatchDebugDocument = new TypedDocumentString(`
           }
           ... on ItemCardInfo {
             category
-            attackModifier
-            hitPointsModifier
+            effects {
+              __typename
+              kind
+              ... on ItemAttackModifierEffect {
+                value
+              }
+              ... on ItemHitPointsModifierEffect {
+                value
+              }
+              ... on ItemAttackOverrideEffect {
+                value
+              }
+              ... on ItemAttackMultiplierEffect {
+                percent
+                constraints {
+                  kind
+                  ... on ItemOpponentElementConstraint {
+                    elements
+                  }
+                }
+              }
+            }
           }
           ... on SpellCardInfo {
             effect {
@@ -2170,8 +2306,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2253,8 +2409,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2315,8 +2491,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2383,8 +2579,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2453,8 +2669,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2538,9 +2774,8 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             maximum
           }
         }
-        ... on MatchBattleItemAbilityActivatedEvent {
+        ... on MatchBattleItemEffectActivatedEvent {
           side
-          ability
           card {
             __typename
             id
@@ -2573,8 +2808,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2599,8 +2854,34 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
               }
             }
           }
-          attackModifier
-          hitPointsModifier
+          cardEffect {
+            __typename
+            kind
+            ... on ItemAttackModifierEffect {
+              value
+            }
+            ... on ItemHitPointsModifierEffect {
+              value
+            }
+            ... on ItemAttackOverrideEffect {
+              value
+            }
+            ... on ItemAttackMultiplierEffect {
+              percent
+              constraints {
+                kind
+                ... on ItemOpponentElementConstraint {
+                  elements
+                }
+              }
+            }
+          }
+          opponentChange {
+            attackDelta
+            hitPointsDelta
+            attack
+            hitPoints
+          }
           change {
             attackDelta
             hitPointsDelta
@@ -2667,8 +2948,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2777,8 +3078,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2857,8 +3178,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -2917,8 +3258,28 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on ItemCardInfo {
               category
-              attackModifier
-              hitPointsModifier
+              effects {
+                __typename
+                kind
+                ... on ItemAttackModifierEffect {
+                  value
+                }
+                ... on ItemHitPointsModifierEffect {
+                  value
+                }
+                ... on ItemAttackOverrideEffect {
+                  value
+                }
+                ... on ItemAttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on ItemOpponentElementConstraint {
+                      elements
+                    }
+                  }
+                }
+              }
             }
             ... on SpellCardInfo {
               effect {
@@ -3632,6 +3993,7 @@ export const RoomMatchDocument = new TypedDocumentString(`
   room(id: $id) {
     __typename
     ... on Room {
+      status
       match {
         id
       }

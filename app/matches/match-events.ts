@@ -1,9 +1,14 @@
-import type { BoardTileElement, CreatureAbilityKind } from "@/graphql/graphql";
+import type {
+  BoardTileElement,
+  CreatureAbilityKind,
+  ItemEffectKind,
+} from "@/graphql/graphql";
 import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
   battleModifierChangeLabel,
   CREATURE_ABILITY_LABELS,
   diceRolledLabel,
+  ITEM_EFFECT_LABELS,
   itemModifiersLabel,
   MATCH_END_REASON_LABELS,
   MATCH_EVENT_MESSAGES,
@@ -57,8 +62,19 @@ export type MatchEventView = {
   positions?: { x: number; y: number }[];
   bonusPerTerritory?: number;
   bonusPerLevel?: number;
-  attackModifier?: number;
-  hitPointsModifier?: number;
+  // アイテムの効果の発動で、発動したカードの効果（core の ItemEffect。値は下限で止まる前の値）
+  cardEffect?: {
+    kind: ItemEffectKind;
+    value?: number;
+    percent?: number;
+  };
+  // 地形効果を無視するの、相手の増減と当てた後の値
+  opponentChange?: {
+    attackDelta: number;
+    hitPointsDelta: number;
+    attack: number;
+    hitPoints: number;
+  } | null;
   battleModifier?: {
     attackModifier: number;
     hitPointsModifier: number;
@@ -81,6 +97,63 @@ export type MatchEventView = {
 
 function nameOf(names: string[], seat: number): string {
   return names[seat] ?? `参加者 ${seat + 1}`;
+}
+
+// アイテムの効果の具体的な効果。増減は決まった値を持つので、下限で止まったときに本来の値を添える
+function itemEffectDetail(
+  event: MatchEventView,
+  effect: NonNullable<MatchEventView["cardEffect"]>,
+): string {
+  const m = MATCH_EVENT_MESSAGES;
+  const change = event.change ?? {
+    attackDelta: 0,
+    hitPointsDelta: 0,
+    attack: 0,
+    hitPoints: 0,
+  };
+  const deltas = itemModifiersLabel(change.attackDelta, change.hitPointsDelta);
+  switch (effect.kind) {
+    case "ATTACK_MODIFIER":
+    case "HIT_POINTS_MODIFIER":
+      return m.battleStatChange(
+        battleModifierChangeLabel(
+          effect.kind === "ATTACK_MODIFIER" ? (effect.value ?? 0) : 0,
+          effect.kind === "HIT_POINTS_MODIFIER" ? (effect.value ?? 0) : 0,
+          change.attackDelta,
+          change.hitPointsDelta,
+        ),
+        change.attack,
+        change.hitPoints,
+      );
+    case "ATTACK_OVERRIDE":
+      return m.attackOverrideEffect(
+        effect.value ?? 0,
+        deltas,
+        change.attack,
+        change.hitPoints,
+      );
+    case "ATTACK_MULTIPLIER":
+      return m.attackMultiplierEffect(
+        effect.percent ?? 0,
+        deltas,
+        change.attack,
+        change.hitPoints,
+      );
+    case "IGNORE_TERRAIN_EFFECT": {
+      const opponent = event.opponentChange ?? {
+        attackDelta: 0,
+        hitPointsDelta: 0,
+        attack: 0,
+        hitPoints: 0,
+      };
+      return m.ignoreTerrainEffect(
+        event.side === "DEFENDER" ? m.battleAttacker : m.battleDefender,
+        itemModifiersLabel(opponent.attackDelta, opponent.hitPointsDelta),
+        opponent.attack,
+        opponent.hitPoints,
+      );
+    }
+  }
 }
 
 // AT・HP を変える能力の具体的な効果（ほかの能力は値を出さない）
@@ -187,20 +260,18 @@ function body(event: MatchEventView, names: string[]): string {
         event.change?.attack ?? 0,
         event.change?.hitPoints ?? 0,
       );
-    case "MatchBattleItemAbilityActivatedEvent":
-      // アイテムは決まった増減を持つので、下限で止まったときに本来の値を添える
-      return m.battleStatModified(
-        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
-        m.itemSource(event.card?.name ?? ""),
-        battleModifierChangeLabel(
-          event.attackModifier ?? 0,
-          event.hitPointsModifier ?? 0,
-          event.change?.attackDelta ?? 0,
-          event.change?.hitPointsDelta ?? 0,
-        ),
-        event.change?.attack ?? 0,
-        event.change?.hitPoints ?? 0,
+    case "MatchBattleItemEffectActivatedEvent": {
+      const effect = event.cardEffect;
+      if (!effect) return "";
+      const side =
+        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker;
+      return m.itemEffectActivated(
+        m.sideTarget(side),
+        event.card?.name ?? "",
+        ITEM_EFFECT_LABELS[effect.kind],
+        itemEffectDetail(event, effect),
       );
+    }
     case "MatchBattleCreatureAbilityActivatedEvent":
       return m.abilityActivated(
         m.sideTarget(

@@ -104,20 +104,21 @@ describe("tileSide（マスの側面）", () => {
     const layers = layersOf("#d9534f");
     assert.match(layers[0], /^inset /);
     assert.equal(layers[1], "1px 1px 0 #d9534f");
-    assert.equal(layers.length, 11);
+    assert.equal(layers.length, 7);
   });
 
   it("接地する側の影は暗くする", () => {
     assert.equal(
-      layersOf("#d9534f")[10],
-      "10px 10px 0 color-mix(in srgb, #d9534f 60%, black)",
+      layersOf("#d9534f")[6],
+      "6px 6px 0 color-mix(in srgb, #d9534f 60%, black)",
     );
   });
 
-  it("レベルの分だけ板を積み、下の板の分だけ上面を持ち上げる", () => {
+  it("レベルの分だけ同じ厚みの板を積み、下の板の分だけ上面を持ち上げる", () => {
     const side = tileSide("#d9534f", 3);
-    assert.equal(String(side.boxShadow).split(/, (?=\d+px|inset)/).length, 31);
-    assert.equal(side.transform, "translate(-20px, -20px)");
+    // 6px の板 3 枚（上面の縁の線を含めて 19 個）
+    assert.equal(String(side.boxShadow).split(/, (?=\d+px|inset)/).length, 19);
+    assert.equal(side.transform, "translate(-12px, -12px)");
   });
 
   it("レベル 1 は持ち上げない", () => {

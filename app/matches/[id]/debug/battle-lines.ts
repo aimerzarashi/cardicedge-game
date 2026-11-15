@@ -17,7 +17,7 @@ function sourceLabel(source: FrameBattleModifier["source"]): string {
     case "terrain":
       return m.terrainSource;
     case "item":
-      return m.itemSource(source.name);
+      return m.itemSource(source.name, source.effect);
     case "ability":
       return m.abilitySource(CREATURE_ABILITY_LABELS[source.ability]);
   }
@@ -52,10 +52,17 @@ export function battleStatParts(
     const delta =
       stat === "attack" ? modifier.attackDelta : modifier.hitPointsDelta;
     if (delta === 0) return;
-    const changed = mine?.part === "modifier" && mine.index === index;
+    // 地形効果を無視されたら、地形効果の分は今の値に数えない（どの増減が外れたかを残して見せる）
+    const ignored =
+      stat === "hitPoints" &&
+      side.terrainIgnored &&
+      modifier.source.kind === "terrain";
+    const changed =
+      (mine?.part === "modifier" && mine.index === index) ||
+      (ignored && mine?.part === "terrainIgnored");
     changedHere ||= changed;
     parts.push({
-      text: `${signed(delta)} ${sourceLabel(modifier.source)}`,
+      text: `${signed(delta)} ${sourceLabel(modifier.source)}${ignored ? m.ignoredSuffix : ""}`,
       changed,
     });
   });
@@ -90,8 +97,13 @@ export function battleSideTitleParts(
     highlight && "side" in highlight && highlight.side === owner
       ? highlight
       : null;
+  const item =
+    side.item === undefined ? m.notChosen : (side.item ?? m.noItemShort);
   return [
-    { text: `${side.name}（${side.item ?? m.noItemShort}）`, changed: false },
+    {
+      text: `${side.name}（${item}）`,
+      changed: mine?.part === "item",
+    },
     ...side.states.map((state, index) => ({
       text: ` ［${CREATURE_ABILITY_LABELS[state]}］`,
       changed: mine?.part === "state" && mine.index === index,

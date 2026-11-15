@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   applyEvent,
+  battleOnView,
   battleScene,
   eventDurationMs,
   type FrameBattle,
@@ -108,6 +109,7 @@ function battleSide(
     modifiers: [],
     states: [],
     damages: [],
+    terrainIgnored: false,
     current: { attack, hitPoints },
   };
 }
@@ -211,10 +213,10 @@ describe("applyEvent", () => {
         side: "ATTACKER",
         change: change(20, 0, 60, 20),
       }),
-      event("MatchBattleItemAbilityActivatedEvent", {
+      event("MatchBattleItemEffectActivatedEvent", {
         side: "ATTACKER",
-        ability: "BATTLE_MODIFIER",
         card: { ...DRAGON, id: "i1", name: "剣" },
+        cardEffect: { kind: "ATTACK_MODIFIER", value: 25 },
         change: change(25, 0, 85, 20),
       }),
       event("MatchBattleTerrainEffectActivatedEvent", {
@@ -232,7 +234,7 @@ describe("applyEvent", () => {
     assert.deepEqual(next.battle?.attacker.modifiers, [
       { source: { kind: "support" }, attackDelta: 20, hitPointsDelta: 0 },
       {
-        source: { kind: "item", name: "剣" },
+        source: { kind: "item", name: "剣", effect: "ATTACK_MODIFIER" },
         attackDelta: 25,
         hitPointsDelta: 0,
       },
@@ -257,6 +259,48 @@ describe("applyEvent", () => {
       side: "DEFENDER",
       part: "modifier",
       index: 1,
+    });
+  });
+
+  it("地形効果を無視するは、相手の地形効果の分を数えなくなった印を立て、相手の今の値を core の値にし、その印に色が付く", () => {
+    const terrained = applyEvent(
+      frame({ invasion: INVASION, battle: BATTLE }),
+      event("MatchBattleTerrainEffectActivatedEvent", {
+        side: "DEFENDER",
+        change: {
+          attackDelta: 0,
+          hitPointsDelta: 20,
+          attack: 30,
+          hitPoints: 45,
+        },
+      }),
+      BASE,
+    );
+    const next = applyEvent(
+      terrained,
+      event("MatchBattleItemEffectActivatedEvent", {
+        side: "ATTACKER",
+        card: { ...DRAGON, id: "i2", name: "巻物" },
+        cardEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
+        change: null,
+        opponentChange: {
+          attackDelta: 0,
+          hitPointsDelta: -20,
+          attack: 30,
+          hitPoints: 25,
+        },
+      }),
+      BASE,
+    );
+    assert.equal(next.battle?.defender.terrainIgnored, true);
+    assert.deepEqual(next.battle?.defender.current, {
+      attack: 30,
+      hitPoints: 25,
+    });
+    assert.deepEqual(next.battle?.attacker, terrained.battle?.attacker);
+    assert.deepEqual(next.battle?.highlight, {
+      side: "DEFENDER",
+      part: "terrainIgnored",
     });
   });
 
@@ -1028,5 +1072,37 @@ describe("eventDurationMs", () => {
 
   it("画面に映るイベントは待つ", () => {
     assert.ok(eventDurationMs(event("MatchMovedEvent")) > 0);
+  });
+});
+
+describe("battleOnView", () => {
+  it("戦闘が始まる前も、侵略したクリーチャーと領地のクリーチャーを、まだ選んでいないアイテムと今の値で出す", () => {
+    const view = battleOnView(
+      frame({ territories: [TERRITORY], invasion: INVASION, battle: null }),
+    );
+    assert.equal(view?.attacker.name, "ナイト");
+    assert.equal(view?.attacker.item, undefined);
+    assert.deepEqual(view?.attacker.current, { attack: 40, hitPoints: 20 });
+    assert.equal(view?.defender.name, "ドラゴン");
+    assert.deepEqual(view?.defender.current, { attack: 30, hitPoints: 20 });
+    assert.equal(view?.highlight, null);
+  });
+
+  it("アイテムを選んだら、選んだ側のアイテムに色が付く", () => {
+    const view = battleOnView(
+      frame({
+        territories: [TERRITORY],
+        invasion: { ...INVASION, attackerItem: "剣", chosenBy: "ATTACKER" },
+        battle: null,
+      }),
+    );
+    assert.equal(view?.attacker.item, "剣");
+    assert.deepEqual(view?.highlight, { side: "ATTACKER", part: "item" });
+  });
+
+  it("戦闘が始まったら、戦闘の中の値をそのまま出し、侵略が無ければ出さない", () => {
+    const started = frame({ invasion: INVASION, battle: BATTLE });
+    assert.equal(battleOnView(started), BATTLE);
+    assert.equal(battleOnView(frame({ invasion: null, battle: null })), null);
   });
 });

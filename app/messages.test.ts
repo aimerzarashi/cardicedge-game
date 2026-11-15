@@ -4,6 +4,8 @@ import {
   abilitiesLabel,
   continuesLabel,
   fieldErrorMessage,
+  itemEffectsLabel,
+  itemEffectView,
   itemRestrictionsLabel,
   lastingSpellEffectLabel,
   matchNumberLabel,
@@ -66,6 +68,36 @@ describe("itemRestrictionsLabel", () => {
   it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
     assert.equal(itemRestrictionsLabel([]), "なし");
     assert.equal(itemRestrictionsLabel(["ARMOR", "SCROLL"]), "防具・巻物");
+  });
+});
+
+describe("itemEffectsLabel", () => {
+  it("アイテムの効果を並びのまま値つきで出し、強打は相手の属性を添え、無ければ「効果なし」", () => {
+    const effects = [
+      { kind: "ATTACK_OVERRIDE", value: 30 },
+      {
+        kind: "ATTACK_MULTIPLIER",
+        percent: 150,
+        constraints: [{ elements: ["WATER"] }],
+      },
+      { kind: "IGNORE_TERRAIN_EFFECT" },
+      { kind: "HIT_POINTS_MODIFIER", value: -10 },
+    ] as const;
+    assert.equal(
+      itemEffectsLabel(
+        effects.map((effect) =>
+          itemEffectView({
+            ...effect,
+            constraints:
+              "constraints" in effect
+                ? effect.constraints.map((c) => ({ elements: [...c.elements] }))
+                : undefined,
+          }),
+        ),
+      ),
+      "AT を 30 に上書き・強打 150%（相手が水）・地形効果を無視する・HP -10",
+    );
+    assert.equal(itemEffectsLabel([]), "効果なし");
   });
 });
 
