@@ -216,17 +216,22 @@ describe("applyEvent", () => {
       event("MatchBattleItemEffectActivatedEvent", {
         side: "ATTACKER",
         card: { ...DRAGON, id: "i1", name: "剣" },
-        cardEffect: { kind: "ATTACK_MODIFIER", value: 25 },
+        activatedEffect: { kind: "ATTACK_MODIFIER", value: 25 },
         change: change(25, 0, 85, 20),
       }),
       event("MatchBattleTerrainEffectActivatedEvent", {
         side: "DEFENDER",
         change: change(0, 10, 30, 35),
       }),
-      event("MatchBattleCreatureAbilityActivatedEvent", {
+      event("MatchBattleCreatureEffectActivatedEvent", {
         side: "DEFENDER",
-        ability: "BATTLE_MODIFIER",
+        activatedEffect: { kind: "HIT_POINTS_MODIFIER", value: 20 },
         change: change(0, 20, 30, 55),
+      }),
+      // 支援効果は守る側にも付く（core#178）
+      event("MatchBattleSupportEffectActivatedEvent", {
+        side: "DEFENDER",
+        change: change(10, 0, 40, 55),
       }),
     ]) {
       next = applyEvent(next, activated, BASE);
@@ -242,23 +247,24 @@ describe("applyEvent", () => {
     assert.deepEqual(next.battle?.defender.modifiers, [
       { source: { kind: "terrain" }, attackDelta: 0, hitPointsDelta: 10 },
       {
-        source: { kind: "ability", ability: "BATTLE_MODIFIER" },
+        source: { kind: "creature", effect: "HIT_POINTS_MODIFIER" },
         attackDelta: 0,
         hitPointsDelta: 20,
       },
+      { source: { kind: "support" }, attackDelta: 10, hitPointsDelta: 0 },
     ]);
     assert.deepEqual(next.battle?.attacker.current, {
       attack: 85,
       hitPoints: 20,
     });
     assert.deepEqual(next.battle?.defender.current, {
-      attack: 30,
+      attack: 40,
       hitPoints: 55,
     });
     assert.deepEqual(next.battle?.highlight, {
       side: "DEFENDER",
       part: "modifier",
-      index: 1,
+      index: 2,
     });
   });
 
@@ -281,7 +287,7 @@ describe("applyEvent", () => {
       event("MatchBattleItemEffectActivatedEvent", {
         side: "ATTACKER",
         card: { ...DRAGON, id: "i2", name: "巻物" },
-        cardEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
+        activatedEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
         change: null,
         opponentChange: {
           attackDelta: 0,
@@ -304,17 +310,17 @@ describe("applyEvent", () => {
     });
   });
 
-  it("AT・HP を変えない能力の発動は、得た状態に入り、増減は変えない", () => {
+  it("AT・HP を変えないクリーチャーの効果の発動は、得た状態に入り、増減は変えない", () => {
     const next = applyEvent(
       frame({ invasion: INVASION, battle: BATTLE }),
-      event("MatchBattleCreatureAbilityActivatedEvent", {
+      event("MatchBattleCreatureEffectActivatedEvent", {
         side: "DEFENDER",
-        ability: "FIRST_STRIKE",
+        activatedEffect: { kind: "STRIKE_FIRST" },
         change: null,
       }),
       BASE,
     );
-    assert.deepEqual(next.battle?.defender.states, ["FIRST_STRIKE"]);
+    assert.deepEqual(next.battle?.defender.states, ["STRIKE_FIRST"]);
     assert.deepEqual(next.battle?.defender.modifiers, []);
     assert.deepEqual(next.battle?.highlight, {
       side: "DEFENDER",

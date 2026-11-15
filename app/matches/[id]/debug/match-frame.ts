@@ -1,10 +1,9 @@
 import type {
   BoardTileElement,
   CardRarity,
-  CreatureAbilityKind,
   CreatureElement,
+  EffectKind,
   ItemCategory,
-  ItemEffectKind,
   MatchEndReason,
   MatchParticipantKind,
   MatchPhase,
@@ -23,25 +22,19 @@ export type FrameCard = {
   attack?: number;
   hitPoints?: number;
   itemRestrictions?: ItemCategory[];
-  placementRestrictions?: CreatureElement[];
-  abilities?: {
-    kind: CreatureAbilityKind;
-    percent?: number;
-    attackModifier?: number;
-    hitPointsModifier?: number;
-    minimum?: number;
-    maximum?: number;
-  }[];
+  placementRestrictions?: BoardTileElement[];
   category?: ItemCategory;
-  // アイテムの効果（core の ItemEffect の並び）
-  effects?: FrameItemEffect[];
+  // クリーチャー・アイテムの効果（core の Effect の並び。core#178）
+  effects?: FrameEffect[];
   // スペルの効果（効果なしは null）
   effect?: { __typename: string; count?: number } | null;
 };
 
-export type FrameItemEffect = {
-  kind: ItemEffectKind;
+export type FrameEffect = {
+  kind: EffectKind;
   value?: number;
+  minimum?: number;
+  maximum?: number;
   percent?: number;
   constraints?: { elements?: CreatureElement[] }[];
 };
@@ -100,13 +93,13 @@ export type FrameInvasion = {
 
 export type FrameBattleStats = { attack: number; hitPoints: number };
 
-// 戦闘の中で AT・HP を変えた発動 1 つ。出どころは支援効果・地形効果・アイテム（名前と効果の種類）・クリーチャーの能力（種類）
+// 戦闘の中で AT・HP を変えた発動 1 つ。出どころは支援効果・地形効果・アイテム（名前と効果の種類）・クリーチャーの効果（種類）
 export type FrameBattleModifier = {
   source:
     | { kind: "support" }
     | { kind: "terrain" }
-    | { kind: "item"; name: string; effect: ItemEffectKind }
-    | { kind: "ability"; ability: CreatureAbilityKind };
+    | { kind: "item"; name: string; effect: EffectKind }
+    | { kind: "creature"; effect: EffectKind };
   attackDelta: number;
   hitPointsDelta: number;
 };
@@ -119,8 +112,8 @@ export type FrameBattleSide = {
   item: string | null | undefined;
   initial: FrameBattleStats;
   modifiers: FrameBattleModifier[];
-  // 発動で得た状態（先制・後手・攻撃無効）
-  states: CreatureAbilityKind[];
+  // 発動で得た状態（先制・後手・攻撃無効。効果の種類で持つ）
+  states: EffectKind[];
   // 攻撃で受けたダメージ（受けた順）
   damages: number[];
   // 相手の効果「地形効果を無視する」で、地形効果の分を数えなくなったか（core の BattleCreature.TerrainEffectIgnored。core#177）
@@ -227,9 +220,8 @@ export type PlayEvent = {
   attacker?: FrameBattleStats;
   defender?: FrameBattleStats;
   side?: "ATTACKER" | "DEFENDER";
-  ability?: CreatureAbilityKind;
-  // アイテムの効果の発動で、発動したカードの効果
-  cardEffect?: FrameItemEffect;
+  // クリーチャー・アイテムの効果の発動で、発動したカードの効果
+  activatedEffect?: FrameEffect;
   // 地形効果を無視するの、相手の増減と当てた後の値
   opponentChange?: {
     attackDelta: number;
@@ -264,7 +256,7 @@ const BATTLE_EVENTS = new Set([
   "MatchBattleStartedEvent",
   "MatchBattleSupportEffectActivatedEvent",
   "MatchBattleTerrainEffectActivatedEvent",
-  "MatchBattleCreatureAbilityActivatedEvent",
+  "MatchBattleCreatureEffectActivatedEvent",
   "MatchBattleItemEffectActivatedEvent",
   "MatchCreatureStruckEvent",
   "MatchTerritoryConqueredEvent",
@@ -723,11 +715,16 @@ function applyFact(
       };
     }
     case "MatchBattleSupportEffectActivatedEvent":
-      return withBattleModifier(frame, "ATTACKER", { kind: "support" }, event);
+      return withBattleModifier(
+        frame,
+        event.side ?? "ATTACKER",
+        { kind: "support" },
+        event,
+      );
     case "MatchBattleTerrainEffectActivatedEvent":
       return withBattleModifier(frame, "DEFENDER", { kind: "terrain" }, event);
     case "MatchBattleItemEffectActivatedEvent": {
-      const effect = event.cardEffect;
+      const effect = event.activatedEffect;
       if (!effect) return frame;
       const owner = event.side ?? "ATTACKER";
       if (effect.kind === "IGNORE_TERRAIN_EFFECT") {
@@ -755,14 +752,14 @@ function applyFact(
         event,
       );
     }
-    case "MatchBattleCreatureAbilityActivatedEvent": {
-      const { ability } = event;
-      if (!ability) return frame;
+    case "MatchBattleCreatureEffectActivatedEvent": {
+      const effect = event.activatedEffect?.kind;
+      if (!effect) return frame;
       if (event.change) {
         return withBattleModifier(
           frame,
           event.side ?? "ATTACKER",
-          { kind: "ability", ability },
+          { kind: "creature", effect },
           event,
         );
       }
@@ -774,7 +771,7 @@ function applyFact(
       return withHighlight(
         updateBattleSide(frame, owner, (side) => ({
           ...side,
-          states: [...side.states, ability],
+          states: [...side.states, effect],
         })),
         { side: owner, part: "state", index },
       );

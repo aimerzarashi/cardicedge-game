@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  abilitiesLabel,
   continuesLabel,
+  effectsLabel,
+  effectView,
   fieldErrorMessage,
-  itemEffectsLabel,
-  itemEffectView,
   itemRestrictionsLabel,
   lastingSpellEffectLabel,
   matchNumberLabel,
@@ -23,43 +22,26 @@ describe("placementRestrictionsLabel", () => {
   });
 });
 
-describe("abilitiesLabel", () => {
-  it("無ければ「なし」、あれば能力の名前をつなぐ", () => {
-    assert.equal(abilitiesLabel([]), "なし");
-    assert.equal(abilitiesLabel([{ kind: "DEFENSIVE" }]), "防御型");
+// クリーチャーの効果もアイテムと同じ表示（core#178）
+describe("effectsLabel (creature)", () => {
+  it("クリーチャーの効果を並びのまま値つきで出し、上書きは範囲、攻撃無効は相手の属性を添える", () => {
     assert.equal(
-      abilitiesLabel([
-        { kind: "DEFENSIVE" },
+      effectsLabel([
+        { kind: "FORBID_INVASION" },
+        { kind: "FORBID_MOVEMENT" },
+        { kind: "HIT_POINTS_MODIFIER", value: 20 },
+        { kind: "ATTACK_OVERRIDE", minimum: 10, maximum: 70 },
+        { kind: "HIT_POINTS_OVERRIDE", minimum: 10, maximum: 70 },
+        { kind: "STRIKE_FIRST" },
+        { kind: "STRIKE_LAST" },
         { kind: "TOLL_MULTIPLIER", percent: 150 },
-      ]),
-      "防御型・通行料の倍率 150%",
-    );
-    assert.equal(
-      abilitiesLabel([{ kind: "FIRST_STRIKE" }, { kind: "DEFENSIVE" }]),
-      "先制・防御型",
-    );
-    assert.equal(abilitiesLabel([{ kind: "LAST_STRIKE" }]), "後手");
-    assert.equal(
-      abilitiesLabel([
         {
-          kind: "BATTLE_MODIFIER",
-          attackModifier: -10,
-          hitPointsModifier: 20,
+          kind: "NULLIFY_RECEIVED_DAMAGE",
+          opponentElements: ["FIRE", "EARTH"],
         },
+        { kind: "NULLIFY_RECEIVED_DAMAGE" },
       ]),
-      "戦闘中の増減 AT -10・HP +20",
-    );
-    assert.equal(
-      abilitiesLabel([
-        { kind: "BATTLE_RANDOM_STATS", minimum: 10, maximum: 70 },
-      ]),
-      "戦闘中のランダム 10〜70",
-    );
-    assert.equal(
-      abilitiesLabel([
-        { kind: "ATTACK_IMMUNITY", elements: ["FIRE", "EARTH"] },
-      ]),
-      "攻撃無効 火地",
+      "侵略できない・移動できない・HP +20・AT を 10〜70 に上書き・HP を 10〜70 に上書き・先制・後手・通行料の倍率 150%・攻撃無効（相手が火地）・攻撃無効",
     );
   });
 });
@@ -71,10 +53,10 @@ describe("itemRestrictionsLabel", () => {
   });
 });
 
-describe("itemEffectsLabel", () => {
+describe("effectsLabel (item)", () => {
   it("アイテムの効果を並びのまま値つきで出し、強打は相手の属性を添え、無ければ「効果なし」", () => {
     const effects = [
-      { kind: "ATTACK_OVERRIDE", value: 30 },
+      { kind: "ATTACK_OVERRIDE", minimum: 30, maximum: 30 },
       {
         kind: "ATTACK_MULTIPLIER",
         percent: 150,
@@ -84,9 +66,9 @@ describe("itemEffectsLabel", () => {
       { kind: "HIT_POINTS_MODIFIER", value: -10 },
     ] as const;
     assert.equal(
-      itemEffectsLabel(
+      effectsLabel(
         effects.map((effect) =>
-          itemEffectView({
+          effectView({
             ...effect,
             constraints:
               "constraints" in effect
@@ -97,7 +79,7 @@ describe("itemEffectsLabel", () => {
       ),
       "AT を 30 に上書き・強打 150%（相手が水）・地形効果を無視する・HP -10",
     );
-    assert.equal(itemEffectsLabel([]), "効果なし");
+    assert.equal(effectsLabel([]), "効果なし");
   });
 });
 

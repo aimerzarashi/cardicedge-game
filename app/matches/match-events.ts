@@ -1,17 +1,13 @@
-import type {
-  BoardTileElement,
-  CreatureAbilityKind,
-  ItemEffectKind,
-} from "@/graphql/graphql";
+import type { BoardTileElement, EffectKind } from "@/graphql/graphql";
 import { ELEMENT_LABELS } from "../boards/board-layout.ts";
 import {
   battleModifierChangeLabel,
-  CREATURE_ABILITY_LABELS,
   diceRolledLabel,
-  ITEM_EFFECT_LABELS,
+  EFFECT_LABELS,
   itemModifiersLabel,
   MATCH_END_REASON_LABELS,
   MATCH_EVENT_MESSAGES,
+  overrideRangeLabel,
   type SpellEffectView,
   spellEffectStartedLabel,
 } from "../messages.ts";
@@ -55,17 +51,18 @@ export type MatchEventView = {
   attacker?: { attack: number; hitPoints: number };
   defender?: { attack: number; hitPoints: number };
   side?: "ATTACKER" | "DEFENDER";
-  ability?: CreatureAbilityKind;
   percent?: number;
   toll?: number;
   multipliedToll?: number;
   positions?: { x: number; y: number }[];
   bonusPerTerritory?: number;
   bonusPerLevel?: number;
-  // アイテムの効果の発動で、発動したカードの効果（core の ItemEffect。値は下限で止まる前の値）
-  cardEffect?: {
-    kind: ItemEffectKind;
+  // クリーチャー・アイテムの効果の発動で、発動したカードの効果（core の Effect。値は下限で止まる前の値・上書きの範囲）
+  activatedEffect?: {
+    kind: EffectKind;
     value?: number;
+    minimum?: number;
+    maximum?: number;
     percent?: number;
   };
   // 地形効果を無視するの、相手の増減と当てた後の値
@@ -75,12 +72,7 @@ export type MatchEventView = {
     attack: number;
     hitPoints: number;
   } | null;
-  battleModifier?: {
-    attackModifier: number;
-    hitPointsModifier: number;
-  } | null;
-  battleRandomStats?: { minimum: number; maximum: number } | null;
-  // 戦闘の発動で得た増減と、当てた後の値（AT・HP を変えない能力は null）
+  // 戦闘の発動で得た増減と、当てた後の値（AT・HP を変えない効果は null）
   change?: {
     attackDelta: number;
     hitPointsDelta: number;
@@ -99,11 +91,12 @@ function nameOf(names: string[], seat: number): string {
   return names[seat] ?? `参加者 ${seat + 1}`;
 }
 
-// アイテムの効果の具体的な効果。増減は決まった値を持つので、下限で止まったときに本来の値を添える
-function itemEffectDetail(
+// 効果の具体的な効果（クリーチャーとアイテムで共有する）。増減は決まった値を持つので、下限で止まったときに本来の値を添える。
+// AT・HP を変えない効果（先制・後手・攻撃無効・侵略と移動）は値を出さない
+function effectDetail(
   event: MatchEventView,
-  effect: NonNullable<MatchEventView["cardEffect"]>,
-): string {
+  effect: NonNullable<MatchEventView["activatedEffect"]>,
+): string | undefined {
   const m = MATCH_EVENT_MESSAGES;
   const change = event.change ?? {
     attackDelta: 0,
@@ -126,8 +119,10 @@ function itemEffectDetail(
         change.hitPoints,
       );
     case "ATTACK_OVERRIDE":
-      return m.attackOverrideEffect(
-        effect.value ?? 0,
+    case "HIT_POINTS_OVERRIDE":
+      return m.overrideEffect(
+        effect.kind === "ATTACK_OVERRIDE" ? "AT" : "HP",
+        overrideRangeLabel(effect.minimum ?? 0, effect.maximum ?? 0),
         deltas,
         change.attack,
         change.hitPoints,
@@ -153,33 +148,9 @@ function itemEffectDetail(
         opponent.hitPoints,
       );
     }
+    default:
+      return undefined;
   }
-}
-
-// AT・HP を変える能力の具体的な効果（ほかの能力は値を出さない）
-function creatureAbilityEffect(event: MatchEventView): string | undefined {
-  const m = MATCH_EVENT_MESSAGES;
-  const { change } = event;
-  if (!change) return undefined;
-  if (event.battleRandomStats) {
-    return m.battleRandomStatsEffect(
-      event.battleRandomStats.minimum,
-      event.battleRandomStats.maximum,
-      itemModifiersLabel(change.attackDelta, change.hitPointsDelta),
-      change.attack,
-      change.hitPoints,
-    );
-  }
-  return m.battleStatChange(
-    battleModifierChangeLabel(
-      event.battleModifier?.attackModifier ?? 0,
-      event.battleModifier?.hitPointsModifier ?? 0,
-      change.attackDelta,
-      change.hitPointsDelta,
-    ),
-    change.attack,
-    change.hitPoints,
-  );
 }
 
 function body(event: MatchEventView, names: string[]): string {
@@ -232,8 +203,9 @@ function body(event: MatchEventView, names: string[]): string {
         event.defender?.hitPoints ?? 0,
       );
     case "MatchBattleSupportEffectActivatedEvent":
+      // 支援効果は守る側にも付く（core#178）
       return m.battleStatModified(
-        m.battleAttacker,
+        event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
         m.adjacentTerritoriesSource(
           event.positions?.length ?? 0,
           event.bonusPerTerritory ?? 0,
@@ -260,26 +232,22 @@ function body(event: MatchEventView, names: string[]): string {
         event.change?.attack ?? 0,
         event.change?.hitPoints ?? 0,
       );
-    case "MatchBattleItemEffectActivatedEvent": {
-      const effect = event.cardEffect;
+    case "MatchBattleItemEffectActivatedEvent":
+    case "MatchBattleCreatureEffectActivatedEvent": {
+      const effect = event.activatedEffect;
       if (!effect) return "";
       const side =
         event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker;
-      return m.itemEffectActivated(
+      const card = event.card?.name ?? "";
+      return m.effectActivated(
         m.sideTarget(side),
-        event.card?.name ?? "",
-        ITEM_EFFECT_LABELS[effect.kind],
-        itemEffectDetail(event, effect),
+        event.__typename === "MatchBattleItemEffectActivatedEvent"
+          ? m.itemOwner(card)
+          : m.creatureOwner(card),
+        EFFECT_LABELS[effect.kind],
+        effectDetail(event, effect),
       );
     }
-    case "MatchBattleCreatureAbilityActivatedEvent":
-      return m.abilityActivated(
-        m.sideTarget(
-          event.side === "DEFENDER" ? m.battleDefender : m.battleAttacker,
-        ),
-        event.ability ? CREATURE_ABILITY_LABELS[event.ability] : "",
-        creatureAbilityEffect(event),
-      );
     case "MatchCreatureStruckEvent":
       return m.creatureStruck(
         event.striker === "DEFENDER" ? m.battleDefender : m.battleAttacker,
@@ -321,9 +289,11 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
       );
     case "MatchTollMultiplierActivatedEvent":
-      return m.abilityActivated(
+      // 通行料の倍率の発動は持ち主のカードを持たないので、位置だけを書く
+      return m.effectActivated(
         m.positionTarget(event.position?.x ?? 0, event.position?.y ?? 0),
-        CREATURE_ABILITY_LABELS.TOLL_MULTIPLIER,
+        "",
+        EFFECT_LABELS.TOLL_MULTIPLIER,
         m.tollMultiplierEffect(
           event.percent ?? 0,
           event.toll ?? 0,

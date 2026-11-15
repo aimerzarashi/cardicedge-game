@@ -3,12 +3,11 @@ import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
 import {
-  abilitiesLabel,
   CARD_TYPE_LABELS,
+  effectsLabel,
+  effectView,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
-  itemEffectsLabel,
-  itemEffectView,
   itemRestrictionsLabel,
   placementRestrictionsLabel,
   RARITY_LABELS,
@@ -31,21 +30,42 @@ const cardQuery = graphql(`
         hitPoints
         itemRestrictions
         placementRestrictions
-        abilities {
+        effects {
+          __typename
           kind
-          ... on CreatureTollMultiplierAbility {
-            percent
+          ... on AttackModifierEffect {
+            value
           }
-          ... on CreatureBattleModifierAbility {
-            attackModifier
-            hitPointsModifier
+          ... on HitPointsModifierEffect {
+            value
           }
-          ... on CreatureBattleRandomStatsAbility {
+          ... on AttackOverrideEffect {
             minimum
             maximum
           }
-          ... on CreatureAttackImmunityAbility {
-            elements
+          ... on HitPointsOverrideEffect {
+            minimum
+            maximum
+          }
+          ... on AttackMultiplierEffect {
+            percent
+            constraints {
+              kind
+              ... on OpponentCreatureElementConstraint {
+                elements
+              }
+            }
+          }
+          ... on NullifyReceivedDamageEffect {
+            constraints {
+              kind
+              ... on OpponentCreatureElementConstraint {
+                elements
+              }
+            }
+          }
+          ... on TollMultiplierEffect {
+            percent
           }
         }
       }
@@ -54,23 +74,39 @@ const cardQuery = graphql(`
         effects {
           __typename
           kind
-          ... on ItemAttackModifierEffect {
+          ... on AttackModifierEffect {
             value
           }
-          ... on ItemHitPointsModifierEffect {
+          ... on HitPointsModifierEffect {
             value
           }
-          ... on ItemAttackOverrideEffect {
-            value
+          ... on AttackOverrideEffect {
+            minimum
+            maximum
           }
-          ... on ItemAttackMultiplierEffect {
+          ... on HitPointsOverrideEffect {
+            minimum
+            maximum
+          }
+          ... on AttackMultiplierEffect {
             percent
             constraints {
               kind
-              ... on ItemOpponentElementConstraint {
+              ... on OpponentCreatureElementConstraint {
                 elements
               }
             }
+          }
+          ... on NullifyReceivedDamageEffect {
+            constraints {
+              kind
+              ... on OpponentCreatureElementConstraint {
+                elements
+              }
+            }
+          }
+          ... on TollMultiplierEffect {
+            percent
           }
         }
       }
@@ -177,8 +213,8 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dd>{itemRestrictionsLabel(card.itemRestrictions)}</dd>
             <dt>配置制限</dt>
             <dd>{placementRestrictionsLabel(card.placementRestrictions)}</dd>
-            <dt>能力</dt>
-            <dd>{abilitiesLabel(card.abilities)}</dd>
+            <dt>効果</dt>
+            <dd>{effectsLabel(card.effects.map(effectView))}</dd>
           </>
         )}
         {card.__typename === "ItemCardInfo" && (
@@ -186,7 +222,7 @@ export default async function CardPage({ params }: PageProps<"/cards/[id]">) {
             <dt>分類</dt>
             <dd>{ITEM_CATEGORY_LABELS[card.category]}</dd>
             <dt>効果</dt>
-            <dd>{itemEffectsLabel(card.effects.map(itemEffectView))}</dd>
+            <dd>{effectsLabel(card.effects.map(effectView))}</dd>
           </>
         )}
         {card.__typename === "SpellCardInfo" && (

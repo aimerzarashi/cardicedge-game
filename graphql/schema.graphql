@@ -33,6 +33,53 @@ type AttackMatchTerritorySuccess {
 	revision: Int!
 }
 """
+AT の増減
+"""
+type AttackModifierEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	増減の値（負は下げる）
+	"""
+	value: Int!
+}
+"""
+AT の倍率
+"""
+type AttackMultiplierEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	倍率（百分率。150 で 1.5 倍。1 以上）
+	"""
+	percent: Int!
+	"""
+	発動する制約（すべてを満たすときに発動する。無ければ空でいつも発動する）
+	"""
+	constraints: [EffectConstraint!]!
+}
+"""
+AT の上書き
+"""
+type AttackOverrideEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	上書きした後の AT の最小（0 以上）
+	"""
+	minimum: Int!
+	"""
+	上書きした後の AT の最大（最小以上）
+	"""
+	maximum: Int!
+}
+"""
 プレイヤーのアバター。ほかのプレイヤーにも見える名前を持つ
 """
 type Avatar {
@@ -832,95 +879,6 @@ type CreateRoomSuccess {
 	revision: Int!
 }
 """
-クリーチャーの能力
-"""
-interface CreatureAbility {
-	"""
-	能力の種類
-	"""
-	kind: CreatureAbilityKind!
-}
-"""
-クリーチャーの能力の種類
-"""
-enum CreatureAbilityKind {
-	"""
-	防御型（侵略できない。移動できない。守ることはできる）
-	"""
-	DEFENSIVE
-	"""
-	通行料の倍率（いる領地の通行料を払うときに倍率を掛ける）
-	"""
-	TOLL_MULTIPLIER
-	"""
-	先制（戦闘で、先制の無い相手より先に攻撃する。後手と同時には持てない）
-	"""
-	FIRST_STRIKE
-	"""
-	後手（戦闘で、後手の無い相手より後に攻撃する。先制と同時には持てない）
-	"""
-	LAST_STRIKE
-	"""
-	戦闘中の増減（戦闘中、AT・HP が決まった値だけ増減する）
-	"""
-	BATTLE_MODIFIER
-	"""
-	戦闘中のランダム（戦闘中、AT・HP が最小〜最大のランダムな値になる。別々に引く）
-	"""
-	BATTLE_RANDOM_STATS
-	"""
-	攻撃無効（戦闘で、属性のどれかが合うクリーチャーから攻撃を受けたとき、ダメージが 0 になる）
-	"""
-	ATTACK_IMMUNITY
-}
-"""
-攻撃無効
-"""
-type CreatureAttackImmunityAbility implements CreatureAbility {
-	"""
-	能力の種類（ATTACK_IMMUNITY）
-	"""
-	kind: CreatureAbilityKind!
-	"""
-	攻撃してきたときに無効にする相手の属性（火・地・水・風から 1 つ以上）
-	"""
-	elements: [CreatureElement!]!
-}
-"""
-戦闘中の増減
-"""
-type CreatureBattleModifierAbility implements CreatureAbility {
-	"""
-	能力の種類（BATTLE_MODIFIER）
-	"""
-	kind: CreatureAbilityKind!
-	"""
-	戦闘中の AT の増減（負も 0 もある）
-	"""
-	attackModifier: Int!
-	"""
-	戦闘中の HP の増減（負も 0 もある）
-	"""
-	hitPointsModifier: Int!
-}
-"""
-戦闘中のランダム
-"""
-type CreatureBattleRandomStatsAbility implements CreatureAbility {
-	"""
-	能力の種類（BATTLE_RANDOM_STATS）
-	"""
-	kind: CreatureAbilityKind!
-	"""
-	戦闘中の AT・HP の最小
-	"""
-	minimum: Int!
-	"""
-	戦闘中の AT・HP の最大
-	"""
-	maximum: Int!
-}
-"""
 クリーチャー
 """
 type CreatureCardInfo implements CardInfo {
@@ -959,20 +917,11 @@ type CreatureCardInfo implements CardInfo {
 	"""
 	配置制限（置けない土地の属性。火・地・水・風の順。無ければ空）
 	"""
-	placementRestrictions: [CreatureElement!]!
+	placementRestrictions: [BoardTileElement!]!
 	"""
-	能力（並びは決めた順。無ければ空）
+	効果の並び（並びの順に当てる。無ければ空）
 	"""
-	abilities: [CreatureAbility!]!
-}
-"""
-防御型
-"""
-type CreatureDefensiveAbility implements CreatureAbility {
-	"""
-	能力の種類（DEFENSIVE）
-	"""
-	kind: CreatureAbilityKind!
+	effects: [Effect!]!
 }
 """
 クリーチャーの属性。火・地・水・風のうち 1〜4 つか、無の単独
@@ -998,37 +947,6 @@ enum CreatureElement {
 	無
 	"""
 	NEUTRAL
-}
-"""
-先制
-"""
-type CreatureFirstStrikeAbility implements CreatureAbility {
-	"""
-	能力の種類（FIRST_STRIKE）
-	"""
-	kind: CreatureAbilityKind!
-}
-"""
-後手
-"""
-type CreatureLastStrikeAbility implements CreatureAbility {
-	"""
-	能力の種類（LAST_STRIKE）
-	"""
-	kind: CreatureAbilityKind!
-}
-"""
-通行料の倍率
-"""
-type CreatureTollMultiplierAbility implements CreatureAbility {
-	"""
-	能力の種類（TOLL_MULTIPLIER）
-	"""
-	kind: CreatureAbilityKind!
-	"""
-	倍率（百分率。150 で 1.5 倍）
-	"""
-	percent: Int!
 }
 """
 対象のクリーチャーにダメージ（今の HP から amount を引き、0 になれば破壊する）
@@ -1284,6 +1202,86 @@ type DrawMatchCardSuccess {
 	revision: Int!
 }
 """
+効果（種類ごとの型）
+"""
+interface Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
+"""
+効果の制約（種類ごとの型）
+"""
+interface EffectConstraint {
+	"""
+	制約の種類
+	"""
+	kind: EffectConstraintKind!
+}
+"""
+効果の制約の種類
+"""
+enum EffectConstraintKind {
+	"""
+	相手のクリーチャーの属性（戦う相手のクリーチャーの属性のどれかが合うとき）
+	"""
+	OPPONENT_CREATURE_ELEMENT
+}
+"""
+効果の種類
+"""
+enum EffectKind {
+	"""
+	AT の増減（戦闘中、AT が決まった値だけ増減する）
+	"""
+	ATTACK_MODIFIER
+	"""
+	HP の増減（戦闘中、HP が決まった値だけ増減する）
+	"""
+	HIT_POINTS_MODIFIER
+	"""
+	AT の上書き（戦闘中、AT が最小〜最大のランダムな値になる。固定は最小と最大が同じ）
+	"""
+	ATTACK_OVERRIDE
+	"""
+	HP の上書き（戦闘中、HP が最小〜最大のランダムな値になる。固定は最小と最大が同じ）
+	"""
+	HIT_POINTS_OVERRIDE
+	"""
+	AT の倍率（制約を満たすとき、増減・上書きの後に AT に倍率を掛ける。発動したうち一番高い倍率を 1 回だけ）
+	"""
+	ATTACK_MULTIPLIER
+	"""
+	地形効果を無視する（相手の地形効果を無視してダメージを与える）
+	"""
+	IGNORE_TERRAIN_EFFECT
+	"""
+	先に攻撃する（戦闘で、先に攻撃する効果の無い相手より先に攻撃する。後に攻撃すると一緒には持てない）
+	"""
+	STRIKE_FIRST
+	"""
+	後に攻撃する（戦闘で、後に攻撃する効果の無い相手より後に攻撃する。先に攻撃すると一緒には持てない）
+	"""
+	STRIKE_LAST
+	"""
+	受けるダメージを 0 にする（制約を満たす相手から攻撃を受けたとき、ダメージが 0 になる）
+	"""
+	NULLIFY_RECEIVED_DAMAGE
+	"""
+	通行料の倍率（いる領地の通行料を払うときに倍率を掛ける）
+	"""
+	TOLL_MULTIPLIER
+	"""
+	侵略できない（手札から侵略できず、移動で他人の領地にも入れない。守ることはできる）
+	"""
+	FORBID_INVASION
+	"""
+	移動できない（領地コマンドで動けない）
+	"""
+	FORBID_MOVEMENT
+}
+"""
 ターンを終える入力
 """
 input EndMatchTurnInput {
@@ -1470,6 +1468,24 @@ type FixedDiceSpellEffect {
 	turns: Int!
 }
 """
+侵略できない
+"""
+type ForbidInvasionEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
+"""
+移動できない
+"""
+type ForbidMovementEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
+"""
 魔力を得る効果（使った人が（周回数 + 1）× perLap の魔力を得る。周回数はその対戦で周回を終えた回数）
 """
 type GainMagicSpellEffect {
@@ -1491,6 +1507,45 @@ type GameRules {
 ゲーム全体のルールの結果。ログイン中のプレイヤーが未登録なら PlayerNotRegisteredError
 """
 union GameRulesResult = GameRules | PlayerNotRegisteredError
+"""
+HP の増減
+"""
+type HitPointsModifierEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	増減の値（負は下げる）
+	"""
+	value: Int!
+}
+"""
+HP の上書き
+"""
+type HitPointsOverrideEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	上書きした後の HP の最小（1 以上）
+	"""
+	minimum: Int!
+	"""
+	上書きした後の HP の最大（最小以上）
+	"""
+	maximum: Int!
+}
+"""
+地形効果を無視する
+"""
+type IgnoreTerrainEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
 """
 止まった他人の領地を侵略する入力
 """
@@ -1526,49 +1581,6 @@ type InvadeMatchTerritorySuccess {
 	revision: Int!
 }
 """
-AT の増減
-"""
-type ItemAttackModifierEffect implements ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-	"""
-	増減の値（負は下げる）
-	"""
-	value: Int!
-}
-"""
-AT の倍率
-"""
-type ItemAttackMultiplierEffect implements ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-	"""
-	倍率（百分率。150 で 1.5 倍）
-	"""
-	percent: Int!
-	"""
-	発動する制約（すべてを満たすときに発動する。無ければ空でいつも発動する）
-	"""
-	constraints: [ItemConstraint!]!
-}
-"""
-AT の上書き
-"""
-type ItemAttackOverrideEffect implements ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-	"""
-	上書きした後の AT
-	"""
-	value: Int!
-}
-"""
 アイテム
 """
 type ItemCardInfo implements CardInfo {
@@ -1595,7 +1607,7 @@ type ItemCardInfo implements CardInfo {
 	"""
 	効果の並び（並びの順に当てる。無ければ空）
 	"""
-	effects: [ItemEffect!]!
+	effects: [Effect!]!
 }
 """
 アイテムの分類
@@ -1613,93 +1625,6 @@ enum ItemCategory {
 	巻物
 	"""
 	SCROLL
-}
-"""
-効果の制約（種類ごとの型）
-"""
-interface ItemConstraint {
-	"""
-	制約の種類
-	"""
-	kind: ItemConstraintKind!
-}
-"""
-効果の制約の種類
-"""
-enum ItemConstraintKind {
-	"""
-	相手の属性（戦う相手のクリーチャーの属性のどれかが合うとき）
-	"""
-	OPPONENT_ELEMENT
-}
-"""
-アイテムの効果（種類ごとの型）
-"""
-interface ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-}
-"""
-アイテムの効果の種類
-"""
-enum ItemEffectKind {
-	"""
-	AT の増減（戦闘中、AT が決まった値だけ増減する）
-	"""
-	ATTACK_MODIFIER
-	"""
-	HP の増減（戦闘中、HP が決まった値だけ増減する）
-	"""
-	HIT_POINTS_MODIFIER
-	"""
-	AT の上書き（戦闘中、AT が決まった値になる）
-	"""
-	ATTACK_OVERRIDE
-	"""
-	AT の倍率（制約を満たすとき、増減・上書きの後に AT に倍率を掛ける。発動したうち一番高い倍率を 1 回だけ）
-	"""
-	ATTACK_MULTIPLIER
-	"""
-	地形効果を無視する（相手の地形効果を無視してダメージを与える）
-	"""
-	IGNORE_TERRAIN_EFFECT
-}
-"""
-HP の増減
-"""
-type ItemHitPointsModifierEffect implements ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-	"""
-	増減の値（負は下げる）
-	"""
-	value: Int!
-}
-"""
-地形効果を無視する
-"""
-type ItemIgnoreTerrainEffect implements ItemEffect {
-	"""
-	効果の種類
-	"""
-	kind: ItemEffectKind!
-}
-"""
-相手の属性の制約
-"""
-type ItemOpponentElementConstraint implements ItemConstraint {
-	"""
-	制約の種類
-	"""
-	kind: ItemConstraintKind!
-	"""
-	合えば満たす相手の属性（火・地・水・風・無の順）
-	"""
-	elements: [CreatureElement!]!
 }
 """
 土地（ふつうのマス）
@@ -1888,10 +1813,10 @@ type MatchAvatar {
 	name: String!
 }
 """
-クリーチャーの能力が発動した。先制・後手は効き目が無いとき（両方が先制で打ち消し合う等）も持っていれば出る。攻撃無効は、攻撃してきた
-クリーチャーの属性が合ったときだけ、その攻撃の前に出る。AT・HP を変える能力（戦闘中の増減・戦闘中のランダム）は増減が 0 でも出る
+クリーチャーの効果が発動した。先に・後に攻撃するは効き目が無いとき（両方が先に攻撃するで打ち消し合う等）も持っていれば出る。
+受けるダメージを 0 にするは、攻撃してきたクリーチャーが制約を満たしたときだけ、その攻撃の前に出る。AT・HP を変える効果（増減・上書き）は増減が 0 でも出る
 """
-type MatchBattleCreatureAbilityActivatedEvent implements MatchEvent {
+type MatchBattleCreatureEffectActivatedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -1905,25 +1830,21 @@ type MatchBattleCreatureAbilityActivatedEvent implements MatchEvent {
 	"""
 	changes: MatchEventChanges!
 	"""
-	能力を持つクリーチャーの側
+	効果を持つクリーチャーの側
 	"""
 	side: MatchBattleSide!
 	"""
-	発動した能力
+	クリーチャーのカード（性能は対戦を始めたときの写し）
 	"""
-	ability: CreatureAbilityKind!
+	card: CardInfo!
 	"""
-	増減と当てた後の値（AT・HP を変える能力のときだけ。ほかは null）
+	発動したカードの効果（種類と、下限で止まる前の値・上書きの範囲。受けるダメージを 0 にするは相手が制約を満たす最初のもの）
+	"""
+	activatedEffect: Effect!
+	"""
+	増減と当てた後の値（AT・HP を変える効果のときだけ。ほかは null）
 	"""
 	change: MatchBattleStatChange
-	"""
-	戦闘中の増減の根拠（BATTLE_MODIFIER のときだけ。ほかは null）
-	"""
-	battleModifier: MatchBattleModifierBasis
-	"""
-	戦闘中のランダムの根拠（BATTLE_RANDOM_STATS のときだけ。ほかは null）
-	"""
-	battleRandomStats: MatchBattleRandomStatsBasis
 }
 """
 出したアイテムの効果が発動した（増減・上書きは増減が 0 でも出る。倍率は掛けたものだけ、地形効果を無視するは相手に地形効果があるときだけ出る）
@@ -1952,7 +1873,7 @@ type MatchBattleItemEffectActivatedEvent implements MatchEvent {
 	"""
 	発動したカードの効果（種類と、下限で止まる前の値。倍率は制約を満たす一番高いもの）
 	"""
-	cardEffect: ItemEffect!
+	activatedEffect: Effect!
 	"""
 	アイテムを出した側の増減と当てた後の値（AT・HP を変える効果のときだけ。地形効果を無視するは null）
 	"""
@@ -1961,32 +1882,6 @@ type MatchBattleItemEffectActivatedEvent implements MatchEvent {
 	相手の増減と当てた後の値（地形効果を無視するときだけ。相手の HP が地形効果の分を除いた値になる。ほかは null）
 	"""
 	opponentChange: MatchBattleStatChange
-}
-"""
-戦闘中の増減の決まった値
-"""
-type MatchBattleModifierBasis {
-	"""
-	AT の増減（下限で止まる前の値）
-	"""
-	attackModifier: Int!
-	"""
-	HP の増減（下限で止まる前の値）
-	"""
-	hitPointsModifier: Int!
-}
-"""
-戦闘中のランダムの範囲（引いた値は change の当てた後の AT・HP）
-"""
-type MatchBattleRandomStatsBasis {
-	"""
-	範囲の最小
-	"""
-	minimum: Int!
-	"""
-	範囲の最大
-	"""
-	maximum: Int!
 }
 """
 戦闘のどちら側か
@@ -2061,7 +1956,7 @@ type MatchBattleStats {
 	hitPoints: Int!
 }
 """
-攻める側に支援効果が発動した（隣の自分の領地の数 × 1 つあたりの値だけ AT が増える。隣の領地が無ければ出ない）
+支援効果が発動した（戦場の隣にあるその側の領地の数 × 1 つあたりの値だけ AT が増える。攻める側にも守る側にも付き、隣の領地が無い側には出ない）
 """
 type MatchBattleSupportEffectActivatedEvent implements MatchEvent {
 	"""
@@ -2077,11 +1972,11 @@ type MatchBattleSupportEffectActivatedEvent implements MatchEvent {
 	"""
 	changes: MatchEventChanges!
 	"""
-	効果を受けた側（いつも ATTACKER）
+	効果を受けた側
 	"""
 	side: MatchBattleSide!
 	"""
-	侵略先の隣にある、攻める側の領地の位置
+	戦場の隣にある、その側の領地の位置
 	"""
 	positions: [BoardPosition!]!
 	"""
@@ -4117,6 +4012,32 @@ type NpcDeckCard {
 	count: Int!
 }
 """
+受けるダメージを 0 にする
+"""
+type NullifyReceivedDamageEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	発動する制約（すべてを満たすときに発動する。無ければ空でいつも発動する）
+	"""
+	constraints: [EffectConstraint!]!
+}
+"""
+相手のクリーチャーの属性の制約
+"""
+type OpponentCreatureElementConstraint implements EffectConstraint {
+	"""
+	制約の種類
+	"""
+	kind: EffectConstraintKind!
+	"""
+	合えば満たす相手のクリーチャーの属性（火・地・水・風・無の順。1 つ以上）
+	"""
+	elements: [CreatureElement!]!
+}
+"""
 ページの情報
 """
 type PageInfo {
@@ -5020,6 +4941,24 @@ enum StarterGrantStatus {
 	"""
 	COMPLETED
 }
+"""
+先に攻撃する
+"""
+type StrikeFirstEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
+"""
+後に攻撃する
+"""
+type StrikeLastEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+}
 type Subscription {
 	"""
 	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
@@ -5033,6 +4972,19 @@ type Subscription {
 		"""
 		id: UUID!
 	): MatchProgressResult!
+}
+"""
+通行料の倍率
+"""
+type TollMultiplierEffect implements Effect {
+	"""
+	効果の種類
+	"""
+	kind: EffectKind!
+	"""
+	倍率（百分率。150 で 1.5 倍。1 以上）
+	"""
+	percent: Int!
 }
 """
 公開用の ID（UUID の文字列）。core の内部の ID は返さない

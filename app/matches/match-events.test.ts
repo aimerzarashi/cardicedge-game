@@ -168,6 +168,18 @@ describe("eventLine", () => {
       "攻める側に支援効果（隣の領地 2 つ × AT +10）: AT +20 → AT 50・HP 40",
       { attackDelta: 20, hitPointsDelta: 0, attack: 50, hitPoints: 40 },
     ],
+    // 支援効果は守る側にも付く（core#178）
+    [
+      "守る側の支援効果",
+      {
+        __typename: "MatchBattleSupportEffectActivatedEvent",
+        side: "DEFENDER",
+        positions: [{ x: 2, y: 1 }],
+        bonusPerTerritory: 10,
+      },
+      "守る側に支援効果（隣の領地 1 つ × AT +10）: AT +10 → AT 30・HP 40",
+      { attackDelta: 10, hitPointsDelta: 0, attack: 30, hitPoints: 40 },
+    ],
     [
       "地形効果",
       {
@@ -186,7 +198,7 @@ describe("eventLine", () => {
         __typename: "MatchBattleItemEffectActivatedEvent",
         side: "ATTACKER",
         card: { name: "呪いの指輪" },
-        cardEffect: { kind: "HIT_POINTS_MODIFIER", value: -99 },
+        activatedEffect: { kind: "HIT_POINTS_MODIFIER", value: -99 },
       },
       "攻める側にアイテム「呪いの指輪」の効果「HP の増減」が発動（HP -99（-40 で止まった） → AT 30・HP 0（破壊された））",
       { attackDelta: 0, hitPointsDelta: -40, attack: 30, hitPoints: 0 },
@@ -197,7 +209,7 @@ describe("eventLine", () => {
         __typename: "MatchBattleItemEffectActivatedEvent",
         side: "ATTACKER",
         card: { name: "アクアブラスト" },
-        cardEffect: { kind: "ATTACK_OVERRIDE", value: 30 },
+        activatedEffect: { kind: "ATTACK_OVERRIDE", minimum: 30, maximum: 30 },
       },
       "攻める側にアイテム「アクアブラスト」の効果「AT の上書き」が発動（AT を 30 に: AT +10 → AT 30・HP 40）",
       { attackDelta: 10, hitPointsDelta: 0, attack: 30, hitPoints: 40 },
@@ -208,69 +220,68 @@ describe("eventLine", () => {
         __typename: "MatchBattleItemEffectActivatedEvent",
         side: "DEFENDER",
         card: { name: "ファイアダガー" },
-        cardEffect: { kind: "ATTACK_MULTIPLIER", percent: 150 },
+        activatedEffect: { kind: "ATTACK_MULTIPLIER", percent: 150 },
       },
       "守る側にアイテム「ファイアダガー」の効果「強打」が発動（150%: AT +17 → AT 52・HP 40）",
       { attackDelta: 17, hitPointsDelta: 0, attack: 52, hitPoints: 40 },
     ],
     [
-      "クリーチャーの能力",
+      "クリーチャーの HP の増減（アイテムと同じ書き方。core#178）",
       {
-        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
         side: "DEFENDER",
-        ability: "BATTLE_MODIFIER",
-        battleModifier: { attackModifier: -10, hitPointsModifier: 20 },
-        battleRandomStats: null,
+        card: { name: "アイスウォール" },
+        activatedEffect: { kind: "HIT_POINTS_MODIFIER", value: 20 },
       },
-      "守る側に能力「戦闘中の増減」が発動（AT -10・HP +20 → AT 10・HP 80）",
-      { attackDelta: -10, hitPointsDelta: 20, attack: 10, hitPoints: 80 },
+      "守る側にクリーチャー「アイスウォール」の効果「HP の増減」が発動（HP +20 → AT 10・HP 80）",
+      { attackDelta: 0, hitPointsDelta: 20, attack: 10, hitPoints: 80 },
     ],
     [
-      "増減が 0 の能力",
+      "増減が 0 のクリーチャーの効果",
       {
-        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
         side: "ATTACKER",
-        ability: "BATTLE_MODIFIER",
-        battleModifier: { attackModifier: 0, hitPointsModifier: 0 },
-        battleRandomStats: null,
+        card: { name: "ゴブリン" },
+        activatedEffect: { kind: "ATTACK_MODIFIER", value: 0 },
       },
-      "攻める側に能力「戦闘中の増減」が発動（増減なし → AT 20・HP 30）",
+      "攻める側にクリーチャー「ゴブリン」の効果「AT の増減」が発動（増減なし → AT 20・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0, attack: 20, hitPoints: 30 },
     ],
     [
-      "AT が 0 で変わらなかった能力",
+      "AT が 0 で変わらなかったクリーチャーの効果",
       {
-        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
         side: "ATTACKER",
-        ability: "BATTLE_MODIFIER",
-        battleModifier: { attackModifier: -10, hitPointsModifier: 0 },
-        battleRandomStats: null,
+        card: { name: "ゴブリン" },
+        activatedEffect: { kind: "ATTACK_MODIFIER", value: -10 },
       },
-      "攻める側に能力「戦闘中の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
+      "攻める側にクリーチャー「ゴブリン」の効果「AT の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0, attack: 0, hitPoints: 30 },
     ],
     [
-      "戦闘中のランダム（範囲と、変えた差・値を出す）",
+      "クリーチャーの上書き（範囲と、変えた差・値を出す）",
       {
-        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
         side: "DEFENDER",
-        ability: "BATTLE_RANDOM_STATS",
-        battleModifier: null,
-        battleRandomStats: { minimum: 10, maximum: 70 },
+        card: { name: "スペクター" },
+        activatedEffect: {
+          kind: "HIT_POINTS_OVERRIDE",
+          minimum: 10,
+          maximum: 70,
+        },
       },
-      "守る側に能力「戦闘中のランダム」が発動（10〜70: AT +30・HP -10 → AT 30・HP 20）",
-      { attackDelta: 30, hitPointsDelta: -10, attack: 30, hitPoints: 20 },
+      "守る側にクリーチャー「スペクター」の効果「HP の上書き」が発動（HP を 10〜70 に: HP -10 → AT 30・HP 20）",
+      { attackDelta: 0, hitPointsDelta: -10, attack: 30, hitPoints: 20 },
     ],
     [
-      "戦闘中のランダムで値が変わらない",
+      "クリーチャーの上書きで値が変わらない",
       {
-        __typename: "MatchBattleCreatureAbilityActivatedEvent",
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
         side: "ATTACKER",
-        ability: "BATTLE_RANDOM_STATS",
-        battleModifier: null,
-        battleRandomStats: { minimum: 10, maximum: 70 },
+        card: { name: "スペクター" },
+        activatedEffect: { kind: "ATTACK_OVERRIDE", minimum: 10, maximum: 70 },
       },
-      "攻める側に能力「戦闘中のランダム」が発動（10〜70: 増減なし → AT 20・HP 30）",
+      "攻める側にクリーチャー「スペクター」の効果「AT の上書き」が発動（AT を 10〜70 に: 増減なし → AT 20・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0, attack: 20, hitPoints: 30 },
     ],
   ] as const) {
@@ -292,7 +303,7 @@ describe("eventLine", () => {
           __typename: "MatchBattleItemEffectActivatedEvent",
           side: "ATTACKER",
           card: { name: "ストーンバレット" },
-          cardEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
+          activatedEffect: { kind: "IGNORE_TERRAIN_EFFECT" },
           change: null,
           opponentChange: {
             attackDelta: 0,
@@ -307,31 +318,32 @@ describe("eventLine", () => {
     );
   });
 
-  it("能力の発動のイベントは、どちらの側の何の能力かを出す", () => {
+  it("AT・HP を変えないクリーチャーの効果の発動は、どちらの側のどのクリーチャーの何の効果かだけを出す", () => {
     assert.equal(
       eventLine(
         event(22, {
-          __typename: "MatchBattleCreatureAbilityActivatedEvent",
+          __typename: "MatchBattleCreatureEffectActivatedEvent",
           side: "DEFENDER",
-          ability: "FIRST_STRIKE",
+          card: { name: "ドラゴンフライ" },
+          activatedEffect: { kind: "STRIKE_FIRST" },
+          change: null,
         }),
         names,
       ),
-      "版 22 守る側に能力「先制」が発動",
+      "版 22 守る側にクリーチャー「ドラゴンフライ」の効果「先制」が発動",
     );
-  });
-
-  it("攻撃無効の発動は、値を出さずに発動だけを出す", () => {
     assert.equal(
       eventLine(
         event(23, {
-          __typename: "MatchBattleCreatureAbilityActivatedEvent",
+          __typename: "MatchBattleCreatureEffectActivatedEvent",
           side: "DEFENDER",
-          ability: "ATTACK_IMMUNITY",
+          card: { name: "ジャイアントアメーバ" },
+          activatedEffect: { kind: "NULLIFY_RECEIVED_DAMAGE" },
+          change: null,
         }),
         names,
       ),
-      "版 23 守る側に能力「攻撃無効」が発動",
+      "版 23 守る側にクリーチャー「ジャイアントアメーバ」の効果「攻撃無効」が発動",
     );
   });
 
@@ -573,7 +585,7 @@ describe("eventLine", () => {
         }),
         names,
       ),
-      "版 17 (1, 0) に能力「通行料の倍率」が発動（150%: 通行料 60 → 90）",
+      "版 17 (1, 0) に効果「通行料の倍率」が発動（150%: 通行料 60 → 90）",
     );
   });
 

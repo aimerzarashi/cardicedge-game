@@ -1,12 +1,12 @@
 // core は文言を返さず、理由の型と値だけを返すため、文言はここで作る
 
 import type {
+  BoardTileElement,
   CardRarity,
   CardType,
-  CreatureAbilityKind,
   CreatureElement,
+  EffectKind,
   ItemCategory,
-  ItemEffectKind,
   MatchEndReason,
   MatchPhase,
   RoomStatus,
@@ -107,34 +107,47 @@ export function itemModifiersLabel(
   return parts.length > 0 ? parts.join("・") : "増減なし";
 }
 
-// アイテムの効果の画面のラベル。「強打」は AT の倍率の画面のラベル（2026-11-14 オーナー。core#177）。
-// Record<ItemEffectKind, …> にするのは、core に効果が足されたときの足し忘れを型検査で見つけるため
-export const ITEM_EFFECT_LABELS: Record<ItemEffectKind, string> = {
+// 効果の画面のラベル。アイテムとクリーチャーで共有する（core の型も共有している。core#178）。「強打」「先制」「後手」「攻撃無効」は効果の
+// 画面のラベル（2026-11-14・2026-11-15 オーナー）。Record<EffectKind, …> にするのは、core に効果が足されたときの足し忘れを型検査で見つけるため
+export const EFFECT_LABELS: Record<EffectKind, string> = {
   ATTACK_MODIFIER: "AT の増減",
   HIT_POINTS_MODIFIER: "HP の増減",
   ATTACK_OVERRIDE: "AT の上書き",
+  HIT_POINTS_OVERRIDE: "HP の上書き",
   ATTACK_MULTIPLIER: "強打",
   IGNORE_TERRAIN_EFFECT: "地形効果を無視する",
+  STRIKE_FIRST: "先制",
+  STRIKE_LAST: "後手",
+  NULLIFY_RECEIVED_DAMAGE: "攻撃無効",
+  TOLL_MULTIPLIER: "通行料の倍率",
+  FORBID_INVASION: "侵略できない",
+  FORBID_MOVEMENT: "移動できない",
 };
 
-// core が返したアイテムの効果 1 つ（値の要る効果だけが値を持つ。制約は今は相手の属性だけ）
-export type ItemEffectView = {
-  kind: ItemEffectKind;
+// core が返した効果 1 つ（値の要る効果だけが値を持つ。制約は今は相手のクリーチャーの属性だけ）
+export type EffectView = {
+  kind: EffectKind;
   value?: number;
+  minimum?: number;
+  maximum?: number;
   percent?: number;
   opponentElements?: CreatureElement[];
 };
 
 // core の効果の型（種類は __typename）から、表示の形にする
-export function itemEffectView(effect: {
-  kind: ItemEffectKind;
+export function effectView(effect: {
+  kind: EffectKind;
   value?: number;
+  minimum?: number;
+  maximum?: number;
   percent?: number;
   constraints?: readonly { elements?: CreatureElement[] }[];
-}): ItemEffectView {
+}): EffectView {
   return {
     kind: effect.kind,
     value: effect.value,
+    minimum: effect.minimum,
+    maximum: effect.maximum,
     percent: effect.percent,
     opponentElements: effect.constraints?.flatMap(
       ({ elements }) => elements ?? [],
@@ -142,31 +155,45 @@ export function itemEffectView(effect: {
   };
 }
 
-// 効果 1 つの表示（例: AT +25、AT を 30 に上書き、強打 150%（相手が水）、地形効果を無視する）
-export function itemEffectLabel(effect: ItemEffectView): string {
+// 上書きの範囲（固定は「30」、範囲は「10〜70」）
+export function overrideRangeLabel(minimum: number, maximum: number): string {
+  return minimum === maximum ? `${minimum}` : `${minimum}〜${maximum}`;
+}
+
+function withOpponent(label: string, effect: EffectView): string {
+  const elements = effect.opponentElements ?? [];
+  return elements.length === 0
+    ? label
+    : `${label}（相手が${elementsLabel(elements)}）`;
+}
+
+// 効果 1 つの表示（例: AT +25、AT を 30 に上書き、HP を 10〜70 に上書き、強打 150%（相手が水）、先制、攻撃無効（相手が火地））
+export function effectLabel(effect: EffectView): string {
   switch (effect.kind) {
     case "ATTACK_MODIFIER":
       return `AT ${signed(effect.value ?? 0)}`;
     case "HIT_POINTS_MODIFIER":
       return `HP ${signed(effect.value ?? 0)}`;
     case "ATTACK_OVERRIDE":
-      return `AT を ${effect.value ?? 0} に上書き`;
-    case "ATTACK_MULTIPLIER": {
-      const elements = effect.opponentElements ?? [];
-      return elements.length === 0
-        ? `強打 ${effect.percent ?? 0}%`
-        : `強打 ${effect.percent ?? 0}%（相手が${elementsLabel(elements)}）`;
-    }
-    case "IGNORE_TERRAIN_EFFECT":
-      return "地形効果を無視する";
+      return `AT を ${overrideRangeLabel(effect.minimum ?? 0, effect.maximum ?? 0)} に上書き`;
+    case "HIT_POINTS_OVERRIDE":
+      return `HP を ${overrideRangeLabel(effect.minimum ?? 0, effect.maximum ?? 0)} に上書き`;
+    case "ATTACK_MULTIPLIER":
+      return withOpponent(`強打 ${effect.percent ?? 0}%`, effect);
+    case "NULLIFY_RECEIVED_DAMAGE":
+      return withOpponent("攻撃無効", effect);
+    case "TOLL_MULTIPLIER":
+      return `通行料の倍率 ${effect.percent ?? 0}%`;
+    default:
+      return EFFECT_LABELS[effect.kind];
   }
 }
 
-// アイテムの効果の表示（core が返した並びのまま。無ければ「効果なし」）
-export function itemEffectsLabel(effects: readonly ItemEffectView[]): string {
+// 効果の表示（core が返した並びのまま。無ければ「効果なし」）
+export function effectsLabel(effects: readonly EffectView[]): string {
   return effects.length === 0
     ? "効果なし"
-    : effects.map(itemEffectLabel).join("・");
+    : effects.map(effectLabel).join("・");
 }
 
 // 戦闘の増減の行の、決まった増減（modifier）と実際の増減（delta）。下限の 0 で止まって違うときだけ実際の量を添える
@@ -302,70 +329,25 @@ export const CREATURE_ELEMENT_LABELS: Record<CreatureElement, string> = {
   NEUTRAL: "無",
 };
 
-// 複数の属性は core が並べた順のまま 1 文字ずつつなぐ（例: 火水）
-// 種類の足し忘れを型検査で見つけるため、Record<CreatureAbilityKind, …> で持つ
-export const CREATURE_ABILITY_LABELS: Record<CreatureAbilityKind, string> = {
-  DEFENSIVE: "防御型",
-  TOLL_MULTIPLIER: "通行料の倍率",
-  BATTLE_MODIFIER: "戦闘中の増減",
-  BATTLE_RANDOM_STATS: "戦闘中のランダム",
-  ATTACK_IMMUNITY: "攻撃無効",
-  FIRST_STRIKE: "先制",
-  LAST_STRIKE: "後手",
+// 配置制限の値は土地の属性（クリーチャーの属性ではない。core#178）。表示は 1 文字ずつつなぐ（無ければ「なし」）
+const LAND_ELEMENT_LABELS: Record<BoardTileElement, string> = {
+  FIRE: "火",
+  EARTH: "地",
+  WATER: "水",
+  WIND: "風",
+  NEUTRAL: "無",
+  MULTI: "複",
 };
 
-// 能力の表示（core が返した並びのまま。値があれば添える（例: 通行料の倍率 150%、戦闘中の増減 AT +10・HP -5、戦闘中のランダム 10〜70、攻撃無効 火地）。無ければ「なし」）
-export function abilitiesLabel(
-  abilities: readonly {
-    kind: CreatureAbilityKind;
-    percent?: number;
-    attackModifier?: number;
-    hitPointsModifier?: number;
-    minimum?: number;
-    maximum?: number;
-    elements?: readonly CreatureElement[];
-  }[],
-): string {
-  return abilities.length === 0
-    ? "なし"
-    : abilities
-        .map(
-          ({
-            kind,
-            percent,
-            attackModifier,
-            hitPointsModifier,
-            minimum,
-            maximum,
-            elements,
-          }) => {
-            const label = CREATURE_ABILITY_LABELS[kind];
-            if (percent !== undefined) return `${label} ${percent}%`;
-            if (
-              attackModifier !== undefined &&
-              hitPointsModifier !== undefined
-            ) {
-              return `${label} ${itemModifiersLabel(attackModifier, hitPointsModifier)}`;
-            }
-            if (minimum !== undefined && maximum !== undefined) {
-              return `${label} ${minimum}〜${maximum}`;
-            }
-            if (elements !== undefined) {
-              return `${label} ${elementsLabel(elements)}`;
-            }
-            return label;
-          },
-        )
-        .join("・");
-}
-
-// 配置制限の表示（無ければ「なし」）
 export function placementRestrictionsLabel(
-  elements: readonly CreatureElement[],
+  elements: readonly BoardTileElement[],
 ): string {
-  return elements.length === 0 ? "なし" : elementsLabel(elements);
+  return elements.length === 0
+    ? "なし"
+    : elements.map((element) => LAND_ELEMENT_LABELS[element]).join("");
 }
 
+// 複数の属性は core が並べた順のまま 1 文字ずつつなぐ（例: 火水）
 export function elementsLabel(elements: readonly CreatureElement[]): string {
   return elements.map((element) => CREATURE_ELEMENT_LABELS[element]).join("");
 }
@@ -559,12 +541,13 @@ export const BATTLE_VIEW_MESSAGES = {
   supportSource: "支援効果",
   terrainSource: "地形効果",
   // 増減の効果は名前だけ、ほかの効果（上書き・強打）は効果の名前も添える
-  itemSource: (name: string, effect: ItemEffectKind) =>
+  itemSource: (name: string, effect: EffectKind) =>
     effect === "ATTACK_MODIFIER" || effect === "HIT_POINTS_MODIFIER"
       ? `アイテム「${name}」`
-      : `アイテム「${name}」の${ITEM_EFFECT_LABELS[effect]}`,
+      : `アイテム「${name}」の${EFFECT_LABELS[effect]}`,
   ignoredSuffix: "（無視された）",
-  abilitySource: (ability: string) => `能力「${ability}」`,
+  // クリーチャーの効果（戦闘の欄はクリーチャーの側の中なので、名前は添えず効果だけ）
+  creatureSource: (effect: EffectKind) => `効果「${EFFECT_LABELS[effect]}」`,
   firstMark: "（先攻）",
   conquered: "攻める側が奪った",
   repelled: "侵略に失敗した",
@@ -607,19 +590,26 @@ export const MATCH_EVENT_MESSAGES = {
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
   itemSkipped: "アイテムを出さなかった",
-  // 能力の発動は、戦闘・盤面とも「〈どこに〉能力「〈名前〉」が発動（〈具体的な効果〉）」にそろえる（2026-11-12 オーナー。game#87）。
-  // 能力を足すときもこれを通す
-  // target は助詞まで含める（側は「守る側に」、位置は「(1, 0) に」と、座標の後だけ空白が要るため）
-  abilityActivated: (target: string, ability: string, effect?: string) =>
-    `${target}能力「${ability}」が発動${effect ? `（${effect}）` : ""}`,
-  // 戦闘中のランダム: 範囲と、AT・HP をその値に変えた差
-  battleRandomStatsEffect: (
-    minimum: number,
-    maximum: number,
+  // 効果の発動は、戦闘・盤面とも「〈どこに〉〈持ち主の〉効果「〈名前〉」が発動（〈具体的な効果〉）」にそろえる（2026-11-12 オーナー。game#87。
+  // core#177 でアイテム、core#178 でクリーチャーも効果に）。target は助詞まで含め（側は「守る側に」、位置は「(1, 0) に」と、座標の後だけ空白が
+  // 要るため）、owner は「の」まで含める（「クリーチャー「ノーム」の」。持ち主が引けないときは空）
+  effectActivated: (
+    target: string,
+    owner: string,
+    effect: string,
+    detail?: string,
+  ) =>
+    `${target}${owner}効果「${effect}」が発動${detail ? `（${detail}）` : ""}`,
+  creatureOwner: (card: string) => `クリーチャー「${card}」の`,
+  itemOwner: (card: string) => `アイテム「${card}」の`,
+  // 上書き: 範囲（固定は値）と、AT・HP をその値に変えた差
+  overrideEffect: (
+    stat: string,
+    range: string,
     change: string,
     attack: number,
     hitPoints: number,
-  ) => `${minimum}〜${maximum}: ${battleStatChange(change, attack, hitPoints)}`,
+  ) => `${stat} を ${range} に: ${battleStatChange(change, attack, hitPoints)}`,
   sideTarget: (side: string) => `${side}に`,
   positionTarget: (x: number, y: number) => `(${x}, ${y}) に`,
   // 攻撃の値と受けた量を分けて書く（攻撃無効で受けた量が 0 のときも「攻撃したけれど 0」と読めるように。2026-11-13 オーナー。game#97）
@@ -651,19 +641,6 @@ export const MATCH_EVENT_MESSAGES = {
   terrainSource: (element: string, level: number, bonusPerLevel: number) =>
     `地形効果（${element}属性 レベル ${level} × HP +${bonusPerLevel}）`,
   itemSource: (card: string) => `アイテム「${card}」`,
-  // アイテムの効果の発動。能力の発動と同じ「〈どこに〉〈何〉が発動（〈具体的な効果〉）」の形にそろえる（core#177）
-  itemEffectActivated: (
-    target: string,
-    card: string,
-    effect: string,
-    detail: string,
-  ) => `${target}アイテム「${card}」の効果「${effect}」が発動（${detail}）`,
-  attackOverrideEffect: (
-    value: number,
-    change: string,
-    attack: number,
-    hitPoints: number,
-  ) => `AT を ${value} に: ${battleStatChange(change, attack, hitPoints)}`,
   attackMultiplierEffect: (
     percent: number,
     change: string,
