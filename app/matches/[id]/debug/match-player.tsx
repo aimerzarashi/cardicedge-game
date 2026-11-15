@@ -6,6 +6,7 @@ import {
   type ComponentProps,
   type ReactNode,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import type { BoardTileElement } from "@/graphql/graphql";
@@ -13,11 +14,10 @@ import { BoardGrid } from "../../../boards/board-grid";
 import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
 import {
-  abilitiesLabel,
+  effectsLabel,
+  effectView,
   elementsLabel,
   ITEM_CATEGORY_LABELS,
-  itemEffectsLabel,
-  itemEffectView,
   itemRestrictionsLabel,
   lastingSpellEffectLabel,
   MATCH_END_REASON_LABELS,
@@ -935,11 +935,12 @@ function FrameView({
                             {card.placementRestrictions &&
                               card.placementRestrictions.length > 0 &&
                               `・配置制限 ${placementRestrictionsLabel(card.placementRestrictions)}`}
-                            {card.abilities &&
-                              card.abilities.length > 0 &&
-                              `・${abilitiesLabel(card.abilities)}`}
+                            {card.__typename === "CreatureCardInfo" &&
+                              card.effects &&
+                              card.effects.length > 0 &&
+                              `・${effectsLabel(card.effects.map(effectView))}`}
                             {card.category &&
-                              `・${ITEM_CATEGORY_LABELS[card.category]}・${itemEffectsLabel((card.effects ?? []).map(itemEffectView))}`}
+                              `・${ITEM_CATEGORY_LABELS[card.category]}・${effectsLabel((card.effects ?? []).map(effectView))}`}
                             {card.__typename === "SpellCardInfo" &&
                               `・${spellEffectLabel(card.effect)}`}
                             ）
@@ -1026,6 +1027,10 @@ export function MatchPlayer({
   const [loading, setLoading] = useState(false);
   const [queue, setQueue] = useState<PlayEvent[]>([]);
   const [shown, setShown] = useState<PlayEvent[]>([]);
+  // 受け取った最後の版。state の fetched は effect の閉包の値なので、同じ fetched で読みが 2 つ走ると
+  // （開発の StrictMode は effect を 2 回動かす）、両方の結果を待ち行列に入れて同じイベントを 2 回当てていた
+  // （配置が 2 回当たって領地が重なった。2026-11-15）。結果を受けた時点で同期に読み書きできる ref で弾く
+  const received = useRef(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1049,11 +1054,17 @@ export function MatchPlayer({
         retry();
         return;
       }
-      const events = result.events.filter((event) => event.revision > fetched);
+      const events = result.events.filter(
+        (event) => event.revision > received.current,
+      );
+      received.current = Math.max(
+        received.current,
+        events.at(-1)?.revision ?? goal,
+      );
       const { silent, play } = splitEvents(events, opened);
       setShown((current) => mergeShown(current, silent));
       setQueue((current) => [...current, ...play]);
-      setFetched(events.at(-1)?.revision ?? goal);
+      setFetched(received.current);
       setLoading(false);
     }, retry);
   }, [id, opened, target, latest.revision, fetched, loading]);

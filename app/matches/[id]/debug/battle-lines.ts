@@ -1,7 +1,4 @@
-import {
-  BATTLE_VIEW_MESSAGES,
-  CREATURE_ABILITY_LABELS,
-} from "../../../messages.ts";
+import { BATTLE_VIEW_MESSAGES, EFFECT_LABELS } from "../../../messages.ts";
 import type {
   FrameBattleHighlight,
   FrameBattleModifier,
@@ -18,8 +15,8 @@ function sourceLabel(source: FrameBattleModifier["source"]): string {
       return m.terrainSource;
     case "item":
       return m.itemSource(source.name, source.effect);
-    case "ability":
-      return m.abilitySource(CREATURE_ABILITY_LABELS[source.ability]);
+    case "creature":
+      return m.creatureSource(source.effect);
   }
 }
 
@@ -105,7 +102,7 @@ export function battleSideTitleParts(
       changed: mine?.part === "item",
     },
     ...side.states.map((state, index) => ({
-      text: ` ［${CREATURE_ABILITY_LABELS[state]}］`,
+      text: ` ［${EFFECT_LABELS[state]}］`,
       changed: mine?.part === "state" && mine.index === index,
     })),
   ];

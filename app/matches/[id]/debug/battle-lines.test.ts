@@ -23,7 +23,7 @@ const SIDE: FrameBattleSide = {
       hitPointsDelta: 25,
     },
   ],
-  states: ["FIRST_STRIKE"],
+  states: ["STRIKE_FIRST"],
   damages: [20],
   terrainIgnored: false,
   current: { attack: 30, hitPoints: 55 },
@@ -39,6 +39,26 @@ describe("battleStatLine", () => {
 
   it("増減もダメージも無ければ、戦闘の前の値だけ", () => {
     assert.equal(battleStatLine(SIDE, "attack"), "AT 30");
+  });
+
+  // クリーチャーの効果は、その側のクリーチャーのものなので名前を添えず効果だけ（core#178）
+  it("クリーチャーの効果は効果の名前で出す", () => {
+    const side: FrameBattleSide = {
+      ...SIDE,
+      modifiers: [
+        {
+          source: { kind: "creature", effect: "ATTACK_OVERRIDE" },
+          attackDelta: 20,
+          hitPointsDelta: 0,
+        },
+      ],
+      damages: [],
+      current: { attack: 50, hitPoints: 40 },
+    };
+    assert.equal(
+      battleStatLine(side, "attack"),
+      "AT 30 +20 効果「AT の上書き」 = 50",
+    );
   });
 
   it("アイテムの上書き・強打は効果の名前を添える", () => {

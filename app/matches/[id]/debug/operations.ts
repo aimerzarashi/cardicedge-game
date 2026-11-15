@@ -180,21 +180,42 @@ export const matchDebugQuery = graphql(`
               hitPoints
               itemRestrictions
               placementRestrictions
-              abilities {
+              effects {
+                __typename
                 kind
-                ... on CreatureTollMultiplierAbility {
-                  percent
+                ... on AttackModifierEffect {
+                  value
                 }
-                ... on CreatureBattleModifierAbility {
-                  attackModifier
-                  hitPointsModifier
+                ... on HitPointsModifierEffect {
+                  value
                 }
-                ... on CreatureBattleRandomStatsAbility {
+                ... on AttackOverrideEffect {
                   minimum
                   maximum
                 }
-                ... on CreatureAttackImmunityAbility {
-                  elements
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
                 }
               }
             }
@@ -203,23 +224,39 @@ export const matchDebugQuery = graphql(`
               effects {
                 __typename
                 kind
-                ... on ItemAttackModifierEffect {
+                ... on AttackModifierEffect {
                   value
                 }
-                ... on ItemHitPointsModifierEffect {
+                ... on HitPointsModifierEffect {
                   value
                 }
-                ... on ItemAttackOverrideEffect {
-                  value
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
                 }
-                ... on ItemAttackMultiplierEffect {
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
                   percent
                   constraints {
                     kind
-                    ... on ItemOpponentElementConstraint {
+                    ... on OpponentCreatureElementConstraint {
                       elements
                     }
                   }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
                 }
               }
             }
@@ -328,21 +365,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -351,23 +409,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -431,21 +505,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -454,23 +549,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -513,21 +624,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -536,23 +668,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -601,21 +749,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -624,23 +793,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -691,21 +876,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -714,23 +920,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -798,25 +1020,7 @@ export const matchDebugEventsQuery = graphql(`
               hitPoints
             }
           }
-          ... on MatchBattleCreatureAbilityActivatedEvent {
-            side
-            ability
-            change {
-              attackDelta
-              hitPointsDelta
-              attack
-              hitPoints
-            }
-            battleModifier {
-              attackModifier
-              hitPointsModifier
-            }
-            battleRandomStats {
-              minimum
-              maximum
-            }
-          }
-          ... on MatchBattleItemEffectActivatedEvent {
+          ... on MatchBattleCreatureEffectActivatedEvent {
             side
             card {
               __typename
@@ -830,21 +1034,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -853,23 +1078,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -896,26 +1137,204 @@ export const matchDebugEventsQuery = graphql(`
                 }
               }
             }
-            cardEffect {
+            change {
+              attackDelta
+              hitPointsDelta
+              attack
+              hitPoints
+            }
+            activatedEffect {
               __typename
               kind
-              ... on ItemAttackModifierEffect {
+              ... on AttackModifierEffect {
                 value
               }
-              ... on ItemHitPointsModifierEffect {
+              ... on HitPointsModifierEffect {
                 value
               }
-              ... on ItemAttackOverrideEffect {
-                value
+              ... on AttackOverrideEffect {
+                minimum
+                maximum
               }
-              ... on ItemAttackMultiplierEffect {
+              ... on HitPointsOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on AttackMultiplierEffect {
                 percent
                 constraints {
                   kind
-                  ... on ItemOpponentElementConstraint {
+                  ... on OpponentCreatureElementConstraint {
                     elements
                   }
                 }
+              }
+              ... on NullifyReceivedDamageEffect {
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on TollMultiplierEffect {
+                percent
+              }
+            }
+          }
+          ... on MatchBattleItemEffectActivatedEvent {
+            side
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                }
+              }
+              ... on ItemCardInfo {
+                category
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                }
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on DrawCardsSpellEffect {
+                    count
+                  }
+                  ... on GainMagicSpellEffect {
+                    perLap
+                  }
+                  ... on MultipleDiceSpellEffect {
+                    count
+                    turns
+                  }
+                  ... on FixedDiceSpellEffect {
+                    value
+                    turns
+                  }
+                  ... on DamageSpellEffect {
+                    amount
+                  }
+                }
+              }
+            }
+            activatedEffect {
+              __typename
+              kind
+              ... on AttackModifierEffect {
+                value
+              }
+              ... on HitPointsModifierEffect {
+                value
+              }
+              ... on AttackOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on HitPointsOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on AttackMultiplierEffect {
+                percent
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on NullifyReceivedDamageEffect {
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on TollMultiplierEffect {
+                percent
               }
             }
             opponentChange {
@@ -970,21 +1389,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -993,23 +1433,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1100,21 +1556,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1123,23 +1600,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1200,21 +1693,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1223,23 +1737,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1280,21 +1810,42 @@ export const matchDebugEventsQuery = graphql(`
                 hitPoints
                 itemRestrictions
                 placementRestrictions
-                abilities {
+                effects {
+                  __typename
                   kind
-                  ... on CreatureTollMultiplierAbility {
-                    percent
+                  ... on AttackModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleModifierAbility {
-                    attackModifier
-                    hitPointsModifier
+                  ... on HitPointsModifierEffect {
+                    value
                   }
-                  ... on CreatureBattleRandomStatsAbility {
+                  ... on AttackOverrideEffect {
                     minimum
                     maximum
                   }
-                  ... on CreatureAttackImmunityAbility {
-                    elements
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
@@ -1303,23 +1854,39 @@ export const matchDebugEventsQuery = graphql(`
                 effects {
                   __typename
                   kind
-                  ... on ItemAttackModifierEffect {
+                  ... on AttackModifierEffect {
                     value
                   }
-                  ... on ItemHitPointsModifierEffect {
+                  ... on HitPointsModifierEffect {
                     value
                   }
-                  ... on ItemAttackOverrideEffect {
-                    value
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
                   }
-                  ... on ItemAttackMultiplierEffect {
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
                     percent
                     constraints {
                       kind
-                      ... on ItemOpponentElementConstraint {
+                      ... on OpponentCreatureElementConstraint {
                         elements
                       }
                     }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
                   }
                 }
               }
