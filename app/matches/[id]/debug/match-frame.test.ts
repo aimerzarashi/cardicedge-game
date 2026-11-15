@@ -427,14 +427,22 @@ describe("applyEvent", () => {
     assert.equal(next.battle, null);
   });
 
-  it("奪うと領地の持ち主とクリーチャーが変わり、レベルは残り、侵略の欄が消える", () => {
-    const next = applyEvent(
+  it("守るクリーチャーが破壊されると持ち主の捨て札に入って土地が空き、侵略に成功すると攻めたクリーチャーがレベルを引き継いで入り、侵略の欄が消える", () => {
+    const destroyed = applyEvent(
       frame({
         territories: [{ ...TERRITORY, owner: 0, level: 2 }],
         invasion: INVASION,
         battle: BATTLE,
       }),
-      event("MatchTerritoryConqueredEvent", {
+      event("MatchDefendingCreatureDestroyedEvent", {
+        position: INVASION.position,
+      }),
+      BASE,
+    );
+    assert.deepEqual(destroyed.territories, []);
+    const next = applyEvent(
+      destroyed,
+      event("MatchInvasionSucceededEvent", {
         position: INVASION.position,
         creature: 7,
         territoryHitPoints: 8,
@@ -465,7 +473,7 @@ describe("applyEvent", () => {
         invasion: INVASION,
         battle: BATTLE,
       }),
-      event("MatchInvasionRepelledEvent", {
+      event("MatchInvasionFailedEvent", {
         card: INVASION.card,
         position: INVASION.position,
         returnedToHand: true,
@@ -477,10 +485,10 @@ describe("applyEvent", () => {
     assert.equal(next.territories[0].creature.hitPoints, 9);
   });
 
-  it("侵略に失敗して生きていれば手札の最後に戻り、倒れていれば捨て札に入る", () => {
+  it("侵略に失敗して生きていれば手札の最後に戻り、侵略したクリーチャーが破壊されていれば捨て札に入る", () => {
     const returned = applyEvent(
       frame({ invasion: INVASION }),
-      event("MatchInvasionRepelledEvent", {
+      event("MatchInvasionFailedEvent", {
         card: INVASION.card,
         returnedToHand: true,
       }),
@@ -492,8 +500,15 @@ describe("applyEvent", () => {
       ["c1", "c9"],
     );
     const destroyed = applyEvent(
-      frame({ invasion: INVASION }),
-      event("MatchInvasionRepelledEvent", {
+      applyEvent(
+        frame({ invasion: INVASION }),
+        event("MatchInvadingCreatureDestroyedEvent", {
+          card: INVASION.card,
+          position: INVASION.position,
+        }),
+        BASE,
+      ),
+      event("MatchInvasionFailedEvent", {
         card: INVASION.card,
         returnedToHand: false,
       }),
@@ -514,7 +529,7 @@ describe("applyEvent", () => {
     const other = { ...TERRITORY, position: { x: 2, y: 0 } };
     const next = applyEvent(
       frame({ territories: [TERRITORY, other] }),
-      event("MatchTerritoryLeveledUpEvent", {
+      event("MatchLandLeveledUpEvent", {
         position: TERRITORY.position,
         level: 3,
         magic: 300,
@@ -593,7 +608,7 @@ describe("applyEvent", () => {
   it("レベルを上げると土地のレベルも変わり、手放しても土地に残る", () => {
     const leveled = applyEvent(
       frame({ territories: [TERRITORY] }),
-      event("MatchTerritoryLeveledUpEvent", {
+      event("MatchLandLeveledUpEvent", {
         position: TERRITORY.position,
         level: 2,
         magic: 100,
@@ -659,8 +674,14 @@ describe("applyEvent", () => {
     );
     assert.deepEqual(invaded.invasion?.from, own.position);
     const conquered = applyEvent(
-      invaded,
-      event("MatchTerritoryConqueredEvent", {
+      applyEvent(
+        invaded,
+        event("MatchDefendingCreatureDestroyedEvent", {
+          position: other.position,
+        }),
+        BASE,
+      ),
+      event("MatchInvasionSucceededEvent", {
         position: other.position,
         creature: 1,
         territoryHitPoints: 18,
@@ -668,12 +689,20 @@ describe("applyEvent", () => {
       BASE,
     );
     assert.equal(conquered.invasion, null);
+    // 価値と通行料は、続けて当てる changes の値で決まる
     assert.deepEqual(conquered.territories, [
-      { ...other, owner: 1, creature: { ...own.creature, hitPoints: 18 } },
+      {
+        position: other.position,
+        owner: 1,
+        level: other.level,
+        value: 0,
+        toll: 0,
+        creature: { ...own.creature, hitPoints: 18 },
+      },
     ]);
   });
 
-  it("移動で侵略して生き残ると元の領地に戻り、倒れると元の土地が空いて捨て札に入る", () => {
+  it("移動で侵略して生き残ると元の領地に戻り、侵略したクリーチャーが破壊されると元の土地が空いて捨て札に入る", () => {
     const own = { ...TERRITORY, owner: 1 };
     const invasion = {
       ...INVASION,
@@ -682,7 +711,7 @@ describe("applyEvent", () => {
     };
     const returned = applyEvent(
       frame({ territories: [own], invasion }),
-      event("MatchInvasionRepelledEvent", {
+      event("MatchInvasionFailedEvent", {
         card: INVASION.card,
         position: { x: 2, y: 0 },
         returnedToHand: false,
@@ -697,8 +726,15 @@ describe("applyEvent", () => {
       ["c1"],
     );
     const destroyed = applyEvent(
-      frame({ territories: [own], invasion }),
-      event("MatchInvasionRepelledEvent", {
+      applyEvent(
+        frame({ territories: [own], invasion }),
+        event("MatchInvadingCreatureDestroyedEvent", {
+          card: INVASION.card,
+          position: { x: 2, y: 0 },
+        }),
+        BASE,
+      ),
+      event("MatchInvasionFailedEvent", {
         card: INVASION.card,
         position: { x: 2, y: 0 },
         returnedToHand: false,
@@ -716,7 +752,11 @@ describe("applyEvent", () => {
 
   it("元のフレームを書き換えない", () => {
     const before = frame();
-    applyEvent(before, event("MatchMovedEvent", { to: { x: 1, y: 0 } }), BASE);
+    applyEvent(
+      before,
+      event("MatchPieceMovedEvent", { to: { x: 1, y: 0 } }),
+      BASE,
+    );
     assert.deepEqual(before, frame());
   });
 
@@ -794,7 +834,9 @@ describe("applyEvent", () => {
     assert.equal(damaged.territories[0].creature.hitPoints, 0);
     const destroyed = applyEvent(
       damaged,
-      event("MatchCreatureDestroyedEvent", { position: { x: 1, y: 0 } }),
+      event("MatchBoardCreatureDestroyedEvent", {
+        position: { x: 1, y: 0 },
+      }),
       BASE,
     );
     assert.deepEqual(destroyed.territories, []);
@@ -876,7 +918,7 @@ describe("applyEvent", () => {
     assert.equal(rolled.remainingSteps, 2);
     const moved = applyEvent(
       rolled,
-      event("MatchMovedEvent", { to: { x: 1, y: 0 } }, null),
+      event("MatchPieceMovedEvent", { to: { x: 1, y: 0 } }, null),
       BASE,
     );
     assert.equal(moved.remainingSteps, 1);
@@ -968,7 +1010,7 @@ describe("applyEvent", () => {
     before.participants[1] = { ...before.participants[1], totalMagic: 700 };
     const next = applyEvent(
       before,
-      event("MatchMovedEvent", { to: BASE }),
+      event("MatchPieceMovedEvent", { to: BASE }),
       BASE,
     );
     assert.equal(next.participants[1].totalMagic, 700);
@@ -1073,11 +1115,11 @@ describe("applyEvent", () => {
 
 describe("eventDurationMs", () => {
   it("画面に映らないイベントは待たない", () => {
-    assert.equal(eventDurationMs(event("MatchDecksShuffledEvent")), 0);
+    assert.equal(eventDurationMs(event("MatchDrawPilesShuffledEvent")), 0);
   });
 
   it("画面に映るイベントは待つ", () => {
-    assert.ok(eventDurationMs(event("MatchMovedEvent")) > 0);
+    assert.ok(eventDurationMs(event("MatchPieceMovedEvent")) > 0);
   });
 });
 

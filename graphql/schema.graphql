@@ -1646,7 +1646,7 @@ type LandTile implements BoardTile {
 """
 通った自分の領地のレベルを上げる入力
 """
-input LevelUpMatchTerritoryInput {
+input LevelUpMatchLandInput {
 	"""
 	対戦の公開用の ID
 	"""
@@ -1665,13 +1665,13 @@ input LevelUpMatchTerritoryInput {
 	level: Int!
 }
 """
-levelUpMatchTerritory の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
+levelUpMatchLand の結果（PLACING・INVADING・TERRITORY_COMMANDING の段階の、今の番の参加者だけ。番でなければ MatchNotYourTurnError、段階が違えば MatchPhaseNotAllowedError。参加していない対戦は MatchNotFoundError）
 """
-union LevelUpMatchTerritoryResult = LevelUpMatchTerritorySuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
+union LevelUpMatchLandResult = LevelUpMatchLandSuccess | ValidationErrors | MatchNotFoundError | MatchNotYourTurnError | MatchPhaseNotAllowedError | RevisionConflictError | PlayerNotRegisteredError
 """
 領地のレベルを上げた（続けて止まったマスの行動が決まる。成功したら対戦の revision が進む）
 """
-type LevelUpMatchTerritorySuccess {
+type LevelUpMatchLandSuccess {
 	"""
 	対戦の公開用の ID
 	"""
@@ -1798,6 +1798,23 @@ type Match {
 	その部屋で何戦目か（1 始まり。roomId が null の間は null）
 	"""
 	number: Int
+}
+"""
+プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）
+"""
+type MatchAllRewardsReceivedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 }
 """
 参加者のアバターを、公開用の ID と名前で見せる値（名前は読むときに引く）
@@ -2052,6 +2069,35 @@ type MatchBoard {
 	pairs: [BoardTilePair!]!
 }
 """
+ボードで（今はスペルのダメージで）、領地のクリーチャーが破壊された（カードは持ち主の捨て札に入り、土地は空き地になる。レベルは土地に残る）
+"""
+type MatchBoardCreatureDestroyedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	今の番の参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	破壊されたクリーチャーのカード
+	"""
+	card: CardInfo!
+	"""
+	破壊された場所（その領地）
+	"""
+	position: BoardPosition!
+}
+"""
 手札を 1 枚捨てた（捨て札に入る）
 """
 type MatchCardDiscardedEvent implements MatchEvent {
@@ -2187,35 +2233,6 @@ type MatchCreatureDamagedEvent implements MatchEvent {
 	残りの HP（0 なら破壊される）
 	"""
 	remainingHitPoints: Int!
-}
-"""
-スペルのダメージで、領地のクリーチャーが破壊された（領地から外れて土地は空き地。レベルは残り、カードは持ち主の捨て札に入る）
-"""
-type MatchCreatureDestroyedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	使った参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	破壊されたクリーチャーがいた領地の位置
-	"""
-	position: BoardPosition!
-	"""
-	破壊されたクリーチャー（MatchPlacedCreature.id）
-	"""
-	creature: Int!
 }
 """
 領地のクリーチャーを手札のクリーチャーと入れ替えた
@@ -2370,9 +2387,9 @@ type MatchCreatureStruckEvent implements MatchEvent {
 	remainingHitPoints: Int!
 }
 """
-山札が混ざった（並びは見せないので、項目を持たない）
+戦闘で、守るクリーチャーが破壊された（カードは持ち主の捨て札に入り、土地は空き地になる。レベルは土地に残る）
 """
-type MatchDecksShuffledEvent implements MatchEvent {
+type MatchDefendingCreatureDestroyedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -2385,6 +2402,18 @@ type MatchDecksShuffledEvent implements MatchEvent {
 	このイベントで変わった、描画に要る core の決まりで決まる値
 	"""
 	changes: MatchEventChanges!
+	"""
+	今の番の参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	破壊されたクリーチャーのカード
+	"""
+	card: CardInfo!
+	"""
+	破壊された場所（戦場）
+	"""
+	position: BoardPosition!
 }
 """
 サイコロを振った
@@ -2443,6 +2472,23 @@ type MatchDiscardPileShuffledEvent implements MatchEvent {
 	山札にした枚数（捨て札はこれで空になる）
 	"""
 	drawPileCount: Int!
+}
+"""
+山札が混ざった（並びは見せないので、項目を持たない）
+"""
+type MatchDrawPilesShuffledEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
 }
 """
 土地の属性を変える選択肢 1 つ
@@ -2621,6 +2667,35 @@ type MatchHandsDealtEvent implements MatchEvent {
 	cards: Int!
 }
 """
+戦闘で、侵略したクリーチャーが破壊された（カードは捨て札に入り、移動で侵略していたら元の土地が空く）
+"""
+type MatchInvadingCreatureDestroyedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	今の番の参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	破壊されたクリーチャーのカード
+	"""
+	card: CardInfo!
+	"""
+	破壊された場所（戦場）
+	"""
+	position: BoardPosition!
+}
+"""
 戦闘が終わるまでの、侵略しているクリーチャー（領地には倒してから入るので、territories には含まない）
 """
 type MatchInvasion {
@@ -2640,7 +2715,7 @@ type MatchInvasion {
 """
 守る側のクリーチャーを倒せなかった（続けて通行料を払う）
 """
-type MatchInvasionRepelledEvent implements MatchEvent {
+type MatchInvasionFailedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -2681,6 +2756,39 @@ type MatchInvasionRepelledEvent implements MatchEvent {
 	移動で侵略して生き残ったときだけ。戻ったクリーチャーの体力
 	"""
 	returnedHitPoints: Int
+}
+"""
+守る側のクリーチャーを倒して土地を奪った（土地のレベルは引き継ぐ）
+"""
+type MatchInvasionSucceededEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	奪った参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	奪った領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	領地に入ったクリーチャーの新しい ID（Match.territories の creature.id と同じ番号）
+	"""
+	creature: Int!
+	"""
+	領地に入ったクリーチャーの体力
+	"""
+	territoryHitPoints: Int!
 }
 """
 戦闘にアイテムを出さなかった（攻める側も守る側も同じ）
@@ -2789,6 +2897,39 @@ type MatchLandLevel {
 	レベル（2 以上）
 	"""
 	level: Int!
+}
+"""
+通った自分の領地のレベルを上げた
+"""
+type MatchLandLeveledUpEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	上げた参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	領地の位置
+	"""
+	position: BoardPosition!
+	"""
+	上げた後のレベル
+	"""
+	level: Int!
+	"""
+	払った魔力
+	"""
+	magic: Int!
 }
 """
 全チェックポイントに印を付けて拠点に入り、周回を終えて魔力が増えた
@@ -2913,31 +3054,6 @@ type MatchMoveChoice {
 	from: BoardPosition!
 	"""
 	行き先（空き地か他人の領地）
-	"""
-	to: BoardPosition!
-}
-"""
-1 マス進んだ
-"""
-type MatchMovedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	進んだ参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	入ったマスの位置
 	"""
 	to: BoardPosition!
 }
@@ -3075,7 +3191,7 @@ enum MatchPhase {
 	"""
 	PLACING
 	"""
-	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchTerritory・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ
+	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchLand・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ
 	"""
 	TERRITORY_COMMANDING
 	"""
@@ -3111,6 +3227,31 @@ type MatchPhaseNotAllowedError {
 	開発者向けの説明（画面にそのまま出す文言ではない）
 	"""
 	message: String!
+}
+"""
+1 マス進んだ
+"""
+type MatchPieceMovedEvent implements MatchEvent {
+	"""
+	対戦の版
+	"""
+	revision: Int!
+	"""
+	起きた時刻
+	"""
+	occurredAt: DateTime!
+	"""
+	このイベントで変わった、描画に要る core の決まりで決まる値
+	"""
+	changes: MatchEventChanges!
+	"""
+	進んだ参加者（Match.participants の何番目か）
+	"""
+	participant: Int!
+	"""
+	入ったマスの位置
+	"""
+	to: BoardPosition!
 }
 """
 盤面に配置したクリーチャー 1 体（対戦の中の実体。戦闘の傷等はこの 1 体の今の状態として持つ）
@@ -3269,23 +3410,6 @@ type MatchRewardPack {
 	name: String!
 }
 """
-プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）
-"""
-type MatchRewardsCompletedEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-}
-"""
 対戦の決まり（盤面や部屋によらず、ゲーム全体で同じ値）
 """
 type MatchRules {
@@ -3431,46 +3555,13 @@ type MatchTerritory {
 	"""
 	value: Int!
 	"""
-	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollMultiplierActivatedEvent））
+	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollCreatureEffectActivatedEvent））
 	"""
 	toll: Int!
 	"""
 	手放したときに受け取る魔力
 	"""
 	relinquishMagic: Int!
-}
-"""
-守る側のクリーチャーを倒して土地を奪った（土地のレベルは引き継ぐ）
-"""
-type MatchTerritoryConqueredEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	奪った参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	奪った領地の位置
-	"""
-	position: BoardPosition!
-	"""
-	領地に入ったクリーチャーの新しい ID（Match.territories の creature.id と同じ番号）
-	"""
-	creature: Int!
-	"""
-	領地に入ったクリーチャーの体力
-	"""
-	territoryHitPoints: Int!
 }
 """
 通った自分の領地のクリーチャーを他人の領地へ動かし、侵略した（続けてアイテムを選び、戦闘する）
@@ -3555,39 +3646,6 @@ type MatchTerritoryInvadedEvent implements MatchEvent {
 	defendingCreatureCard: CardInfo!
 }
 """
-通った自分の領地のレベルを上げた
-"""
-type MatchTerritoryLeveledUpEvent implements MatchEvent {
-	"""
-	対戦の版
-	"""
-	revision: Int!
-	"""
-	起きた時刻
-	"""
-	occurredAt: DateTime!
-	"""
-	このイベントで変わった、描画に要る core の決まりで決まる値
-	"""
-	changes: MatchEventChanges!
-	"""
-	上げた参加者（Match.participants の何番目か）
-	"""
-	participant: Int!
-	"""
-	領地の位置
-	"""
-	position: BoardPosition!
-	"""
-	上げた後のレベル
-	"""
-	level: Int!
-	"""
-	払った魔力
-	"""
-	magic: Int!
-}
-"""
 魔力が負の間に自分の領地を手放した（クリーチャーは盤面から外れ、土地は空いてレベル 1 に戻る）
 """
 type MatchTerritoryRelinquishedEvent implements MatchEvent {
@@ -3633,7 +3691,7 @@ type MatchTerritoryValue {
 	"""
 	value: Int!
 	"""
-	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollMultiplierActivatedEvent））
+	盤面の通行料（価値 × 通行料の割合。いるクリーチャーの通行料の倍率は掛けず、払うときに発動する（MatchTollCreatureEffectActivatedEvent））
 	"""
 	toll: Int!
 	"""
@@ -3652,7 +3710,7 @@ type MatchTerritoryValue {
 """
 通行料を払う直前に、領地のクリーチャーの通行料の倍率が発動した（倍率を持っていれば、効き目が無くても出る）。続く MatchTollPaidEvent が multipliedToll を払う
 """
-type MatchTollMultiplierActivatedEvent implements MatchEvent {
+type MatchTollCreatureEffectActivatedEvent implements MatchEvent {
 	"""
 	対戦の版
 	"""
@@ -3857,7 +3915,7 @@ type Mutation {
 	"""
 	通った自分の領地のレベルを上げる（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
-	levelUpMatchTerritory(input: LevelUpMatchTerritoryInput!): LevelUpMatchTerritoryResult!
+	levelUpMatchLand(input: LevelUpMatchLandInput!): LevelUpMatchLandResult!
 	"""
 	通った自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""

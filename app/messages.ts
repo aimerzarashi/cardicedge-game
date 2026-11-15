@@ -555,7 +555,7 @@ export const BATTLE_VIEW_MESSAGES = {
 
 export const MATCH_EVENT_MESSAGES = {
   created: "対戦が始まった",
-  decksShuffled: "山札が混ざった",
+  drawPilesShuffled: "山札が混ざった",
   handsDealt: (cards: number) => `手札が ${cards} 枚ずつ配られた`,
   turnOrderDecided: (names: string) => `順番が決まった: ${names}`,
   cardDrawn: (card: string) => `カード「${card}」を引いた`,
@@ -567,11 +567,16 @@ export const MATCH_EVENT_MESSAGES = {
   spellEffectEnded: "続いていたスペルの効果が終わった",
   creatureDamaged: (x: number, y: number, damage: number, remaining: number) =>
     `(${x}, ${y}) のクリーチャーに ${damage} ダメージ（残りの HP ${remaining}）`,
-  creatureDestroyed: (x: number, y: number) =>
-    `(${x}, ${y}) のクリーチャーが破壊された`,
+  // 破壊の行はイベントの名前と同じ言葉で始め、捨て札・空き地になることは書かない（どの破壊でも同じ決まりのため。core#181）
+  boardCreatureDestroyed: (x: number, y: number, card: string) =>
+    `(${x}, ${y}) のクリーチャー「${card}」が破壊された`,
+  invadingCreatureDestroyed: (card: string) =>
+    `侵略したクリーチャー「${card}」が破壊された`,
+  defendingCreatureDestroyed: (card: string) =>
+    `守るクリーチャー「${card}」が破壊された`,
   magicGained: (magic: number, laps: number, magicPerLap: number) =>
     `魔力を得た（魔力 +${magic}。（周回 ${laps} 回 + 1）× ${magicPerLap}）`,
-  moved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
+  pieceMoved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
   checkpointPassed: (x: number, y: number, magic: number) =>
     `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,
   lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
@@ -657,11 +662,12 @@ export const MATCH_EVENT_MESSAGES = {
     `${opponent}の地形効果の分を除く: ${battleStatChange(change, attack, hitPoints)}`,
   battleAttacker: "攻める側",
   battleDefender: "守る側",
-  territoryConquered: (x: number, y: number) => `(${x}, ${y}) を奪った`,
-  invasionRepelled: (card: string, returnedToHand: boolean) =>
-    `侵略に失敗した（「${card}」は${returnedToHand ? "手札に戻った" : "捨て札になった"}）`,
-  movedInvasionRepelled: (card: string, returnedTo: boolean) =>
-    `侵略に失敗した（「${card}」は${returnedTo ? "元の領地に戻った" : "倒れて、元の土地は空き地になった"}）`,
+  invasionSucceeded: (x: number, y: number) =>
+    `侵略に成功した（(${x}, ${y}) を奪った）`,
+  // 倒れたときは、直前の破壊の行に出るので「侵略に失敗した」だけ
+  invasionFailed: "侵略に失敗した",
+  invasionFailedReturned: (card: string, to: "hand" | "origin") =>
+    `侵略に失敗した（「${card}」は${to === "hand" ? "手札に戻った" : "元の領地に戻った"}）`,
   creatureMoved: (fromX: number, fromY: number, toX: number, toY: number) =>
     `(${fromX}, ${fromY}) のクリーチャーを (${toX}, ${toY}) へ動かした`,
   territoryInvadedByMove: (
@@ -680,7 +686,7 @@ export const MATCH_EVENT_MESSAGES = {
   ) => `${percent}%: 通行料 ${toll} → ${multipliedToll}`,
   tollPaid: (owner: string, x: number, y: number, magic: number) =>
     `${owner}の領地 (${x}, ${y}) に通行料を払った（魔力 -${magic}）`,
-  territoryLeveledUp: (x: number, y: number, level: number, magic: number) =>
+  landLeveledUp: (x: number, y: number, level: number, magic: number) =>
     `領地 (${x}, ${y}) をレベル ${level} に上げた（魔力 -${magic}）`,
   landElementChanged: (
     x: number,
@@ -707,7 +713,7 @@ export const MATCH_EVENT_MESSAGES = {
   ended: (winners: string, reason: string) =>
     `対戦が終わった（勝った人: ${winners}。${reason}）`,
   rewardDrawn: (cards: string) => `戦利品を引いた（${cards}）`,
-  rewardsCompleted: "全員が戦利品を受け取った",
+  allRewardsReceived: "全員が戦利品を受け取った",
   unknown: "（知らない種類のイベント）",
   eventLine: (revision: number, actor: string | undefined, text: string) =>
     actor === undefined

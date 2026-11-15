@@ -55,7 +55,7 @@ import {
   endMatchTurn,
   exchangeMatchCreature,
   invadeMatchTerritory,
-  levelUpMatchTerritory,
+  levelUpMatchLand,
   moveMatchCreature,
   payMatchToll,
   placeMatchCreature,
@@ -455,7 +455,7 @@ function StopOperations({
         {choicesAt(operations.levelUpChoices, position).map((choice) => (
           <MatchActionButton
             key={choice.level}
-            action={levelUpMatchTerritory}
+            action={levelUpMatchLand}
             values={{ x: choice.x, y: choice.y, level: choice.level }}
             {...actionProps}
           >

@@ -78,9 +78,9 @@ export const relinquishMatchTerritoryMutation = graphql(`
   }
 `);
 
-export const levelUpMatchTerritoryMutation = graphql(`
-  mutation LevelUpMatchTerritory($input: LevelUpMatchTerritoryInput!) {
-    levelUpMatchTerritory(input: $input) {
+export const levelUpMatchLandMutation = graphql(`
+  mutation LevelUpMatchLand($input: LevelUpMatchLandInput!) {
+    levelUpMatchLand(input: $input) {
       __typename
       ... on ValidationErrors {
         errors {

@@ -13,7 +13,7 @@ const event = (
   revision: number,
   rest: Partial<MatchEventView> = {},
 ): MatchEventView => ({
-  __typename: "MatchMovedEvent",
+  __typename: "MatchPieceMovedEvent",
   revision,
   ...rest,
 });
@@ -23,7 +23,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(30, {
-          __typename: "MatchTerritoryLeveledUpEvent",
+          __typename: "MatchLandLeveledUpEvent",
           participant: 0,
           position: { x: 2, y: 0 },
           level: 3,
@@ -99,25 +99,58 @@ describe("eventLine", () => {
     );
   });
 
-  it("移動で侵略して失敗したイベントは、元の領地に戻ったか倒れたかを出す", () => {
-    const repelled = (returnedTo: { x: number; y: number } | null) =>
+  // 倒れたことは直前の破壊の行に出るので、失敗の行は戻った先だけを添える（core#181）
+  it("侵略に失敗したイベントは、生き残れば手札か元の領地に戻ったことを出し、倒れていれば失敗だけを出す", () => {
+    const failed = (
+      returnedToHand: boolean,
+      returnedTo: { x: number; y: number } | null,
+    ) =>
       eventLine(
         event(36, {
-          __typename: "MatchInvasionRepelledEvent",
+          __typename: "MatchInvasionFailedEvent",
           participant: 0,
           card: { name: "ナイト" },
-          returnedToHand: false,
+          returnedToHand,
           returnedTo,
         }),
         names,
       );
     assert.equal(
-      repelled({ x: 1, y: 0 }),
-      "版 36 部屋用: 侵略に失敗した（「ナイト」は元の領地に戻った）",
+      failed(true, null),
+      "版 36 部屋用: 侵略に失敗した（「ナイト」は手札に戻った）",
     );
     assert.equal(
-      repelled(null),
-      "版 36 部屋用: 侵略に失敗した（「ナイト」は捨て札になった）",
+      failed(false, { x: 1, y: 0 }),
+      "版 36 部屋用: 侵略に失敗した（「ナイト」は元の領地に戻った）",
+    );
+    assert.equal(failed(false, null), "版 36 部屋用: 侵略に失敗した");
+  });
+
+  it("破壊のイベントは、イベントと同じ言葉で破壊されたクリーチャーを出し、侵略の成功は奪った領地を出す", () => {
+    const line = (fields: Record<string, unknown>) =>
+      eventLine(event(37, { participant: 0, ...fields }), names);
+    assert.equal(
+      line({
+        __typename: "MatchInvadingCreatureDestroyedEvent",
+        card: { name: "ナイト" },
+        position: { x: 2, y: 0 },
+      }),
+      "版 37 部屋用: 侵略したクリーチャー「ナイト」が破壊された",
+    );
+    assert.equal(
+      line({
+        __typename: "MatchDefendingCreatureDestroyedEvent",
+        card: { name: "ゴブリン" },
+        position: { x: 2, y: 0 },
+      }),
+      "版 37 部屋用: 守るクリーチャー「ゴブリン」が破壊された",
+    );
+    assert.equal(
+      line({
+        __typename: "MatchInvasionSucceededEvent",
+        position: { x: 2, y: 0 },
+      }),
+      "版 37 部屋用: 侵略に成功した（(2, 0) を奪った）",
     );
   });
 
@@ -517,13 +550,14 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(26, {
-          __typename: "MatchCreatureDestroyedEvent",
+          __typename: "MatchBoardCreatureDestroyedEvent",
           participant: 0,
+          card: { name: "ゴブリン" },
           position: { x: 1, y: 0 },
         }),
         names,
       ),
-      "版 26 部屋用: (1, 0) のクリーチャーが破壊された",
+      "版 26 部屋用: (1, 0) のクリーチャー「ゴブリン」が破壊された",
     );
   });
 
@@ -577,7 +611,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(17, {
-          __typename: "MatchTollMultiplierActivatedEvent",
+          __typename: "MatchTollCreatureEffectActivatedEvent",
           position: { x: 1, y: 0 },
           percent: 150,
           toll: 60,
@@ -688,7 +722,10 @@ describe("eventLine", () => {
       "版 41 部屋用: 戦利品を引いた（A、B）",
     );
     assert.equal(
-      eventLine(event(42, { __typename: "MatchRewardsCompletedEvent" }), names),
+      eventLine(
+        event(42, { __typename: "MatchAllRewardsReceivedEvent" }),
+        names,
+      ),
       "版 42 全員が戦利品を受け取った",
     );
   });

@@ -158,8 +158,8 @@ function body(event: MatchEventView, names: string[]): string {
   switch (event.__typename) {
     case "MatchCreatedEvent":
       return m.created;
-    case "MatchDecksShuffledEvent":
-      return m.decksShuffled;
+    case "MatchDrawPilesShuffledEvent":
+      return m.drawPilesShuffled;
     case "MatchHandsDealtEvent":
       return m.handsDealt(event.cards ?? 0);
     case "MatchTurnOrderDecidedEvent":
@@ -256,22 +256,24 @@ function body(event: MatchEventView, names: string[]): string {
         event.damage ?? 0,
         event.remainingHitPoints ?? 0,
       );
-    case "MatchTerritoryConqueredEvent":
-      return m.territoryConquered(
+    case "MatchInvadingCreatureDestroyedEvent":
+      return m.invadingCreatureDestroyed(event.card?.name ?? "");
+    case "MatchDefendingCreatureDestroyedEvent":
+      return m.defendingCreatureDestroyed(event.card?.name ?? "");
+    case "MatchInvasionSucceededEvent":
+      return m.invasionSucceeded(
         event.position?.x ?? 0,
         event.position?.y ?? 0,
       );
-    case "MatchInvasionRepelledEvent":
-      // 移動で侵略したときは手札に戻らず、元の領地に戻るか倒れる（returnedTo は移動で生き残ったときだけ届く）
-      if (event.returnedTo !== undefined && !event.returnedToHand) {
-        return event.returnedTo
-          ? m.movedInvasionRepelled(event.card?.name ?? "", true)
-          : m.invasionRepelled(event.card?.name ?? "", false);
+    case "MatchInvasionFailedEvent":
+      // 生き残れば手札（手札から侵略したとき）か元の領地（移動で侵略したとき。returnedTo が届く）に戻る
+      if (event.returnedToHand) {
+        return m.invasionFailedReturned(event.card?.name ?? "", "hand");
       }
-      return m.invasionRepelled(
-        event.card?.name ?? "",
-        event.returnedToHand ?? false,
-      );
+      if (event.returnedTo) {
+        return m.invasionFailedReturned(event.card?.name ?? "", "origin");
+      }
+      return m.invasionFailed;
     case "MatchCreatureMovedEvent":
       return m.creatureMoved(
         event.from?.x ?? 0,
@@ -288,7 +290,7 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.x ?? 0,
         event.position?.y ?? 0,
       );
-    case "MatchTollMultiplierActivatedEvent":
+    case "MatchTollCreatureEffectActivatedEvent":
       // 通行料の倍率の発動は持ち主のカードを持たないので、位置だけを書く
       return m.effectActivated(
         m.positionTarget(event.position?.x ?? 0, event.position?.y ?? 0),
@@ -307,8 +309,8 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.y ?? 0,
         event.magic ?? 0,
       );
-    case "MatchTerritoryLeveledUpEvent":
-      return m.territoryLeveledUp(
+    case "MatchLandLeveledUpEvent":
+      return m.landLeveledUp(
         event.position?.x ?? 0,
         event.position?.y ?? 0,
         event.level ?? 0,
@@ -360,10 +362,11 @@ function body(event: MatchEventView, names: string[]): string {
         event.damage ?? 0,
         event.remainingHitPoints ?? 0,
       );
-    case "MatchCreatureDestroyedEvent":
-      return m.creatureDestroyed(
+    case "MatchBoardCreatureDestroyedEvent":
+      return m.boardCreatureDestroyed(
         event.position?.x ?? 0,
         event.position?.y ?? 0,
+        event.card?.name ?? "",
       );
     case "MatchMagicGainedEvent":
       return m.magicGained(
@@ -371,8 +374,8 @@ function body(event: MatchEventView, names: string[]): string {
         event.laps ?? 0,
         event.magicPerLap ?? 0,
       );
-    case "MatchMovedEvent":
-      return m.moved(event.to?.x ?? 0, event.to?.y ?? 0);
+    case "MatchPieceMovedEvent":
+      return m.pieceMoved(event.to?.x ?? 0, event.to?.y ?? 0);
     case "MatchCheckpointPassedEvent":
       return m.checkpointPassed(
         event.checkpoint?.x ?? 0,
@@ -392,8 +395,8 @@ function body(event: MatchEventView, names: string[]): string {
       return m.rewardDrawn(
         (event.rewardCards ?? []).map((card) => card.name).join("、"),
       );
-    case "MatchRewardsCompletedEvent":
-      return m.rewardsCompleted;
+    case "MatchAllRewardsReceivedEvent":
+      return m.allRewardsReceived;
     default:
       return m.unknown;
   }

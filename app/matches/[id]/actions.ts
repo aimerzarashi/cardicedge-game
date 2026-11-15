@@ -21,7 +21,7 @@ import {
   endMatchTurnMutation,
   exchangeMatchCreatureMutation,
   invadeMatchTerritoryMutation,
-  levelUpMatchTerritoryMutation,
+  levelUpMatchLandMutation,
   moveMatchCreatureMutation,
   payMatchTollMutation,
   placeMatchCreatureMutation,
@@ -211,7 +211,7 @@ export async function relinquishMatchTerritory(
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
-export async function levelUpMatchTerritory(
+export async function levelUpMatchLand(
   _previous: MatchActionState,
   form: FormData,
 ): Promise<MatchActionState> {
@@ -229,11 +229,11 @@ export async function levelUpMatchTerritory(
   ) {
     return BAD_FORM;
   }
-  const result = await callCore(levelUpMatchTerritoryMutation, {
+  const result = await callCore(levelUpMatchLandMutation, {
     input: { id, revision, position: { x, y }, level },
   });
   return result.ok
-    ? finish(result.data.levelUpMatchTerritory)
+    ? finish(result.data.levelUpMatchLand)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
