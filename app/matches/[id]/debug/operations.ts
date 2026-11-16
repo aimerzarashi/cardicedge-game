@@ -129,6 +129,7 @@ export const matchDebugQuery = graphql(`
           diceMin
           diceMax
           baseLandValue
+          lapBonusPerTerritory
           maxHandCards
           startingHandCards
           tollPercentage
@@ -2500,6 +2501,10 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchLapCompletedEvent {
             participant
             magic
+            lapBonus
+            territoryBonus
+            territoryCount
+            lapBonusPerTerritory
           }
           ... on MatchTurnEndedEvent {
             participant

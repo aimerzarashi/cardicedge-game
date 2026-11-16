@@ -26,6 +26,10 @@ export type MatchEventView = {
   laps?: number;
   magicPerLap?: number;
   baseLandValue?: number;
+  lapBonus?: number;
+  territoryBonus?: number;
+  territoryCount?: number;
+  lapBonusPerTerritory?: number;
   multiplier?: number;
   checkpoint?: { x: number; y: number };
   magic?: number;
@@ -403,7 +407,13 @@ function body(event: MatchEventView, names: string[]): string {
         event.magic ?? 0,
       );
     case "MatchLapCompletedEvent":
-      return m.lapCompleted(event.magic ?? 0);
+      return m.lapCompleted(
+        event.magic ?? 0,
+        event.lapBonus ?? 0,
+        event.territoryBonus ?? 0,
+        event.territoryCount ?? 0,
+        event.lapBonusPerTerritory ?? 0,
+      );
     case "MatchTurnEndedEvent":
       return m.turnEnded;
     case "MatchEndedEvent":

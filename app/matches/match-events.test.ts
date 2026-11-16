@@ -53,6 +53,24 @@ describe("eventLine", () => {
     );
   });
 
+  it("周回を終えたイベントは、合計の後に、基本の額と領地の分の額の内訳を出す", () => {
+    assert.equal(
+      eventLine(
+        event(35, {
+          __typename: "MatchLapCompletedEvent",
+          participant: 0,
+          magic: 380,
+          lapBonus: 300,
+          territoryBonus: 80,
+          territoryCount: 4,
+          lapBonusPerTerritory: 20,
+        }),
+        names,
+      ),
+      "版 35 部屋用: 周回を終えた（周回のボーナス 380: 基本 300 ＋ 領地 80（4 つ × 20））",
+    );
+  });
+
   it("動かしたイベントと、移動で侵略したイベントを出す", () => {
     assert.equal(
       eventLine(
