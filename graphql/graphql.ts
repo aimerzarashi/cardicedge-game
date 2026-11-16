@@ -617,9 +617,45 @@ export type CollectionQueryVariables = Exact<{
 export type CollectionQuery = { me:
     | { __typename: 'Player', collection:
         | { __typename: 'CollectionCardConnection', edges: Array<{ node: { count: number, card:
-                | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-                | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-                | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+                | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                    | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                    | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                    | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                    | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                    | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                    | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                    | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                    | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                    | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                    | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                    | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                    | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                    | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                    | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                  > }
+                | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                    | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                    | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                    | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                    | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                    | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                    | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                    | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                    | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                    | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                    | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                    | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                    | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                    | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                    | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                  > }
+                | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                    | { __typename: 'DamageSpellEffect', amount: number }
+                    | { __typename: 'DrawCardsSpellEffect', count: number }
+                    | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                    | { __typename: 'GainMagicSpellEffect', perLap: number }
+                    | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+                   | null }
                } }>, pageInfo: { hasNextPage: boolean, endCursor: string | null } }
         | { __typename: 'ValidationErrors' }
        }
@@ -633,9 +669,45 @@ export type PlayerDeckQueryVariables = Exact<{
 
 export type PlayerDeckQuery = { deck:
     | { __typename: 'Deck', id: string, name: string, totalCount: number, cards: Array<{ count: number, card:
-          | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-          | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-          | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+              | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+              | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+              | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+              | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+              | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+              | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+              | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+              | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+              | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+              | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+              | { __typename: 'StrikeLastEffect', kind: EffectKind }
+              | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+            > }
+          | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+              | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+              | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+              | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+              | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+              | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+              | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+              | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+              | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+              | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+              | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+              | { __typename: 'StrikeLastEffect', kind: EffectKind }
+              | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+            > }
+          | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+              | { __typename: 'DamageSpellEffect', amount: number }
+              | { __typename: 'DrawCardsSpellEffect', count: number }
+              | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+              | { __typename: 'GainMagicSpellEffect', perLap: number }
+              | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+             | null }
          }> }
     | { __typename: 'DeckNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
@@ -1765,9 +1837,45 @@ export type NpcAvatarQueryVariables = Exact<{
 
 export type NpcAvatarQuery = { npcAvatar:
     | { __typename: 'NpcAvatar', id: string, name: string, decks: Array<{ id: string, name: string, totalCount: number, cards: Array<{ count: number, card:
-            | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-            | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
-            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'DamageSpellEffect', amount: number }
+                | { __typename: 'DrawCardsSpellEffect', count: number }
+                | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                | { __typename: 'GainMagicSpellEffect', perLap: number }
+                | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+               | null }
            }> }> }
     | { __typename: 'NpcAvatarNotFoundError' }
     | { __typename: 'PlayerNotRegisteredError' }
@@ -2339,6 +2447,128 @@ export const CollectionDocument = new TypedDocumentString(`
                 name
                 cost
                 rarity
+                ... on CreatureCardInfo {
+                  elements
+                  attack
+                  hitPoints
+                  itemRestrictions
+                  placementRestrictions
+                  effects {
+                    __typename
+                    kind
+                    ... on AttackModifierEffect {
+                      value
+                    }
+                    ... on HitPointsModifierEffect {
+                      value
+                    }
+                    ... on AttackOverrideEffect {
+                      minimum
+                      maximum
+                    }
+                    ... on HitPointsOverrideEffect {
+                      minimum
+                      maximum
+                    }
+                    ... on AttackMultiplierEffect {
+                      percent
+                      constraints {
+                        kind
+                        ... on OpponentCreatureElementConstraint {
+                          elements
+                        }
+                      }
+                    }
+                    ... on NullifyReceivedDamageEffect {
+                      constraints {
+                        kind
+                        ... on OpponentCreatureElementConstraint {
+                          elements
+                        }
+                      }
+                    }
+                    ... on TollMultiplierEffect {
+                      percent
+                    }
+                    ... on ReturnToHandOnDestructionEffect {
+                      destructions
+                    }
+                    ... on GainMagicOnDestructionEffect {
+                      destructions
+                      amount
+                    }
+                  }
+                }
+                ... on ItemCardInfo {
+                  category
+                  effects {
+                    __typename
+                    kind
+                    ... on AttackModifierEffect {
+                      value
+                    }
+                    ... on HitPointsModifierEffect {
+                      value
+                    }
+                    ... on AttackOverrideEffect {
+                      minimum
+                      maximum
+                    }
+                    ... on HitPointsOverrideEffect {
+                      minimum
+                      maximum
+                    }
+                    ... on AttackMultiplierEffect {
+                      percent
+                      constraints {
+                        kind
+                        ... on OpponentCreatureElementConstraint {
+                          elements
+                        }
+                      }
+                    }
+                    ... on NullifyReceivedDamageEffect {
+                      constraints {
+                        kind
+                        ... on OpponentCreatureElementConstraint {
+                          elements
+                        }
+                      }
+                    }
+                    ... on TollMultiplierEffect {
+                      percent
+                    }
+                    ... on ReturnToHandOnDestructionEffect {
+                      destructions
+                    }
+                    ... on GainMagicOnDestructionEffect {
+                      destructions
+                      amount
+                    }
+                  }
+                }
+                ... on SpellCardInfo {
+                  effect {
+                    __typename
+                    ... on DrawCardsSpellEffect {
+                      count
+                    }
+                    ... on GainMagicSpellEffect {
+                      perLap
+                    }
+                    ... on MultipleDiceSpellEffect {
+                      count
+                      turns
+                    }
+                    ... on FixedDiceSpellEffect {
+                      value
+                      turns
+                    }
+                    ... on DamageSpellEffect {
+                      amount
+                    }
+                  }
+                }
               }
             }
           }
@@ -2368,6 +2598,128 @@ export const PlayerDeckDocument = new TypedDocumentString(`
           name
           cost
           rarity
+          ... on CreatureCardInfo {
+            elements
+            attack
+            hitPoints
+            itemRestrictions
+            placementRestrictions
+            effects {
+              __typename
+              kind
+              ... on AttackModifierEffect {
+                value
+              }
+              ... on HitPointsModifierEffect {
+                value
+              }
+              ... on AttackOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on HitPointsOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on AttackMultiplierEffect {
+                percent
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on NullifyReceivedDamageEffect {
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on TollMultiplierEffect {
+                percent
+              }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
+              }
+            }
+          }
+          ... on ItemCardInfo {
+            category
+            effects {
+              __typename
+              kind
+              ... on AttackModifierEffect {
+                value
+              }
+              ... on HitPointsModifierEffect {
+                value
+              }
+              ... on AttackOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on HitPointsOverrideEffect {
+                minimum
+                maximum
+              }
+              ... on AttackMultiplierEffect {
+                percent
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on NullifyReceivedDamageEffect {
+                constraints {
+                  kind
+                  ... on OpponentCreatureElementConstraint {
+                    elements
+                  }
+                }
+              }
+              ... on TollMultiplierEffect {
+                percent
+              }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
+              }
+            }
+          }
+          ... on SpellCardInfo {
+            effect {
+              __typename
+              ... on DrawCardsSpellEffect {
+                count
+              }
+              ... on GainMagicSpellEffect {
+                perLap
+              }
+              ... on MultipleDiceSpellEffect {
+                count
+                turns
+              }
+              ... on FixedDiceSpellEffect {
+                value
+                turns
+              }
+              ... on DamageSpellEffect {
+                amount
+              }
+            }
+          }
         }
       }
     }
@@ -5161,6 +5513,128 @@ export const NpcAvatarDocument = new TypedDocumentString(`
             name
             cost
             rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on ItemCardInfo {
+              category
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
+              }
+            }
           }
         }
       }
