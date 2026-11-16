@@ -209,6 +209,8 @@ export type PlayEvent = {
   rewardCards?: { name: string }[];
   striker?: "ATTACKER" | "DEFENDER";
   remainingHitPoints?: number;
+  amount?: number;
+  hitPoints?: number;
   returnedToHand?: boolean;
   territoryHitPoints?: number;
   level?: number;
@@ -594,6 +596,18 @@ function applyFact(
         magic: participant.magic + magic,
         passedCheckpoints: [],
       }));
+    case "MatchLapCreatureHitPointsRecoveredEvent": {
+      const { position, hitPoints } = event;
+      if (!position || hitPoints === undefined) return frame;
+      return {
+        ...frame,
+        territories: frame.territories.map((territory) =>
+          samePosition(territory.position, position)
+            ? { ...territory, creature: { ...territory.creature, hitPoints } }
+            : territory,
+        ),
+      };
+    }
     case "MatchCreaturePlacedEvent": {
       const { card, position, creature } = event;
       if (!card || !position || creature === undefined) return frame;
@@ -647,7 +661,7 @@ function applyFact(
         },
       }));
     }
-    case "MatchCreatureDamagedEvent": {
+    case "MatchSpellCreatureDamagedEvent": {
       const { position, remainingHitPoints } = event;
       if (!position || remainingHitPoints === undefined) return frame;
       return {

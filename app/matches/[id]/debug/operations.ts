@@ -2425,7 +2425,7 @@ export const matchDebugEventsQuery = graphql(`
           ... on MatchSpellEffectEndedEvent {
             participant
           }
-          ... on MatchCreatureDamagedEvent {
+          ... on MatchSpellCreatureDamagedEvent {
             participant
             position {
               x
@@ -2505,6 +2505,23 @@ export const matchDebugEventsQuery = graphql(`
             territoryBonus
             territoryCount
             lapBonusPerTerritory
+          }
+          ... on MatchLapCreatureHitPointsRecoveredEvent {
+            participant
+            position {
+              x
+              y
+            }
+            creature
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+            }
+            amount
+            hitPoints
           }
           ... on MatchTurnEndedEvent {
             participant

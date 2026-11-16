@@ -825,7 +825,7 @@ describe("applyEvent", () => {
   it("ダメージでクリーチャーの HP が減り、破壊されると土地が空き、持ち主の捨て札に入る", () => {
     const damaged = applyEvent(
       frame({ territories: [{ ...TERRITORY, owner: 0 }] }),
-      event("MatchCreatureDamagedEvent", {
+      event("MatchSpellCreatureDamagedEvent", {
         position: { x: 1, y: 0 },
         remainingHitPoints: 0,
       }),
@@ -843,6 +843,27 @@ describe("applyEvent", () => {
     assert.deepEqual(destroyed.participants[0].discardPile, [
       { id: "c1", name: "ドラゴン" },
     ]);
+  });
+
+  it("周回回復で、その位置のクリーチャーの HP だけが回復した後の値になる", () => {
+    const next = applyEvent(
+      frame({
+        territories: [
+          {
+            ...TERRITORY,
+            owner: 0,
+            creature: { ...TERRITORY.creature, hitPoints: 5 },
+          },
+        ],
+      }),
+      event("MatchLapCreatureHitPointsRecoveredEvent", {
+        position: { x: 1, y: 0 },
+        amount: 10,
+        hitPoints: 15,
+      }),
+      BASE,
+    );
+    assert.equal(next.territories[0].creature.hitPoints, 15);
   });
 
   it("スペルで魔力を得ると、その人の魔力だけが増える", () => {

@@ -51,6 +51,8 @@ export type MatchEventView = {
   striker?: "ATTACKER" | "DEFENDER";
   damage?: number;
   remainingHitPoints?: number;
+  amount?: number;
+  hitPoints?: number;
   returnedToHand?: boolean;
   attacker?: { attack: number; hitPoints: number };
   defender?: { attack: number; hitPoints: number };
@@ -379,7 +381,7 @@ function body(event: MatchEventView, names: string[]): string {
       );
     case "MatchSpellEffectEndedEvent":
       return m.spellEffectEnded;
-    case "MatchCreatureDamagedEvent":
+    case "MatchSpellCreatureDamagedEvent":
       return m.creatureDamaged(
         event.position?.x ?? 0,
         event.position?.y ?? 0,
@@ -413,6 +415,14 @@ function body(event: MatchEventView, names: string[]): string {
         event.territoryBonus ?? 0,
         event.territoryCount ?? 0,
         event.lapBonusPerTerritory ?? 0,
+      );
+    case "MatchLapCreatureHitPointsRecoveredEvent":
+      return m.lapCreatureHitPointsRecovered(
+        event.position?.x ?? 0,
+        event.position?.y ?? 0,
+        event.card?.name ?? "",
+        event.amount ?? 0,
+        event.hitPoints ?? 0,
       );
     case "MatchTurnEndedEvent":
       return m.turnEnded;

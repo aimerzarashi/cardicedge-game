@@ -71,6 +71,23 @@ describe("eventLine", () => {
     );
   });
 
+  it("周回回復のイベントは、位置・カード・回復した量と、回復の前後の HP を出す", () => {
+    assert.equal(
+      eventLine(
+        event(36, {
+          __typename: "MatchLapCreatureHitPointsRecoveredEvent",
+          participant: 0,
+          position: { x: 2, y: 0 },
+          card: { name: "ウルフ" },
+          amount: 10,
+          hitPoints: 20,
+        }),
+        names,
+      ),
+      "版 36 部屋用: (2, 0) のクリーチャー「ウルフ」の HP が周回回復で 10 回復した（10 → 20）",
+    );
+  });
+
   it("動かしたイベントと、移動で侵略したイベントを出す", () => {
     assert.equal(
       eventLine(
@@ -588,7 +605,7 @@ describe("eventLine", () => {
     assert.equal(
       eventLine(
         event(25, {
-          __typename: "MatchCreatureDamagedEvent",
+          __typename: "MatchSpellCreatureDamagedEvent",
           participant: 0,
           position: { x: 1, y: 0 },
           damage: 20,

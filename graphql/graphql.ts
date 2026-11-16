@@ -1050,7 +1050,6 @@ export type MatchDebugEventsQuery = { matchEvents:
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCheckpointPassedEvent', participant: number, magic: number, revision: number, checkpoint: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatedEvent', revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
-        | { __typename: 'MatchCreatureDamagedEvent', participant: number, creature: number, damage: number, remainingHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatureExchangedEvent', participant: number, handIndex: number, creature: number, cost: number, revision: number, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1340,6 +1339,11 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchLandElementChangedEvent', participant: number, element: BoardTileElement, magic: number, baseLandValue: number, multiplier: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchLandLeveledUpEvent', participant: number, level: number, magic: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, lapBonus: number, territoryBonus: number, territoryCount: number, lapBonusPerTerritory: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchLapCreatureHitPointsRecoveredEvent', participant: number, creature: number, amount: number, hitPoints: number, revision: number, position: { x: number, y: number }, card:
+            | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicDepletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicGainedEvent', participant: number, magic: number, laps: number, magicPerLap: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicReceivedEvent', participant: number, owner: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
@@ -1349,6 +1353,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { name: string }
             | { name: string }
           >, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchSpellCreatureDamagedEvent', participant: number, creature: number, damage: number, remainingHitPoints: number, revision: number, position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchSpellEffectEndedEvent', participant: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchSpellEffectStartedEvent', participant: number, target: number, revision: number, effect: { remainingTurns: number, effect:
               | { __typename: 'DamageSpellEffect' }
@@ -5168,7 +5173,7 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
         ... on MatchSpellEffectEndedEvent {
           participant
         }
-        ... on MatchCreatureDamagedEvent {
+        ... on MatchSpellCreatureDamagedEvent {
           participant
           position {
             x
@@ -5248,6 +5253,23 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
           territoryBonus
           territoryCount
           lapBonusPerTerritory
+        }
+        ... on MatchLapCreatureHitPointsRecoveredEvent {
+          participant
+          position {
+            x
+            y
+          }
+          creature
+          card {
+            __typename
+            id
+            name
+            cost
+            rarity
+          }
+          amount
+          hitPoints
         }
         ... on MatchTurnEndedEvent {
           participant
