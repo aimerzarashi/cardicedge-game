@@ -735,6 +735,21 @@ function applyFact(
         seat,
         event.card?.name ?? null,
       );
+    // 援護で出したクリーチャーも、アイテムと同じく手札から捨て札へ移り、戦闘の欄のアイテムの枠に名前を出す（core#114）
+    case "MatchCreatureUsedAsItemEvent":
+      return withChosenItem(
+        discarded(
+          updateParticipant(frame, seat, (participant) => ({
+            ...participant,
+            hand: withoutCard(participant.hand, event.handIndex ?? 0),
+            magic: participant.magic - (event.cost ?? 0),
+          })),
+          seat,
+          event.card,
+        ),
+        seat,
+        event.card?.name ?? null,
+      );
     case "MatchItemSkippedEvent":
       return withChosenItem(frame, seat, null);
     case "MatchBattleStartedEvent": {

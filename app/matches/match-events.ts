@@ -141,6 +141,9 @@ function effectDetail(
         change.attack,
         change.hitPoints,
       );
+    // 援護は、出したクリーチャーのカードの AT・HP を足す（どのカードを出したかは直前の「援護に出した」の行にある。core#114）
+    case "USE_CREATURE_AS_ITEM":
+      return m.battleStatChange(deltas, change.attack, change.hitPoints);
     case "IGNORE_TERRAIN_EFFECT": {
       const opponent = event.opponentChange ?? {
         attackDelta: 0,
@@ -200,6 +203,8 @@ function body(event: MatchEventView, names: string[]): string {
       return m.spellUsed(event.card?.name ?? "", event.cost ?? 0);
     case "MatchItemUsedEvent":
       return m.itemUsed(event.card?.name ?? "", event.cost ?? 0);
+    case "MatchCreatureUsedAsItemEvent":
+      return m.creatureUsedAsItem(event.card?.name ?? "", event.cost ?? 0);
     case "MatchItemSkippedEvent":
       return m.itemSkipped;
     case "MatchBattleStartedEvent":

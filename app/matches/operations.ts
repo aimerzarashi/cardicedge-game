@@ -218,6 +218,20 @@ export const attackMatchTerritoryMutation = graphql(`
   }
 `);
 
+export const useMatchCreatureAsItemMutation = graphql(`
+  mutation UseMatchCreatureAsItem($input: UseMatchCreatureAsItemInput!) {
+    useMatchCreatureAsItem(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
 export const payMatchTollMutation = graphql(`
   mutation PayMatchToll($input: PayMatchTollInput!) {
     payMatchToll(input: $input) {

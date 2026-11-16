@@ -74,6 +74,9 @@ const npcAvatarQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -121,6 +124,9 @@ const npcAvatarQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }

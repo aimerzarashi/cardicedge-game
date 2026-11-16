@@ -266,7 +266,9 @@ export type EffectKind =
   /** 後に攻撃する（戦闘で、後に攻撃する効果の無い相手より後に攻撃する。先に攻撃すると一緒には持てない） */
   | 'STRIKE_LAST'
   /** 通行料の倍率（いる領地の通行料を払うときに倍率を掛ける） */
-  | 'TOLL_MULTIPLIER';
+  | 'TOLL_MULTIPLIER'
+  /** 手札のクリーチャーをアイテムとして使える（戦闘でアイテムの代わりに、属性が合う手札のクリーチャーを 1 枚出し、そのカードの AT・HP を足す。画面のラベルは援護） */
+  | 'USE_CREATURE_AS_ITEM';
 
 /** ターンを終える入力 */
 export type EndMatchTurnInput = {
@@ -483,6 +485,16 @@ export type StarterGrantStatus =
   /** まだ届いていない（登録の直後で配布が始まっていない・配っている途中を含む） */
   | 'IN_PROGRESS';
 
+/** アイテムの代わりに手札のクリーチャーを出す入力（援護） */
+export type UseMatchCreatureAsItemInput = {
+  /** 出すクリーチャーの手札の番号（0 始まり。Match.creatureAsItemChoices の中から選ぶ。選べないものは ValidationErrors の FieldNotFound） */
+  handIndex: number;
+  /** 対戦の公開用の ID */
+  id: string;
+  /** 画面が見ていた対戦の revision */
+  revision: number;
+};
+
 /** サイコロを振る前にスペルを使う入力 */
 export type UseMatchSpellInput = {
   /** 使うスペルの手札の番号（0 始まり。Match.spellChoices の中から選ぶ。手札の範囲の外は ValidationErrors の FieldOutOfRange、範囲の中で使えないものは FieldNotFound） */
@@ -581,6 +593,7 @@ export type CardQuery = { card:
         | { __typename: 'StrikeFirstEffect', kind: EffectKind }
         | { __typename: 'StrikeLastEffect', kind: EffectKind }
         | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+        | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
       > }
     | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity, category: ItemCategory, effects: Array<
         | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -597,6 +610,7 @@ export type CardQuery = { card:
         | { __typename: 'StrikeFirstEffect', kind: EffectKind }
         | { __typename: 'StrikeLastEffect', kind: EffectKind }
         | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+        | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
       > }
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
@@ -632,6 +646,7 @@ export type CollectionQuery = { me:
                     | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                     | { __typename: 'StrikeLastEffect', kind: EffectKind }
                     | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                    | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
                   > }
                 | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                     | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -648,6 +663,7 @@ export type CollectionQuery = { me:
                     | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                     | { __typename: 'StrikeLastEffect', kind: EffectKind }
                     | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                    | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
                   > }
                 | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                     | { __typename: 'DamageSpellEffect', amount: number }
@@ -684,6 +700,7 @@ export type PlayerDeckQuery = { deck:
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
             > }
           | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
               | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -700,6 +717,7 @@ export type PlayerDeckQuery = { deck:
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
             > }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
               | { __typename: 'DamageSpellEffect', amount: number }
@@ -727,7 +745,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, creatureAsItemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -753,6 +771,7 @@ export type MatchDebugQuery = { match:
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
             > }
           | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
               | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -769,6 +788,7 @@ export type MatchDebugQuery = { match:
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
             > }
           | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
               | { __typename: 'DamageSpellEffect', amount: number }
@@ -821,6 +841,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -837,6 +858,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -860,6 +882,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'StrikeFirstEffect', kind: EffectKind }
             | { __typename: 'StrikeLastEffect', kind: EffectKind }
             | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+            | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleItemEffectActivatedEvent', side: MatchBattleSide, revision: number, card:
             | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
@@ -877,6 +900,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -893,6 +917,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -916,6 +941,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'StrikeFirstEffect', kind: EffectKind }
             | { __typename: 'StrikeLastEffect', kind: EffectKind }
             | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+            | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
           , opponentChange: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleStartedEvent', revision: number, attacker: { attack: number, hitPoints: number }, defender: { attack: number, hitPoints: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchBattleSupportEffectActivatedEvent', side: MatchBattleSide, bonusPerTerritory: number, revision: number, positions: Array<{ x: number, y: number }>, change: { attackDelta: number, hitPointsDelta: number, attack: number, hitPoints: number } | null, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
@@ -941,6 +967,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -957,6 +984,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -982,6 +1010,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -998,6 +1027,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1023,6 +1053,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1039,6 +1070,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1066,6 +1098,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1082,6 +1115,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1106,6 +1140,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1122,6 +1157,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1148,6 +1184,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1164,6 +1201,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1174,6 +1212,49 @@ export type MatchDebugEventsQuery = { matchEvents:
                | null }
           , position: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchCreatureStruckEvent', striker: MatchBattleSide, attack: number, damage: number, remainingHitPoints: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchCreatureUsedAsItemEvent', participant: number, handIndex: number, cost: number, revision: number, card:
+            | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
+              > }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
+              > }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'DamageSpellEffect', amount: number }
+                | { __typename: 'DrawCardsSpellEffect', count: number }
+                | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                | { __typename: 'GainMagicSpellEffect', perLap: number }
+                | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+               | null }
+          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDefendingCreatureDestroyedEvent', participant: number, revision: number, position: { x: number, y: number }, card:
             | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
@@ -1195,6 +1276,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1211,6 +1293,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1234,6 +1317,7 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'StrikeFirstEffect', kind: EffectKind }
             | { __typename: 'StrikeLastEffect', kind: EffectKind }
             | { __typename: 'TollMultiplierEffect', kind: EffectKind }
+            | { __typename: 'UseCreatureAsItemEffect', kind: EffectKind }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, dice: Array<number>, revision: number, spellEffect:
             | { __typename: 'DamageSpellEffect' }
@@ -1268,6 +1352,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1284,6 +1369,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1311,6 +1397,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1327,6 +1414,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1383,6 +1471,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1399,6 +1488,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1428,6 +1518,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1444,6 +1535,7 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -1797,6 +1889,30 @@ export type AttackMatchTerritoryMutation = { attackMatchTerritory:
       > }
    };
 
+export type UseMatchCreatureAsItemMutationVariables = Exact<{
+  input: UseMatchCreatureAsItemInput;
+}>;
+
+
+export type UseMatchCreatureAsItemMutation = { useMatchCreatureAsItem:
+    | { __typename: 'MatchNotFoundError' }
+    | { __typename: 'MatchNotYourTurnError' }
+    | { __typename: 'MatchPhaseNotAllowedError' }
+    | { __typename: 'PlayerNotRegisteredError' }
+    | { __typename: 'RevisionConflictError' }
+    | { __typename: 'UseMatchCreatureAsItemSuccess' }
+    | { __typename: 'ValidationErrors', errors: Array<
+        | { __typename: 'FieldCountMismatch', field: string }
+        | { __typename: 'FieldInvalidFormat', field: string }
+        | { __typename: 'FieldNotFound', field: string }
+        | { __typename: 'FieldNotGreaterThan', field: string }
+        | { __typename: 'FieldOutOfRange', field: string }
+        | { __typename: 'FieldRequired', field: string }
+        | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooSmall', field: string }
+      > }
+   };
+
 export type PayMatchTollMutationVariables = Exact<{
   input: PayMatchTollInput;
 }>;
@@ -1857,6 +1973,7 @@ export type NpcAvatarQuery = { npcAvatar:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
                 | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
@@ -1873,6 +1990,7 @@ export type NpcAvatarQuery = { npcAvatar:
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+                | { __typename: 'UseCreatureAsItemEffect', elements: Array<CreatureElement>, kind: EffectKind }
               > }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
                 | { __typename: 'DamageSpellEffect', amount: number }
@@ -2360,6 +2478,9 @@ export const CardDocument = new TypedDocumentString(`
           destructions
           amount
         }
+        ... on UseCreatureAsItemEffect {
+          elements
+        }
       }
     }
     ... on ItemCardInfo {
@@ -2407,6 +2528,9 @@ export const CardDocument = new TypedDocumentString(`
         ... on GainMagicOnDestructionEffect {
           destructions
           amount
+        }
+        ... on UseCreatureAsItemEffect {
+          elements
         }
       }
     }
@@ -2502,6 +2626,9 @@ export const CollectionDocument = new TypedDocumentString(`
                       destructions
                       amount
                     }
+                    ... on UseCreatureAsItemEffect {
+                      elements
+                    }
                   }
                 }
                 ... on ItemCardInfo {
@@ -2549,6 +2676,9 @@ export const CollectionDocument = new TypedDocumentString(`
                     ... on GainMagicOnDestructionEffect {
                       destructions
                       amount
+                    }
+                    ... on UseCreatureAsItemEffect {
+                      elements
                     }
                   }
                 }
@@ -2653,6 +2783,9 @@ export const PlayerDeckDocument = new TypedDocumentString(`
                 destructions
                 amount
               }
+              ... on UseCreatureAsItemEffect {
+                elements
+              }
             }
           }
           ... on ItemCardInfo {
@@ -2700,6 +2833,9 @@ export const PlayerDeckDocument = new TypedDocumentString(`
               ... on GainMagicOnDestructionEffect {
                 destructions
                 amount
+              }
+              ... on UseCreatureAsItemEffect {
+                elements
               }
             }
           }
@@ -2778,6 +2914,7 @@ export const MatchDebugDocument = new TypedDocumentString(`
       placeChoices
       invadeChoices
       itemChoices
+      creatureAsItemChoices
       relinquishChoices {
         x
         y
@@ -2974,6 +3111,9 @@ export const MatchDebugDocument = new TypedDocumentString(`
                 destructions
                 amount
               }
+              ... on UseCreatureAsItemEffect {
+                elements
+              }
             }
           }
           ... on ItemCardInfo {
@@ -3021,6 +3161,9 @@ export const MatchDebugDocument = new TypedDocumentString(`
               ... on GainMagicOnDestructionEffect {
                 destructions
                 amount
+              }
+              ... on UseCreatureAsItemEffect {
+                elements
               }
             }
           }
@@ -3172,6 +3315,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3219,6 +3365,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -3326,6 +3475,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3373,6 +3525,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -3459,6 +3614,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3506,6 +3664,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -3598,6 +3759,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3645,6 +3809,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -3739,6 +3906,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3786,6 +3956,149 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
+              }
+            }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
+              }
+            }
+          }
+          cost
+        }
+        ... on MatchCreatureUsedAsItemEvent {
+          participant
+          handIndex
+          card {
+            __typename
+            id
+            name
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
+              }
+            }
+            ... on ItemCardInfo {
+              category
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -3911,6 +4224,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3958,6 +4274,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4034,6 +4353,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
               destructions
               amount
             }
+            ... on UseCreatureAsItemEffect {
+              elements
+            }
           }
         }
         ... on MatchBattleItemEffectActivatedEvent {
@@ -4094,6 +4416,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4141,6 +4466,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4210,6 +4538,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             ... on GainMagicOnDestructionEffect {
               destructions
               amount
+            }
+            ... on UseCreatureAsItemEffect {
+              elements
             }
           }
           opponentChange {
@@ -4308,6 +4639,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4355,6 +4689,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4442,6 +4779,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4489,6 +4829,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4582,6 +4925,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4629,6 +4975,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4767,6 +5116,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4814,6 +5166,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -4918,6 +5273,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4965,6 +5323,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -5049,6 +5410,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -5096,6 +5460,9 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -5492,6 +5859,19 @@ export const AttackMatchTerritoryDocument = new TypedDocumentString(`
   }
 }
     `) as unknown as TypedDocumentString<AttackMatchTerritoryMutation, AttackMatchTerritoryMutationVariables>;
+export const UseMatchCreatureAsItemDocument = new TypedDocumentString(`
+    mutation UseMatchCreatureAsItem($input: UseMatchCreatureAsItemInput!) {
+  useMatchCreatureAsItem(input: $input) {
+    __typename
+    ... on ValidationErrors {
+      errors {
+        __typename
+        field
+      }
+    }
+  }
+}
+    `) as unknown as TypedDocumentString<UseMatchCreatureAsItemMutation, UseMatchCreatureAsItemMutationVariables>;
 export const PayMatchTollDocument = new TypedDocumentString(`
     mutation PayMatchToll($input: PayMatchTollInput!) {
   payMatchToll(input: $input) {
@@ -5585,6 +5965,9 @@ export const NpcAvatarDocument = new TypedDocumentString(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -5632,6 +6015,9 @@ export const NpcAvatarDocument = new TypedDocumentString(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }

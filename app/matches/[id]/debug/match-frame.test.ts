@@ -160,6 +160,25 @@ describe("applyEvent", () => {
     assert.equal(next.participants[1].magic, 600);
   });
 
+  it("援護に出したクリーチャーも、手札から抜けて捨て札に入り、魔力が減って、侵略の欄のアイテムの枠に出る", () => {
+    const next = applyEvent(
+      frame({ invasion: INVASION, currentParticipant: 0 }),
+      event("MatchCreatureUsedAsItemEvent", {
+        participant: 0,
+        handIndex: 0,
+        card: { ...DRAGON, id: "c9", name: "ウルフ" },
+        cost: 10,
+      }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[0].hand, []);
+    assert.deepEqual(next.participants[0].discardPile, [
+      { id: "c9", name: "ウルフ" },
+    ]);
+    assert.equal(next.participants[0].magic, 590);
+    assert.equal(next.invasion?.attackerItem, "ウルフ");
+  });
+
   it("両方が選んだアイテムが侵略の欄に残り、選んだ側に色が付く", () => {
     const attacking = applyEvent(
       frame({ invasion: INVASION, currentParticipant: 1 }),

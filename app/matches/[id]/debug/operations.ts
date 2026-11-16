@@ -29,6 +29,7 @@ export const matchDebugQuery = graphql(`
         placeChoices
         invadeChoices
         itemChoices
+        creatureAsItemChoices
         relinquishChoices {
           x
           y
@@ -225,6 +226,9 @@ export const matchDebugQuery = graphql(`
                   destructions
                   amount
                 }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
               }
             }
             ... on ItemCardInfo {
@@ -272,6 +276,9 @@ export const matchDebugQuery = graphql(`
                 ... on GainMagicOnDestructionEffect {
                   destructions
                   amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
                 }
               }
             }
@@ -424,6 +431,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -471,6 +481,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -578,6 +591,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -625,6 +641,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -711,6 +730,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -758,6 +780,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -850,6 +875,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -897,6 +925,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -991,6 +1022,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1038,6 +1072,149 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
+                }
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on DrawCardsSpellEffect {
+                    count
+                  }
+                  ... on GainMagicSpellEffect {
+                    perLap
+                  }
+                  ... on MultipleDiceSpellEffect {
+                    count
+                    turns
+                  }
+                  ... on FixedDiceSpellEffect {
+                    value
+                    turns
+                  }
+                  ... on DamageSpellEffect {
+                    amount
+                  }
+                }
+              }
+            }
+            cost
+          }
+          ... on MatchCreatureUsedAsItemEvent {
+            participant
+            handIndex
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
+                }
+              }
+              ... on ItemCardInfo {
+                category
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -1163,6 +1340,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1210,6 +1390,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -1286,6 +1469,9 @@ export const matchDebugEventsQuery = graphql(`
                 destructions
                 amount
               }
+              ... on UseCreatureAsItemEffect {
+                elements
+              }
             }
           }
           ... on MatchBattleItemEffectActivatedEvent {
@@ -1346,6 +1532,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1393,6 +1582,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -1462,6 +1654,9 @@ export const matchDebugEventsQuery = graphql(`
               ... on GainMagicOnDestructionEffect {
                 destructions
                 amount
+              }
+              ... on UseCreatureAsItemEffect {
+                elements
               }
             }
             opponentChange {
@@ -1560,6 +1755,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1607,6 +1805,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -1694,6 +1895,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1741,6 +1945,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -1834,6 +2041,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1881,6 +2091,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -2019,6 +2232,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -2066,6 +2282,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -2170,6 +2389,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -2217,6 +2439,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
@@ -2301,6 +2526,9 @@ export const matchDebugEventsQuery = graphql(`
                     destructions
                     amount
                   }
+                  ... on UseCreatureAsItemEffect {
+                    elements
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -2348,6 +2576,9 @@ export const matchDebugEventsQuery = graphql(`
                   ... on GainMagicOnDestructionEffect {
                     destructions
                     amount
+                  }
+                  ... on UseCreatureAsItemEffect {
+                    elements
                   }
                 }
               }
