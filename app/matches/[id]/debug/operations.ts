@@ -217,6 +217,13 @@ export const matchDebugQuery = graphql(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -257,6 +264,13 @@ export const matchDebugQuery = graphql(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -402,6 +416,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -442,6 +463,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -542,6 +570,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -582,6 +617,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -661,6 +703,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -701,6 +750,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -786,6 +842,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -826,6 +889,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -913,6 +983,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -953,6 +1030,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -1071,6 +1155,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1111,6 +1202,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -1180,6 +1278,13 @@ export const matchDebugEventsQuery = graphql(`
               ... on TollMultiplierEffect {
                 percent
               }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
+              }
             }
           }
           ... on MatchBattleItemEffectActivatedEvent {
@@ -1233,6 +1338,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1273,6 +1385,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -1335,6 +1454,13 @@ export const matchDebugEventsQuery = graphql(`
               }
               ... on TollMultiplierEffect {
                 percent
+              }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
               }
             }
             opponentChange {
@@ -1426,6 +1552,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1467,6 +1600,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on SpellCardInfo {
@@ -1493,6 +1633,284 @@ export const matchDebugEventsQuery = graphql(`
               }
             }
             returnedToHand
+          }
+          ... on MatchDestructionCreatureEffectActivatedEvent {
+            participant
+            owner
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                }
+              }
+              ... on ItemCardInfo {
+                category
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                }
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on DrawCardsSpellEffect {
+                    count
+                  }
+                  ... on GainMagicSpellEffect {
+                    perLap
+                  }
+                  ... on MultipleDiceSpellEffect {
+                    count
+                    turns
+                  }
+                  ... on FixedDiceSpellEffect {
+                    value
+                    turns
+                  }
+                  ... on DamageSpellEffect {
+                    amount
+                  }
+                }
+              }
+            }
+            activatedEffect {
+              __typename
+              kind
+              ... on GainMagicOnDestructionEffect {
+                amount
+              }
+            }
+          }
+          ... on MatchCardReturnedToHandEvent {
+            participant
+            owner
+            card {
+              __typename
+              id
+              name
+              cost
+              rarity
+              ... on CreatureCardInfo {
+                elements
+                attack
+                hitPoints
+                itemRestrictions
+                placementRestrictions
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                }
+              }
+              ... on ItemCardInfo {
+                category
+                effects {
+                  __typename
+                  kind
+                  ... on AttackModifierEffect {
+                    value
+                  }
+                  ... on HitPointsModifierEffect {
+                    value
+                  }
+                  ... on AttackOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on HitPointsOverrideEffect {
+                    minimum
+                    maximum
+                  }
+                  ... on AttackMultiplierEffect {
+                    percent
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on NullifyReceivedDamageEffect {
+                    constraints {
+                      kind
+                      ... on OpponentCreatureElementConstraint {
+                        elements
+                      }
+                    }
+                  }
+                  ... on TollMultiplierEffect {
+                    percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
+                }
+              }
+              ... on SpellCardInfo {
+                effect {
+                  __typename
+                  ... on DrawCardsSpellEffect {
+                    count
+                  }
+                  ... on GainMagicSpellEffect {
+                    perLap
+                  }
+                  ... on MultipleDiceSpellEffect {
+                    count
+                    turns
+                  }
+                  ... on FixedDiceSpellEffect {
+                    value
+                    turns
+                  }
+                  ... on DamageSpellEffect {
+                    amount
+                  }
+                }
+              }
+            }
+          }
+          ... on MatchMagicReceivedEvent {
+            participant
+            owner
+            magic
           }
           ... on MatchTollCreatureEffectActivatedEvent {
             position {
@@ -1593,6 +2011,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1633,6 +2058,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -1730,6 +2162,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1770,6 +2209,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }
@@ -1847,6 +2293,13 @@ export const matchDebugEventsQuery = graphql(`
                   ... on TollMultiplierEffect {
                     percent
                   }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
+                  }
                 }
               }
               ... on ItemCardInfo {
@@ -1887,6 +2340,13 @@ export const matchDebugEventsQuery = graphql(`
                   }
                   ... on TollMultiplierEffect {
                     percent
+                  }
+                  ... on ReturnToHandOnDestructionEffect {
+                    destructions
+                  }
+                  ... on GainMagicOnDestructionEffect {
+                    destructions
+                    amount
                   }
                 }
               }

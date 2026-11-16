@@ -67,6 +67,13 @@ const cardQuery = graphql(`
           ... on TollMultiplierEffect {
             percent
           }
+          ... on ReturnToHandOnDestructionEffect {
+            destructions
+          }
+          ... on GainMagicOnDestructionEffect {
+            destructions
+            amount
+          }
         }
       }
       ... on ItemCardInfo {
@@ -107,6 +114,13 @@ const cardQuery = graphql(`
           }
           ... on TollMultiplierEffect {
             percent
+          }
+          ... on ReturnToHandOnDestructionEffect {
+            destructions
+          }
+          ... on GainMagicOnDestructionEffect {
+            destructions
+            amount
           }
         }
       }

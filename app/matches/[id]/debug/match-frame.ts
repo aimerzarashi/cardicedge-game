@@ -677,6 +677,25 @@ function applyFact(
         ...participant,
         magic: participant.magic + magic,
       }));
+    case "MatchMagicReceivedEvent":
+      // 破壊されたら魔力を得るの結果は、今の番の人でなく持ち主が受け取る（core#182）
+      return updateParticipant(frame, event.owner ?? seat, (participant) => ({
+        ...participant,
+        magic: participant.magic + magic,
+      }));
+    case "MatchCardReturnedToHandEvent": {
+      // 破壊で捨て札の最後に入ったそのカードを、持ち主の手札の最後へ移す
+      const { card } = event;
+      if (!card) return frame;
+      return updateParticipant(frame, event.owner ?? seat, (participant) => ({
+        ...participant,
+        discardPile:
+          participant.discardPile.at(-1)?.id === card.id
+            ? participant.discardPile.slice(0, -1)
+            : participant.discardPile,
+        hand: [...participant.hand, card],
+      }));
+    }
     case "MatchSpellUsedEvent":
       // 使ったスペルは捨て札に入る。効果は続くイベント（引いたカード等）で当たる
       return discarded(

@@ -46,6 +46,26 @@ describe("effectsLabel (creature)", () => {
   });
 });
 
+// 破壊されたときの効果は、発動する破壊を添える（core#182）
+describe("effectsLabel (destruction)", () => {
+  it("破壊されたら手札に戻る・魔力を得るは、発動する破壊と額を出す", () => {
+    assert.equal(
+      effectsLabel([
+        {
+          kind: "RETURN_TO_HAND_ON_DESTRUCTION",
+          destructions: ["INVADING", "DEFENDING"],
+        },
+        {
+          kind: "GAIN_MAGIC_ON_DESTRUCTION",
+          destructions: ["INVADING", "DEFENDING", "BOARD"],
+          amount: 200,
+        },
+      ]),
+      "破壊されたら手札に戻る（侵略したとき・守るとき）・破壊されたら魔力 +200（侵略したとき・守るとき・ボード）",
+    );
+  });
+});
+
 describe("itemRestrictionsLabel", () => {
   it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
     assert.equal(itemRestrictionsLabel([]), "なし");

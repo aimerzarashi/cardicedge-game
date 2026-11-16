@@ -100,6 +100,39 @@ describe("eventLine", () => {
   });
 
   // 倒れたことは直前の破壊の行に出るので、失敗の行は戻った先だけを添える（core#181）
+  // 破壊されたときの効果は持ち主に発動し、結果は手札に戻った・魔力を受け取ったで出す（core#182）
+  it("破壊されたときの効果の発動と結果は、持ち主とカードの名前で出す", () => {
+    const line = (fields: Record<string, unknown>) =>
+      eventLine(event(40, { participant: 1, owner: 0, ...fields }), names);
+    assert.equal(
+      line({
+        __typename: "MatchDestructionCreatureEffectActivatedEvent",
+        card: { name: "フェニックス" },
+        activatedEffect: { kind: "RETURN_TO_HAND_ON_DESTRUCTION" },
+      }),
+      "版 40 ゴリガン: 部屋用にクリーチャー「フェニックス」の効果「破壊されたら手札に戻る」が発動",
+    );
+    assert.equal(
+      line({
+        __typename: "MatchDestructionCreatureEffectActivatedEvent",
+        card: { name: "コーンフォーク" },
+        activatedEffect: { kind: "GAIN_MAGIC_ON_DESTRUCTION", amount: 200 },
+      }),
+      "版 40 ゴリガン: 部屋用にクリーチャー「コーンフォーク」の効果「破壊されたら魔力を得る」が発動（魔力 +200）",
+    );
+    assert.equal(
+      line({
+        __typename: "MatchCardReturnedToHandEvent",
+        card: { name: "フェニックス" },
+      }),
+      "版 40 ゴリガン: 「フェニックス」が部屋用の手札に戻った",
+    );
+    assert.equal(
+      line({ __typename: "MatchMagicReceivedEvent", magic: 200 }),
+      "版 40 ゴリガン: 部屋用が魔力 200 を受け取った",
+    );
+  });
+
   it("侵略に失敗したイベントは、生き残れば手札か元の領地に戻ったことを出し、倒れていれば失敗だけを出す", () => {
     const failed = (
       returnedToHand: boolean,
