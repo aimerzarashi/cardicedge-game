@@ -5,6 +5,7 @@ import type {
   CardRarity,
   CardType,
   CreatureElement,
+  EffectDestruction,
   EffectKind,
   ItemCategory,
   MatchEndReason,
@@ -122,6 +123,15 @@ export const EFFECT_LABELS: Record<EffectKind, string> = {
   TOLL_MULTIPLIER: "通行料の倍率",
   FORBID_INVASION: "侵略できない",
   FORBID_MOVEMENT: "移動できない",
+  RETURN_TO_HAND_ON_DESTRUCTION: "破壊されたら手札に戻る",
+  GAIN_MAGIC_ON_DESTRUCTION: "破壊されたら魔力を得る",
+};
+
+// 破壊されたときの効果が発動する破壊（core の 3 つの破壊のイベントと対応する。core#182）
+export const DESTRUCTION_LABELS: Record<EffectDestruction, string> = {
+  INVADING: "侵略したとき",
+  DEFENDING: "守るとき",
+  BOARD: "ボード",
 };
 
 // core が返した効果 1 つ（値の要る効果だけが値を持つ。制約は今は相手のクリーチャーの属性だけ）
@@ -132,6 +142,8 @@ export type EffectView = {
   maximum?: number;
   percent?: number;
   opponentElements?: CreatureElement[];
+  destructions?: EffectDestruction[];
+  amount?: number;
 };
 
 // core の効果の型（種類は __typename）から、表示の形にする
@@ -142,6 +154,8 @@ export function effectView(effect: {
   maximum?: number;
   percent?: number;
   constraints?: readonly { elements?: CreatureElement[] }[];
+  destructions?: readonly EffectDestruction[];
+  amount?: number;
 }): EffectView {
   return {
     kind: effect.kind,
@@ -152,7 +166,15 @@ export function effectView(effect: {
     opponentElements: effect.constraints?.flatMap(
       ({ elements }) => elements ?? [],
     ),
+    destructions: effect.destructions ? [...effect.destructions] : undefined,
+    amount: effect.amount,
   };
+}
+
+function destructionsLabel(effect: EffectView): string {
+  return (effect.destructions ?? [])
+    .map((destruction) => DESTRUCTION_LABELS[destruction])
+    .join("・");
 }
 
 // 上書きの範囲（固定は「30」、範囲は「10〜70」）
@@ -184,6 +206,10 @@ export function effectLabel(effect: EffectView): string {
       return withOpponent("攻撃無効", effect);
     case "TOLL_MULTIPLIER":
       return `通行料の倍率 ${effect.percent ?? 0}%`;
+    case "RETURN_TO_HAND_ON_DESTRUCTION":
+      return `破壊されたら手札に戻る（${destructionsLabel(effect)}）`;
+    case "GAIN_MAGIC_ON_DESTRUCTION":
+      return `破壊されたら魔力 +${effect.amount ?? 0}（${destructionsLabel(effect)}）`;
     default:
       return EFFECT_LABELS[effect.kind];
   }
@@ -616,6 +642,12 @@ export const MATCH_EVENT_MESSAGES = {
     hitPoints: number,
   ) => `${stat} を ${range} に: ${battleStatChange(change, attack, hitPoints)}`,
   sideTarget: (side: string) => `${side}に`,
+  // 破壊されたときの効果は、破壊されて盤面にいないので持ち主に（core#182）
+  ownerTarget: (owner: string) => `${owner}に`,
+  cardReturnedToHand: (card: string, owner: string) =>
+    `「${card}」が${owner}の手札に戻った`,
+  magicReceived: (owner: string, magic: number) =>
+    `${owner}が魔力 ${magic} を受け取った`,
   positionTarget: (x: number, y: number) => `(${x}, ${y}) に`,
   // 攻撃の値と受けた量を分けて書く（攻撃無効で受けた量が 0 のときも「攻撃したけれど 0」と読めるように。2026-11-13 オーナー。game#97）
   creatureStruck: (

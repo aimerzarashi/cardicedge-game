@@ -226,6 +226,15 @@ export type EffectConstraintKind =
   /** 相手のクリーチャーの属性（戦う相手のクリーチャーの属性のどれかが合うとき） */
   | 'OPPONENT_CREATURE_ELEMENT';
 
+/** 破壊されたときの効果が発動する破壊（対戦の 3 つの破壊のイベントと対応する） */
+export type EffectDestruction =
+  /** 戦闘の外（スペルのダメージ等）で破壊された */
+  | 'BOARD'
+  /** 戦闘で、領地を守るクリーチャーとして破壊された */
+  | 'DEFENDING'
+  /** 戦闘で、侵略したクリーチャーとして破壊された */
+  | 'INVADING';
+
 /** 効果の種類 */
 export type EffectKind =
   /** AT の増減（戦闘中、AT が決まった値だけ増減する） */
@@ -238,6 +247,8 @@ export type EffectKind =
   | 'FORBID_INVASION'
   /** 移動できない（領地コマンドで動けない） */
   | 'FORBID_MOVEMENT'
+  /** 破壊されたら魔力を得る（選んだ破壊のとき、持ち主が額の魔力を受け取る） */
+  | 'GAIN_MAGIC_ON_DESTRUCTION'
   /** HP の増減（戦闘中、HP が決まった値だけ増減する） */
   | 'HIT_POINTS_MODIFIER'
   /** HP の上書き（戦闘中、HP が最小〜最大のランダムな値になる。固定は最小と最大が同じ） */
@@ -246,6 +257,8 @@ export type EffectKind =
   | 'IGNORE_TERRAIN_EFFECT'
   /** 受けるダメージを 0 にする（制約を満たす相手から攻撃を受けたとき、ダメージが 0 になる） */
   | 'NULLIFY_RECEIVED_DAMAGE'
+  /** 破壊されたら手札に戻る（選んだ破壊のとき、捨て札に入ったカードが持ち主の手札に戻る。手札が上限なら戻れない） */
+  | 'RETURN_TO_HAND_ON_DESTRUCTION'
   /** 先に攻撃する（戦闘で、先に攻撃する効果の無い相手より先に攻撃する。後に攻撃すると一緒には持てない） */
   | 'STRIKE_FIRST'
   /** 後に攻撃する（戦闘で、後に攻撃する効果の無い相手より後に攻撃する。先に攻撃すると一緒には持てない） */
@@ -557,10 +570,12 @@ export type CardQuery = { card:
         | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
         | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
         | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+        | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
         | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
         | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
         | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
         | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+        | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
         | { __typename: 'StrikeFirstEffect', kind: EffectKind }
         | { __typename: 'StrikeLastEffect', kind: EffectKind }
         | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -571,10 +586,12 @@ export type CardQuery = { card:
         | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
         | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
         | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+        | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
         | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
         | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
         | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
         | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+        | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
         | { __typename: 'StrikeFirstEffect', kind: EffectKind }
         | { __typename: 'StrikeLastEffect', kind: EffectKind }
         | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -653,10 +670,12 @@ export type MatchDebugQuery = { match:
               | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
               | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
               | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+              | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
               | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
               | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
               | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
               | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -667,10 +686,12 @@ export type MatchDebugQuery = { match:
               | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
               | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
               | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+              | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
               | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
               | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
               | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
               | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+              | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
               | { __typename: 'StrikeFirstEffect', kind: EffectKind }
               | { __typename: 'StrikeLastEffect', kind: EffectKind }
               | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -717,10 +738,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -731,10 +754,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -752,10 +777,12 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
             | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
             | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+            | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
             | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
             | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
             | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
             | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+            | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
             | { __typename: 'StrikeFirstEffect', kind: EffectKind }
             | { __typename: 'StrikeLastEffect', kind: EffectKind }
             | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -767,10 +794,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -781,10 +810,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -802,10 +833,12 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
             | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
             | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+            | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
             | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
             | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
             | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
             | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+            | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
             | { __typename: 'StrikeFirstEffect', kind: EffectKind }
             | { __typename: 'StrikeLastEffect', kind: EffectKind }
             | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -825,10 +858,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -839,10 +874,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -862,10 +899,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -876,10 +915,53 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'DamageSpellEffect', amount: number }
+                | { __typename: 'DrawCardsSpellEffect', count: number }
+                | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                | { __typename: 'GainMagicSpellEffect', perLap: number }
+                | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+               | null }
+          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchCardReturnedToHandEvent', participant: number, owner: number, revision: number, card:
+            | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -902,10 +984,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -916,10 +1000,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -938,10 +1024,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -952,10 +1040,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -976,10 +1066,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -990,10 +1082,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1011,6 +1105,62 @@ export type MatchDebugEventsQuery = { matchEvents:
             | { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'ItemCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
             | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity }
+          , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchDestructionCreatureEffectActivatedEvent', participant: number, owner: number, revision: number, card:
+            | { __typename: 'CreatureCardInfo', elements: Array<CreatureElement>, attack: number, hitPoints: number, itemRestrictions: Array<ItemCategory>, placementRestrictions: Array<BoardTileElement>, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'ItemCardInfo', category: ItemCategory, id: string, name: string, cost: number, rarity: CardRarity, effects: Array<
+                | { __typename: 'AttackModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'AttackMultiplierEffect', percent: number, kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+                | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
+                | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
+                | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
+                | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+                | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
+                | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+                | { __typename: 'StrikeLastEffect', kind: EffectKind }
+                | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
+              > }
+            | { __typename: 'SpellCardInfo', id: string, name: string, cost: number, rarity: CardRarity, effect:
+                | { __typename: 'DamageSpellEffect', amount: number }
+                | { __typename: 'DrawCardsSpellEffect', count: number }
+                | { __typename: 'FixedDiceSpellEffect', value: number, turns: number }
+                | { __typename: 'GainMagicSpellEffect', perLap: number }
+                | { __typename: 'MultipleDiceSpellEffect', count: number, turns: number }
+               | null }
+          , activatedEffect:
+            | { __typename: 'AttackModifierEffect', kind: EffectKind }
+            | { __typename: 'AttackMultiplierEffect', kind: EffectKind }
+            | { __typename: 'AttackOverrideEffect', kind: EffectKind }
+            | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
+            | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+            | { __typename: 'GainMagicOnDestructionEffect', amount: number, kind: EffectKind }
+            | { __typename: 'HitPointsModifierEffect', kind: EffectKind }
+            | { __typename: 'HitPointsOverrideEffect', kind: EffectKind }
+            | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
+            | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind }
+            | { __typename: 'ReturnToHandOnDestructionEffect', kind: EffectKind }
+            | { __typename: 'StrikeFirstEffect', kind: EffectKind }
+            | { __typename: 'StrikeLastEffect', kind: EffectKind }
+            | { __typename: 'TollMultiplierEffect', kind: EffectKind }
           , changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchDiceRolledEvent', participant: number, value: number, dice: Array<number>, revision: number, spellEffect:
             | { __typename: 'DamageSpellEffect' }
@@ -1036,10 +1186,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1050,10 +1202,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1075,10 +1229,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1089,10 +1245,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1110,6 +1268,7 @@ export type MatchDebugEventsQuery = { matchEvents:
         | { __typename: 'MatchLapCompletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicDepletedEvent', participant: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchMagicGainedEvent', participant: number, magic: number, laps: number, magicPerLap: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
+        | { __typename: 'MatchMagicReceivedEvent', participant: number, owner: number, magic: number, revision: number, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchPieceMovedEvent', participant: number, revision: number, to: { x: number, y: number }, changes: { phase: MatchPhase | null, totalMagics: Array<{ participant: number, totalMagic: number }>, territoryValues: Array<{ value: number, toll: number, level: number, chainCount: number, previousChainCount: number | null, position: { x: number, y: number } }> } }
         | { __typename: 'MatchRewardDrawnEvent', participant: number, pack: string, revision: number, rewardCards: Array<
             | { name: string }
@@ -1136,10 +1295,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1150,10 +1311,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1177,10 +1340,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -1191,10 +1356,12 @@ export type MatchDebugEventsQuery = { matchEvents:
                 | { __typename: 'AttackOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'ForbidInvasionEffect', kind: EffectKind }
                 | { __typename: 'ForbidMovementEffect', kind: EffectKind }
+                | { __typename: 'GainMagicOnDestructionEffect', destructions: Array<EffectDestruction>, amount: number, kind: EffectKind }
                 | { __typename: 'HitPointsModifierEffect', value: number, kind: EffectKind }
                 | { __typename: 'HitPointsOverrideEffect', minimum: number, maximum: number, kind: EffectKind }
                 | { __typename: 'IgnoreTerrainEffect', kind: EffectKind }
                 | { __typename: 'NullifyReceivedDamageEffect', kind: EffectKind, constraints: Array<{ elements: Array<CreatureElement>, kind: EffectConstraintKind }> }
+                | { __typename: 'ReturnToHandOnDestructionEffect', destructions: Array<EffectDestruction>, kind: EffectKind }
                 | { __typename: 'StrikeFirstEffect', kind: EffectKind }
                 | { __typename: 'StrikeLastEffect', kind: EffectKind }
                 | { __typename: 'TollMultiplierEffect', percent: number, kind: EffectKind }
@@ -2069,6 +2236,13 @@ export const CardDocument = new TypedDocumentString(`
         ... on TollMultiplierEffect {
           percent
         }
+        ... on ReturnToHandOnDestructionEffect {
+          destructions
+        }
+        ... on GainMagicOnDestructionEffect {
+          destructions
+          amount
+        }
       }
     }
     ... on ItemCardInfo {
@@ -2109,6 +2283,13 @@ export const CardDocument = new TypedDocumentString(`
         }
         ... on TollMultiplierEffect {
           percent
+        }
+        ... on ReturnToHandOnDestructionEffect {
+          destructions
+        }
+        ... on GainMagicOnDestructionEffect {
+          destructions
+          amount
         }
       }
     }
@@ -2424,6 +2605,13 @@ export const MatchDebugDocument = new TypedDocumentString(`
               ... on TollMultiplierEffect {
                 percent
               }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
+              }
             }
           }
           ... on ItemCardInfo {
@@ -2464,6 +2652,13 @@ export const MatchDebugDocument = new TypedDocumentString(`
               }
               ... on TollMultiplierEffect {
                 percent
+              }
+              ... on ReturnToHandOnDestructionEffect {
+                destructions
+              }
+              ... on GainMagicOnDestructionEffect {
+                destructions
+                amount
               }
             }
           }
@@ -2608,6 +2803,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2648,6 +2850,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -2748,6 +2957,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2788,6 +3004,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -2867,6 +3090,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -2907,6 +3137,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -2992,6 +3229,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3032,6 +3276,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -3119,6 +3370,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3159,6 +3417,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -3277,6 +3542,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3317,6 +3589,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -3386,6 +3665,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             ... on TollMultiplierEffect {
               percent
             }
+            ... on ReturnToHandOnDestructionEffect {
+              destructions
+            }
+            ... on GainMagicOnDestructionEffect {
+              destructions
+              amount
+            }
           }
         }
         ... on MatchBattleItemEffectActivatedEvent {
@@ -3439,6 +3725,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3479,6 +3772,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -3541,6 +3841,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
             ... on TollMultiplierEffect {
               percent
+            }
+            ... on ReturnToHandOnDestructionEffect {
+              destructions
+            }
+            ... on GainMagicOnDestructionEffect {
+              destructions
+              amount
             }
           }
           opponentChange {
@@ -3632,6 +3939,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3673,6 +3987,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on SpellCardInfo {
@@ -3699,6 +4020,284 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
             }
           }
           returnedToHand
+        }
+        ... on MatchDestructionCreatureEffectActivatedEvent {
+          participant
+          owner
+          card {
+            __typename
+            id
+            name
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on ItemCardInfo {
+              category
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
+              }
+            }
+          }
+          activatedEffect {
+            __typename
+            kind
+            ... on GainMagicOnDestructionEffect {
+              amount
+            }
+          }
+        }
+        ... on MatchCardReturnedToHandEvent {
+          participant
+          owner
+          card {
+            __typename
+            id
+            name
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on ItemCardInfo {
+              category
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+              }
+            }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
+              }
+            }
+          }
+        }
+        ... on MatchMagicReceivedEvent {
+          participant
+          owner
+          magic
         }
         ... on MatchTollCreatureEffectActivatedEvent {
           position {
@@ -3799,6 +4398,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3839,6 +4445,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -3936,6 +4549,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -3976,6 +4596,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }
@@ -4053,6 +4680,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 ... on TollMultiplierEffect {
                   percent
                 }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
               }
             }
             ... on ItemCardInfo {
@@ -4093,6 +4727,13 @@ export const MatchDebugEventsDocument = new TypedDocumentString(`
                 }
                 ... on TollMultiplierEffect {
                   percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
                 }
               }
             }

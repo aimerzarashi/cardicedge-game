@@ -64,6 +64,7 @@ export type MatchEventView = {
     minimum?: number;
     maximum?: number;
     percent?: number;
+    amount?: number;
   };
   // 地形効果を無視するの、相手の増減と当てた後の値
   opponentChange?: {
@@ -290,6 +291,25 @@ function body(event: MatchEventView, names: string[]): string {
         event.position?.x ?? 0,
         event.position?.y ?? 0,
       );
+    case "MatchDestructionCreatureEffectActivatedEvent": {
+      // 破壊されたときの効果は、持ち主に「クリーチャー「〜」の」効果が発動した形（core#182）。魔力を得るは額を添える
+      const activated = event.activatedEffect;
+      return m.effectActivated(
+        m.ownerTarget(nameOf(names, event.owner ?? 0)),
+        m.creatureOwner(event.card?.name ?? ""),
+        activated ? EFFECT_LABELS[activated.kind] : "",
+        activated?.amount !== undefined
+          ? `魔力 +${activated.amount}`
+          : undefined,
+      );
+    }
+    case "MatchCardReturnedToHandEvent":
+      return m.cardReturnedToHand(
+        event.card?.name ?? "",
+        nameOf(names, event.owner ?? 0),
+      );
+    case "MatchMagicReceivedEvent":
+      return m.magicReceived(nameOf(names, event.owner ?? 0), event.magic ?? 0);
     case "MatchTollCreatureEffectActivatedEvent":
       // 通行料の倍率の発動は持ち主のカードを持たないので、位置だけを書く
       return m.effectActivated(

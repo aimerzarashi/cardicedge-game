@@ -855,6 +855,31 @@ describe("applyEvent", () => {
     assert.equal(next.participants[0].magic, 600);
   });
 
+  it("破壊されたら魔力を得るの結果は、今の番の人でなく持ち主の魔力に入る", () => {
+    const next = applyEvent(
+      frame(),
+      event("MatchMagicReceivedEvent", { owner: 0, magic: 200 }),
+      BASE,
+    );
+    assert.equal(next.participants[0].magic, 800);
+    assert.equal(next.participants[1].magic, 600);
+  });
+
+  it("破壊されて手札に戻ると、持ち主の捨て札の最後から手札の最後へ移る", () => {
+    const before = frame();
+    before.participants[0] = {
+      ...before.participants[0],
+      discardPile: [{ id: DRAGON.id, name: DRAGON.name }],
+    };
+    const next = applyEvent(
+      before,
+      event("MatchCardReturnedToHandEvent", { owner: 0, card: DRAGON }),
+      BASE,
+    );
+    assert.deepEqual(next.participants[0].discardPile, []);
+    assert.deepEqual(next.participants[0].hand.at(-1), DRAGON);
+  });
+
   it("複数のサイコロを振ると、合計が残りの歩数になり、1 個ずつの目も残る", () => {
     const next = applyEvent(
       frame(),
