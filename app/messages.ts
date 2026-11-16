@@ -129,6 +129,7 @@ export const EFFECT_LABELS: Record<EffectKind, string> = {
   FORBID_MOVEMENT: "移動できない",
   RETURN_TO_HAND_ON_DESTRUCTION: "破壊されたら手札に戻る",
   GAIN_MAGIC_ON_DESTRUCTION: "破壊されたら魔力を得る",
+  USE_CREATURE_AS_ITEM: "援護",
 };
 
 // 破壊されたときの効果が発動する破壊（core の 3 つの破壊のイベントと対応する。core#182）
@@ -148,6 +149,8 @@ export type EffectView = {
   opponentElements?: CreatureElement[];
   destructions?: EffectDestruction[];
   amount?: number;
+  // 援護に使えるクリーチャーの属性
+  creatureElements?: CreatureElement[];
 };
 
 // core の効果の型（種類は __typename）から、表示の形にする
@@ -160,6 +163,7 @@ export function effectView(effect: {
   constraints?: readonly { elements?: CreatureElement[] }[];
   destructions?: readonly EffectDestruction[];
   amount?: number;
+  elements?: readonly CreatureElement[];
 }): EffectView {
   return {
     kind: effect.kind,
@@ -172,7 +176,16 @@ export function effectView(effect: {
     ),
     destructions: effect.destructions ? [...effect.destructions] : undefined,
     amount: effect.amount,
+    creatureElements: effect.elements ? [...effect.elements] : undefined,
   };
+}
+
+// 援護は、すべての属性なら「援護」、絞ったものは「援護（地無）」（参考サイトの「援護無地」と同じ属性を、core の並びで出す。core#114）
+function creatureAsItemLabel(effect: EffectView): string {
+  const elements = effect.creatureElements ?? [];
+  return elements.length === Object.keys(CREATURE_ELEMENT_LABELS).length
+    ? "援護"
+    : `援護（${elementsLabel(elements)}）`;
 }
 
 function destructionsLabel(effect: EffectView): string {
@@ -214,6 +227,8 @@ export function effectLabel(effect: EffectView): string {
       return `破壊されたら手札に戻る（${destructionsLabel(effect)}）`;
     case "GAIN_MAGIC_ON_DESTRUCTION":
       return `破壊されたら魔力 +${effect.amount ?? 0}（${destructionsLabel(effect)}）`;
+    case "USE_CREATURE_AS_ITEM":
+      return creatureAsItemLabel(effect);
     default:
       return EFFECT_LABELS[effect.kind];
   }
@@ -641,6 +656,9 @@ export const MATCH_EVENT_MESSAGES = {
     `スペル「${card}」を使った（魔力 -${cost}）`,
   itemUsed: (card: string, cost: number) =>
     `アイテム「${card}」を出した（魔力 -${cost}）`,
+  // 援護。アイテムの行と同じく払った魔力を添える（core#114）
+  creatureUsedAsItem: (card: string, cost: number) =>
+    `クリーチャー「${card}」を援護に出した（魔力 -${cost}）`,
   itemSkipped: "アイテムを出さなかった",
   // 効果の発動は、戦闘・盤面とも「〈どこに〉〈持ち主の〉効果「〈名前〉」が発動（〈具体的な効果〉）」にそろえる（2026-11-12 オーナー。game#87。
   // core#177 でアイテム、core#178 でクリーチャーも効果に）。target は助詞まで含め（側は「守る側に」、位置は「(1, 0) に」と、座標の後だけ空白が

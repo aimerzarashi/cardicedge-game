@@ -71,6 +71,21 @@ describe("eventLine", () => {
     );
   });
 
+  it("援護に出したイベントは、出したクリーチャーと払った魔力を出す", () => {
+    assert.equal(
+      eventLine(
+        event(37, {
+          __typename: "MatchCreatureUsedAsItemEvent",
+          participant: 0,
+          card: { name: "ウッドフォーク" },
+          cost: 50,
+        }),
+        names,
+      ),
+      "版 37 部屋用: クリーチャー「ウッドフォーク」を援護に出した（魔力 -50）",
+    );
+  });
+
   it("周回回復のイベントは、位置・カード・回復した量と、回復の前後の HP を出す", () => {
     assert.equal(
       eventLine(
@@ -358,6 +373,20 @@ describe("eventLine", () => {
       },
       "攻める側にクリーチャー「ゴブリン」の効果「AT の増減」が発動（AT -10（変わらず） → AT 0・HP 30）",
       { attackDelta: 0, hitPointsDelta: 0, attack: 0, hitPoints: 30 },
+    ],
+    [
+      "援護（出したクリーチャーのカードの AT・HP を足す。core#114）",
+      {
+        __typename: "MatchBattleCreatureEffectActivatedEvent",
+        side: "ATTACKER",
+        card: { name: "ウッドフォーク" },
+        activatedEffect: {
+          kind: "USE_CREATURE_AS_ITEM",
+          elements: ["FIRE", "EARTH", "WATER", "WIND", "NEUTRAL"],
+        },
+      },
+      "攻める側にクリーチャー「ウッドフォーク」の効果「援護」が発動（AT +20・HP +40 → AT 50・HP 70）",
+      { attackDelta: 20, hitPointsDelta: 40, attack: 50, hitPoints: 70 },
     ],
     [
       "クリーチャーの上書き（範囲と、変えた差・値を出す）",

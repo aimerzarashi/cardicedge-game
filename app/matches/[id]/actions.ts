@@ -27,6 +27,7 @@ import {
   placeMatchCreatureMutation,
   relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
+  useMatchCreatureAsItemMutation,
   useMatchSpellMutation,
 } from "../operations";
 
@@ -355,6 +356,25 @@ export async function attackMatchTerritory(
   });
   return result.ok
     ? finish(result.data.attackMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+// アイテムの代わりに手札のクリーチャーを出す（援護。攻める段階・守る段階のどちらでも。守る側なら core が戦闘まで進める）
+export async function useMatchCreatureAsItem(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(useMatchCreatureAsItemMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.useMatchCreatureAsItem)
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 

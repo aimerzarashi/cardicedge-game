@@ -91,6 +91,7 @@ export default async function MatchDebugPage({
     awaitingParticipant: match.awaitingParticipant ?? null,
     invadeChoices: match.invadeChoices,
     itemChoices: match.itemChoices,
+    creatureAsItemChoices: match.creatureAsItemChoices,
     pathChoices: match.pathChoices,
     spellChoices: match.spellChoices.map((choice) => ({
       handIndex: choice.handIndex,

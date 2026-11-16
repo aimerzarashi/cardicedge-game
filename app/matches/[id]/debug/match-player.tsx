@@ -61,6 +61,7 @@ import {
   placeMatchCreature,
   relinquishMatchTerritory,
   rollMatchDice,
+  useMatchCreatureAsItem,
   useMatchSpell,
 } from "../actions";
 import { MatchActionButton } from "../match-action-button";
@@ -149,6 +150,8 @@ export type MatchPlayerOperations = {
   placeChoices: number[];
   invadeChoices: number[];
   itemChoices: number[];
+  // アイテムの代わりに出せる手札のクリーチャー（援護。core の creatureAsItemChoices）
+  creatureAsItemChoices: number[];
   relinquishChoices: { x: number; y: number; name: string; magic: number }[];
   levelUpChoices: {
     x: number;
@@ -180,18 +183,20 @@ export type MatchPlayerOperations = {
   rewardPacks: { key: string; name: string }[];
 };
 
-// アイテムは効果がまだ無く、コストを払って手札から無くなるだけ。攻める側も守る側も同じ形で選ぶ
+// 攻める側も守る側も同じ形で選ぶ。援護を持つクリーチャーなら、アイテムの代わりに手札のクリーチャーも出せる（別の操作。core#114）
 function ItemOperations({
   action,
   actionProps,
   hand,
   itemChoices,
+  creatureAsItemChoices,
   verb,
 }: {
   action: ComponentProps<typeof MatchActionButton>["action"];
   actionProps: { id: string; revision: number };
   hand: FrameCard[];
   itemChoices: number[];
+  creatureAsItemChoices: number[];
   verb: string;
 }) {
   return (
@@ -204,6 +209,16 @@ function ItemOperations({
           {...actionProps}
         >
           {hand[itemHandIndex]?.name ?? ""}を出して{verb}
+        </MatchActionButton>
+      ))}
+      {creatureAsItemChoices.map((handIndex) => (
+        <MatchActionButton
+          key={`creature-${handIndex}`}
+          action={useMatchCreatureAsItem}
+          values={{ handIndex }}
+          {...actionProps}
+        >
+          {hand[handIndex]?.name ?? ""}を援護に出して{verb}
         </MatchActionButton>
       ))}
       <MatchActionButton action={action} {...actionProps}>
@@ -698,6 +713,7 @@ function Operations({
           actionProps={actionProps}
           hand={hand}
           itemChoices={operations.itemChoices}
+          creatureAsItemChoices={operations.creatureAsItemChoices}
           verb="攻める"
         />
       )}
@@ -707,6 +723,7 @@ function Operations({
           actionProps={actionProps}
           hand={hand}
           itemChoices={operations.itemChoices}
+          creatureAsItemChoices={operations.creatureAsItemChoices}
           verb="戦闘に進む"
         />
       )}

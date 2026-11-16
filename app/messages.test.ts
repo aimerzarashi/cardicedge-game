@@ -68,6 +68,25 @@ describe("effectsLabel (destruction)", () => {
   });
 });
 
+// 援護は、すべての属性なら「援護」、絞ったものは使える属性を添える（core#114）
+describe("effectsLabel (creature as item)", () => {
+  it("すべての属性の援護は「援護」、絞った援護は「援護（地無）」", () => {
+    assert.equal(
+      effectsLabel([
+        {
+          kind: "USE_CREATURE_AS_ITEM",
+          creatureElements: ["FIRE", "EARTH", "WATER", "WIND", "NEUTRAL"],
+        },
+        {
+          kind: "USE_CREATURE_AS_ITEM",
+          creatureElements: ["EARTH", "NEUTRAL"],
+        },
+      ]),
+      "援護・援護（地無）",
+    );
+  });
+});
+
 describe("itemRestrictionsLabel", () => {
   it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
     assert.equal(itemRestrictionsLabel([]), "なし");
