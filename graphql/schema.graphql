@@ -508,7 +508,7 @@ enum CardType {
 	SPELL
 }
 """
-通った自分の領地の土地の属性を変える入力
+領地コマンドを使える自分の領地の土地の属性を変える入力
 """
 input ChangeMatchLandElementInput {
 	"""
@@ -1337,7 +1337,7 @@ type EndMatchTurnSuccess {
 	revision: Int!
 }
 """
-通った自分の領地のクリーチャーを手札のクリーチャーと交換する入力
+領地コマンドを使える自分の領地のクリーチャーを手札のクリーチャーと交換する入力
 """
 input ExchangeMatchCreatureInput {
 	"""
@@ -1686,7 +1686,7 @@ type LandTile implements BoardTile {
 	element: BoardTileElement!
 }
 """
-通った自分の領地のレベルを上げる入力
+領地コマンドを使える自分の領地のレベルを上げる入力
 """
 input LevelUpMatchLandInput {
 	"""
@@ -2351,7 +2351,7 @@ type MatchCreatureExchangedEvent implements MatchEvent {
 	returnedCard: CardInfo!
 }
 """
-通った自分の領地のクリーチャーを空き地へ動かした（行き先が領地になり、元の土地は空き地になる。土地のレベルはどちらも土地に残る）
+領地コマンドを使える自分の領地のクリーチャーを空き地へ動かした（行き先が領地になり、元の土地は空き地になる。土地のレベルはどちらも土地に残る）
 """
 type MatchCreatureMovedEvent implements MatchEvent {
 	"""
@@ -2949,7 +2949,7 @@ type MatchItemUsedEvent implements MatchEvent {
 	cost: Int!
 }
 """
-通った自分の領地の土地の属性を変えた（土地のレベルとクリーチャーはそのまま）
+領地コマンドを使える自分の領地の土地の属性を変えた（土地のレベルとクリーチャーはそのまま）
 """
 type MatchLandElementChangedEvent implements MatchEvent {
 	"""
@@ -3003,7 +3003,7 @@ type MatchLandLevel {
 	level: Int!
 }
 """
-通った自分の領地のレベルを上げた
+領地コマンドを使える自分の領地のレベルを上げた
 """
 type MatchLandLeveledUpEvent implements MatchEvent {
 	"""
@@ -3324,7 +3324,7 @@ enum MatchPhase {
 	"""
 	PLACING
 	"""
-	止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchLand・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ
+	止まったマスに行動が無く、領地コマンドを使える自分の領地（通った領地。拠点・チェックポイントにちょうど止まったらすべて）があるときの段階。領地コマンドを実行する（levelUpMatchLand・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ
 	"""
 	TERRITORY_COMMANDING
 	"""
@@ -3697,7 +3697,7 @@ type MatchTerritory {
 	relinquishMagic: Int!
 }
 """
-通った自分の領地のクリーチャーを他人の領地へ動かし、侵略した（続けてアイテムを選び、戦闘する）
+領地コマンドを使える自分の領地のクリーチャーを他人の領地へ動かし、侵略した（続けてアイテムを選び、戦闘する）
 """
 type MatchTerritoryInvadedByMoveEvent implements MatchEvent {
 	"""
@@ -3966,7 +3966,7 @@ me の結果。登録済みなら Player、未登録なら PlayerNotRegisteredEr
 """
 union MeResult = Player | PlayerNotRegisteredError
 """
-通った自分の領地のクリーチャーを動かす入力
+領地コマンドを使える自分の領地のクリーチャーを動かす入力
 """
 input MoveMatchCreatureInput {
 	"""
@@ -4046,19 +4046,19 @@ type Mutation {
 	"""
 	relinquishMatchTerritory(input: RelinquishMatchTerritoryInput!): RelinquishMatchTerritoryResult!
 	"""
-	通った自分の領地のレベルを上げる（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
+	領地コマンドを使える自分の領地のレベルを上げる（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	levelUpMatchLand(input: LevelUpMatchLandInput!): LevelUpMatchLandResult!
 	"""
-	通った自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
+	領地コマンドを使える自分の領地のクリーチャーを手札のクリーチャーと交換する（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	exchangeMatchCreature(input: ExchangeMatchCreatureInput!): ExchangeMatchCreatureResult!
 	"""
-	通った自分の領地のクリーチャーを動かす（領地コマンド。空き地へならそのまま止まったマスの決まりに進み、他人の領地へなら侵略と同じ戦闘をする）
+	領地コマンドを使える自分の領地のクリーチャーを動かす（領地コマンド。空き地へならそのまま止まったマスの決まりに進み、他人の領地へなら侵略と同じ戦闘をする）
 	"""
 	moveMatchCreature(input: MoveMatchCreatureInput!): MoveMatchCreatureResult!
 	"""
-	通った自分の領地の土地の属性を変える（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
+	領地コマンドを使える自分の領地の土地の属性を変える（領地コマンド。他人の領地に止まっていれば続けて通行料を払い、ほかはターンを終える）
 	"""
 	changeMatchLandElement(input: ChangeMatchLandElementInput!): ChangeMatchLandElementResult!
 	"""
