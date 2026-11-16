@@ -82,6 +82,7 @@ const roomQuery = graphql(`
           diceMin
           diceMax
           baseLandValue
+          lapBonusPerTerritory
         }
       }
     }
@@ -109,6 +110,7 @@ const roomQuery = graphql(`
             diceMin
             diceMax
             baseLandValue
+            lapBonusPerTerritory
           }
         }
         npcAvatars {

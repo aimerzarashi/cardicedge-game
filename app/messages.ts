@@ -48,12 +48,16 @@ export const RULE_LABELS = {
   diceMin: "サイコロの目（最小）",
   diceMax: "サイコロの目（最大）",
   baseLandValue: "土地の基本の値",
+  lapBonusPerTerritory: "周回のボーナス（領地 1 つあたり）",
 } as const;
 export type RuleField = keyof typeof RULE_LABELS;
 
-// 魔力の 100 刻みは入力のしやすさのための表示の都合の値で、core の決まりではない（studio の ruleStep と同じ）。魔力でない項目は 1 刻み
+// 魔力の 100 刻みは入力のしやすさのための表示の都合の値で、core の決まりではない（studio の ruleStep と同じ）。魔力でない項目は 1 刻み。
+// 領地 1 つあたりの額は、領地の数を掛ける小さい額なので 10 刻み
 export function ruleStep(field: RuleField): number {
   switch (field) {
+    case "lapBonusPerTerritory":
+      return 10;
     case "roundLimit":
     case "diceMin":
     case "diceMax":
@@ -605,7 +609,15 @@ export const MATCH_EVENT_MESSAGES = {
   pieceMoved: (x: number, y: number) => `(${x}, ${y}) へ進んだ`,
   checkpointPassed: (x: number, y: number, magic: number) =>
     `チェックポイント (${x}, ${y}) を通った（魔力 +${magic}）`,
-  lapCompleted: (magic: number) => `周回を終えた（魔力 +${magic}）`,
+  // 合計を先に、内訳をそれぞれの額で並べる（2026-11-16 オーナー。領地が 0・1 つあたりが 0 でも同じ形で出す。core#170・game#94）
+  lapCompleted: (
+    magic: number,
+    lapBonus: number,
+    territoryBonus: number,
+    territoryCount: number,
+    lapBonusPerTerritory: number,
+  ) =>
+    `周回を終えた（周回のボーナス ${magic}: 基本 ${lapBonus} ＋ 領地 ${territoryBonus}（${territoryCount} つ × ${lapBonusPerTerritory}））`,
   creaturePlaced: (card: string, x: number, y: number, cost: number) =>
     `クリーチャー「${card}」を (${x}, ${y}) に配置した（魔力 -${cost}）`,
   territoryInvaded: (

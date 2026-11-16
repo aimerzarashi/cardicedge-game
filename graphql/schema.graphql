@@ -218,6 +218,10 @@ type BoardDefaultRules {
 	土地の基本の値（レベルと連鎖の倍率を掛ける元）
 	"""
 	baseLandValue: Int!
+	"""
+	周回のボーナスに足す、自分の領地 1 つあたりの魔力（拠点に戻ったときの自分の領地の数だけ足す）
+	"""
+	lapBonusPerTerritory: Int!
 }
 """
 公開中のボードが無い（公開中でないものを含む）
@@ -593,6 +597,10 @@ input ChangeRoomMatchRulesInput {
 	土地の基本の値（1 以上。レベルと連鎖の倍率を掛ける元）
 	"""
 	baseLandValue: Int!
+	"""
+	周回のボーナスに足す、自分の領地 1 つあたりの魔力（0 以上。拠点に戻ったときの自分の領地の数だけ足す）
+	"""
+	lapBonusPerTerritory: Int!
 }
 """
 changeRoomMatchRules の結果（公開前、または公開前に決めていなければ準備中。決めるのは作った人）。
@@ -3056,9 +3064,25 @@ type MatchLapCompletedEvent implements MatchEvent {
 	"""
 	participant: Int!
 	"""
-	増えた魔力
+	増えた魔力の合計（lapBonus + territoryBonus）
 	"""
 	magic: Int!
+	"""
+	増えた魔力の根拠の、周回のボーナス（領地の数によらない決まった額）
+	"""
+	lapBonus: Int!
+	"""
+	増えた魔力の根拠の、領地の分の額（territoryCount × lapBonusPerTerritory）
+	"""
+	territoryBonus: Int!
+	"""
+	増えた魔力の根拠の、周回を終えたときの自分の領地の数
+	"""
+	territoryCount: Int!
+	"""
+	増えた魔力の根拠の、領地 1 つあたりの額
+	"""
+	lapBonusPerTerritory: Int!
 }
 """
 参加者に続いているスペルの効果（ターンをまたいで効き続けるもの。1 人に 1 つまでで、新しく使うと上書きする）
@@ -3440,6 +3464,10 @@ type MatchPlayRules {
 	土地の基本の値。レベルと連鎖の倍率を掛ける元
 	"""
 	baseLandValue: Int!
+	"""
+	周回のボーナスに足す、自分の領地 1 つあたりの魔力（拠点に戻ったときの自分の領地の数だけ足す）
+	"""
+	lapBonusPerTerritory: Int!
 	"""
 	手札の上限
 	"""
@@ -4883,6 +4911,10 @@ type RoomMatchRules {
 	土地の基本の値（1 以上。レベルと連鎖の倍率を掛ける元）
 	"""
 	baseLandValue: Int!
+	"""
+	周回のボーナスに足す、自分の領地 1 つあたりの魔力（0 以上。拠点に戻ったときの自分の領地の数だけ足す）
+	"""
+	lapBonusPerTerritory: Int!
 }
 """
 アバター・デッキ・ボードを、公開用の ID と名前で見せる値（名前は読むときに引く）

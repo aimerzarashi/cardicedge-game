@@ -64,6 +64,7 @@ const boardsQuery = graphql(`
               diceMin
               diceMax
               baseLandValue
+              lapBonusPerTerritory
             }
           }
         }
