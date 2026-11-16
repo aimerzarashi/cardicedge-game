@@ -60,7 +60,7 @@ export type CardType =
   /** スペル */
   | 'SPELL';
 
-/** 通った自分の領地の土地の属性を変える入力 */
+/** 領地コマンドを使える自分の領地の土地の属性を変える入力 */
 export type ChangeMatchLandElementInput = {
   /** 変えた後の属性 */
   element: BoardTileElement;
@@ -274,7 +274,7 @@ export type EndMatchTurnInput = {
   revision: number;
 };
 
-/** 通った自分の領地のクリーチャーを手札のクリーチャーと交換する入力 */
+/** 領地コマンドを使える自分の領地のクリーチャーを手札のクリーチャーと交換する入力 */
 export type ExchangeMatchCreatureInput = {
   /** 出す手札の番号（0 始まり） */
   handIndex: number;
@@ -305,7 +305,7 @@ export type ItemCategory =
   /** 武器 */
   | 'WEAPON';
 
-/** 通った自分の領地のレベルを上げる入力 */
+/** 領地コマンドを使える自分の領地のレベルを上げる入力 */
 export type LevelUpMatchLandInput = {
   /** 対戦の公開用の ID */
   id: string;
@@ -362,10 +362,10 @@ export type MatchPhase =
   | 'RELINQUISHING'
   /** サイコロを振る段階（rollMatchDice） */
   | 'ROLLING'
-  /** 止まったマスに行動が無く、通った自分の領地があるときの段階。領地コマンドを実行する（levelUpMatchLand・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ */
+  /** 止まったマスに行動が無く、領地コマンドを使える自分の領地（通った領地。拠点・チェックポイントにちょうど止まったらすべて）があるときの段階。領地コマンドを実行する（levelUpMatchLand・exchangeMatchCreature）か、何もしない（endMatchTurn）。行動があるマスでは PLACING・INVADING の中で領地コマンドを選ぶ */
   | 'TERRITORY_COMMANDING';
 
-/** 通った自分の領地のクリーチャーを動かす入力 */
+/** 領地コマンドを使える自分の領地のクリーチャーを動かす入力 */
 export type MoveMatchCreatureInput = {
   /** 動かすクリーチャーのいる領地の位置 */
   from: BoardPositionInput;
