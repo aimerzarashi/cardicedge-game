@@ -597,6 +597,15 @@ export const MATCH_EVENT_MESSAGES = {
   spellEffectEnded: "続いていたスペルの効果が終わった",
   creatureDamaged: (x: number, y: number, damage: number, remaining: number) =>
     `(${x}, ${y}) のクリーチャーに ${damage} ダメージ（残りの HP ${remaining}）`,
+  // 周回回復。回復する前の HP はイベントが持たないので、回復した後の HP から引いて出す（core#114）
+  lapCreatureHitPointsRecovered: (
+    x: number,
+    y: number,
+    card: string,
+    amount: number,
+    hitPoints: number,
+  ) =>
+    `(${x}, ${y}) のクリーチャー「${card}」の HP が周回回復で ${amount} 回復した（${hitPoints - amount} → ${hitPoints}）`,
   // 破壊の行はイベントの名前と同じ言葉で始め、捨て札・空き地になることは書かない（どの破壊でも同じ決まりのため。core#181）
   boardCreatureDestroyed: (x: number, y: number, card: string) =>
     `(${x}, ${y}) のクリーチャー「${card}」が破壊された`,
