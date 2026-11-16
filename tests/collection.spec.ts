@@ -22,12 +22,24 @@ test("スターターを受け取ると所持カードに枚数つきで出て�
     await expect(rows).toHaveCount(6, { timeout: 1000 });
   }).toPass({ timeout: 30_000 });
 
-  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*10\s*N\s*4/);
-  await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*20\s*S\s*3/);
-  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*30\s*R\s*1/);
-  await expect(rows.nth(3)).toHaveText(/E\s*スペル\s*10\s*N\s*1/);
-  await expect(rows.nth(4)).toHaveText(/F\s*スペル\s*10\s*N\s*1/);
-  await expect(rows.nth(5)).toHaveText(/G\s*スペル\s*10\s*N\s*1/);
+  await expect(rows.nth(0)).toHaveText(
+    /A\s*クリーチャー\s*10\s*N\s*火\s*10\s*10\s*4/,
+  );
+  await expect(rows.nth(1)).toHaveText(
+    /B\s*クリーチャー\s*20\s*S\s*水\s*20\s*30\s*3/,
+  );
+  await expect(rows.nth(2)).toHaveText(
+    /C\s*クリーチャー\s*30\s*R\s*火水\s*30\s*40\s*アイテム制限 防具・巻物／配置制限 風／侵略できない・移動できない・通行料の倍率 150%・後手\s*1/,
+  );
+  await expect(rows.nth(3)).toHaveText(
+    /E\s*スペル\s*10\s*N\s*—\s*—\s*—\s*カードを 1 枚引く\s*1/,
+  );
+  await expect(rows.nth(4)).toHaveText(
+    /F\s*スペル\s*10\s*N\s*—\s*—\s*—\s*対象のサイコロの目を 6 に固定する（1 ターン）\s*1/,
+  );
+  await expect(rows.nth(5)).toHaveText(
+    /G\s*スペル\s*10\s*N\s*—\s*—\s*—\s*対象のクリーチャーに 20 ダメージ\s*1/,
+  );
 
   await page.getByLabel("アイテム").check();
   await page.getByRole("button", { name: "絞り込む" }).click();

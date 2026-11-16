@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   continuesLabel,
+  creatureSpecSummary,
   effectsLabel,
   effectView,
   fieldErrorMessage,
   itemRestrictionsLabel,
+  itemSpecSummary,
   lastingSpellEffectLabel,
   matchNumberLabel,
   placementRestrictionsLabel,
@@ -221,5 +223,48 @@ describe("lastingSpellEffectLabel", () => {
       "サイコロを複数振る（2 個・残り 2 ターン）",
     );
     assert.equal(lastingSpellEffectLabel(null), "なし");
+  });
+});
+
+describe("一覧の性能の列", () => {
+  it("クリーチャーは、持っている制限と効果だけを「／」でつなぐ", () => {
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: ["ARMOR", "SCROLL"],
+        placementRestrictions: ["WIND"],
+        effects: [{ kind: "STRIKE_FIRST" }],
+      }),
+      "アイテム制限 防具・巻物／配置制限 風／先制",
+    );
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: [],
+        placementRestrictions: [],
+        effects: [{ kind: "FORBID_INVASION" }],
+      }),
+      "侵略できない",
+    );
+  });
+
+  it("クリーチャーが制限も効果も持たなければ空にする（「なし」を並べない）", () => {
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: [],
+        placementRestrictions: [],
+        effects: [],
+      }),
+      "",
+    );
+  });
+
+  it("アイテムは分類と効果。効果が無ければ分類だけ", () => {
+    assert.equal(
+      itemSpecSummary({
+        category: "ARMOR",
+        effects: [{ kind: "HIT_POINTS_MODIFIER", value: 25 }],
+      }),
+      "防具／HP +25",
+    );
+    assert.equal(itemSpecSummary({ category: "WEAPON", effects: [] }), "武器");
   });
 });
