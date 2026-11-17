@@ -12,6 +12,7 @@ export const matchDebugQuery = graphql(`
         revision
         round
         phase
+        actionChoices
         dice
         remainingSteps
         pathChoices {

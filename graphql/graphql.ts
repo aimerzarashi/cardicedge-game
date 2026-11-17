@@ -321,6 +321,47 @@ export type LevelUpMatchLandInput = {
   revision: number;
 };
 
+/** 操作を待っている人が今選べる行動の種類。対象（手札・領地・行き先）は種類ごとの選択肢（placeChoices 等）から選ぶ。種類と mutation は 1 対 1 */
+export type MatchAction =
+  /** アイテムを出さずに攻める（attackMatchTerritory の itemHandIndex を null） */
+  | 'ATTACK_WITHOUT_ITEM'
+  /** アイテムを出して攻める（attackMatchTerritory の itemHandIndex を itemChoices から選ぶ） */
+  | 'ATTACK_WITH_ITEM'
+  /** 土地の属性を変える（changeMatchLandElement。elementChangeChoices から選ぶ） */
+  | 'CHANGE_LAND_ELEMENT'
+  /** 行き先を選ぶ（chooseMatchPath。pathChoices から選ぶ） */
+  | 'CHOOSE_PATH'
+  /** アイテムを出さずに守る（defendMatchTerritory の itemHandIndex を null） */
+  | 'DEFEND_WITHOUT_ITEM'
+  /** アイテムを出して守る（defendMatchTerritory の itemHandIndex を itemChoices から選ぶ） */
+  | 'DEFEND_WITH_ITEM'
+  /** 手札を捨てる（discardMatchCard。手札のどれでも） */
+  | 'DISCARD_CARD'
+  /** カードを引く（drawMatchCard） */
+  | 'DRAW_CARD'
+  /** ターンを終える（endMatchTurn。配置の段階では配置しない、領地コマンドの段階では何もしない） */
+  | 'END_TURN'
+  /** クリーチャーを交換する（exchangeMatchCreature。exchangeChoices から選ぶ） */
+  | 'EXCHANGE_CREATURE'
+  /** 侵略する（invadeMatchTerritory。invadeChoices から選ぶ） */
+  | 'INVADE_TERRITORY'
+  /** 土地のレベルを上げる（levelUpMatchLand。levelUpChoices から選ぶ） */
+  | 'LEVEL_UP_LAND'
+  /** クリーチャーを移動する（moveMatchCreature。moveChoices から選ぶ） */
+  | 'MOVE_CREATURE'
+  /** 通行料を払う（payMatchToll。払うとターンを終える） */
+  | 'PAY_TOLL'
+  /** クリーチャーを配置する（placeMatchCreature。placeChoices から選ぶ） */
+  | 'PLACE_CREATURE'
+  /** 領地を手放す（relinquishMatchTerritory。relinquishChoices から選ぶ） */
+  | 'RELINQUISH_TERRITORY'
+  /** サイコロを振る（rollMatchDice） */
+  | 'ROLL_DICE'
+  /** アイテムの代わりに手札のクリーチャーを出す（援護。useMatchCreatureAsItem。creatureAsItemChoices から選ぶ。攻める段階と守る段階） */
+  | 'USE_CREATURE_AS_ITEM'
+  /** スペルを使う（useMatchSpell。spellChoices から選ぶ） */
+  | 'USE_SPELL';
+
 /** 戦闘のどちら側か */
 export type MatchBattleSide =
   /** 攻める側（侵略した側） */
@@ -745,7 +786,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, creatureAsItemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, actionChoices: Array<MatchAction>, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, creatureAsItemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -2897,6 +2938,7 @@ export const MatchDebugDocument = new TypedDocumentString(`
       revision
       round
       phase
+      actionChoices
       dice
       remainingSteps
       pathChoices {
