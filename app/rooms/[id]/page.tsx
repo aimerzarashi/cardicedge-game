@@ -267,6 +267,10 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           min={gameRules.match.minPlayers}
           max={gameRules.match.maxPlayers}
           current={room.seats.length}
+          withPlayer={
+            room.seats.length === 0 ||
+            room.seats.some((seat) => seat.kind === "PLAYER")
+          }
         />
       )}
 

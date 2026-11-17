@@ -91,6 +91,15 @@ export function isMyTurn(
   return participants[awaitingParticipant]?.playerId === playerId;
 }
 
+// 参加していないで見ているだけか（全員 NPC の部屋を作った人。core は参加者と、対戦を始めた部屋を作った人にだけ対戦を返す。
+// 2026-11-17 オーナー。game#109）
+export function isWatching(
+  participants: { playerId?: string | null }[],
+  playerId: string,
+): boolean {
+  return !participants.some((participant) => participant.playerId === playerId);
+}
+
 // winners は participants の何番目か（複数ありうる）。存在しない番号は飛ばす
 export function winnerNames(
   participants: { avatar: { name: string } }[],

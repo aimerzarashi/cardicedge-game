@@ -7,6 +7,7 @@ import {
   matchOperations,
   openNewRoom,
   playMatchToEnd,
+  seatItem,
 } from "./room-flow";
 
 test("対戦の画面の操作だけでラウンドの上限まで進めると、操作が消えて勝った人と理由が出て、戦利品を受け取ったあと部屋で続けて 2 戦目を遊び、終えると休止中で一覧に残り、開いて再開すると準備中に戻る", async ({
@@ -195,4 +196,35 @@ test("空いている土地に止まるとクリーチャーを配置でき、�
       })
       .first(),
   ).toBeVisible();
+});
+
+test("自分が参加しない全員 NPC の部屋では、NPC どうしの対戦を最後まで見られ、操作は出ず、部屋は次を決める状態になる", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(90_000);
+  await openNewRoom(page, request, "match-watch");
+  await page.getByLabel(/自分も参加する/).uncheck();
+  await page.getByLabel(/席の数/).selectOption("2");
+  await page.getByRole("button", { name: "席を決める" }).click();
+  await expect(seatItem(page, 0)).toContainText("NPC");
+  await expect(seatItem(page, 1)).toContainText("NPC");
+  await decideRules(page, 1);
+  await decideNpcSeat(page, 0);
+  await decideNpcSeat(page, 1);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
+
+  // NPC の番はポリシーが進め、待つ人がいないので最後まで再生される。描画は 1 イベントずつ間を置くため長く待つ
+  await expect(page.getByTestId("match-outcome")).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(page.getByTestId("match-outcome")).toContainText(
+    "ラウンドの上限に達した",
+  );
+  await expect(matchOperations(page)).toHaveCount(0);
+  await page.getByRole("link", { name: "部屋に戻る" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("次を決める");
 });

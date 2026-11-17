@@ -676,7 +676,7 @@ input ChangeRoomSeatsInput {
 	"""
 	revision: Int!
 	"""
-	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる
+	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 0〜1 つで、多ければ FieldTooMany の max。0 は全員 NPC の部屋で、作った人は参加せずに対戦を見る）。並びを変えたら、席の選択はすべて外れる
 	"""
 	seats: [RoomSeatKind!]!
 }
@@ -1387,19 +1387,6 @@ type ExchangeMatchCreatureSuccess {
 	revision: Int!
 }
 """
-入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
-"""
-type FieldCountMismatch implements FieldError {
-	"""
-	誤りのある入力の項目
-	"""
-	field: String!
-	"""
-	決まりの個数
-	"""
-	expected: Int!
-}
-"""
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
 interface FieldError {
@@ -1475,6 +1462,19 @@ type FieldTooLong implements FieldError {
 	field: String!
 	"""
 	上限の文字数
+	"""
+	max: Int!
+}
+"""
+入力の一覧の中の、ある種類の個数が上限より多い（例: 部屋のプレイヤーの席）
+"""
+type FieldTooMany implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	上限の個数
 	"""
 	max: Int!
 }
@@ -4663,7 +4663,7 @@ type Query {
 	"""
 	gameRules: GameRulesResult!
 	"""
-	自分が参加している対戦の詳細（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の詳細（登録済みのプレイヤーだけ）。無い・どちらでもない対戦は MatchNotFoundError
 	"""
 	match(
 		"""
@@ -4672,7 +4672,7 @@ type Query {
 		id: UUID!
 	): MatchResult!
 	"""
-	自分が参加している対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・どちらでもない対戦は MatchNotFoundError
 	"""
 	matchEvents(
 		"""
@@ -5368,10 +5368,10 @@ type StrikeLastEffect implements Effect {
 }
 type Subscription {
 	"""
-	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
 	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。全員が戦利品を受け取り終えたら、その版を送ってから閉じる
 	（対戦が終わっただけでは閉じない。受け取らないまま離れた人がいると閉じない）。
-	無い・参加していない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
+	無い・どちらでもない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
 	"""
 	matchProgress(
 		"""

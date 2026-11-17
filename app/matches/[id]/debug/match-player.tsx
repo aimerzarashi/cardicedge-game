@@ -138,6 +138,8 @@ function ParticipantColorMark({ seat }: { seat: number }) {
 // 操作は描画ではなく入力なので、再生が追いついたときの match(id) の値で出す
 export type MatchPlayerOperations = {
   mine: boolean;
+  // 参加していないで見ているだけ（全員 NPC の部屋を作った人）
+  watching: boolean;
   // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
   awaitingParticipant: number | null;
   // 操作を待っている人が今選べる行動の種類（core の actionChoices）。どのボタンを出すかは段階でなくこれで決める
@@ -650,8 +652,10 @@ function Operations({
   if (!operations.mine) {
     // 進みが Subscription で見えているときは、読み直すリンクは要らない（つながっていないときの逃げ道だけ出す）
     return (
-      <p style={{ margin: "0 0 0.5rem" }}>
-        他の参加者（NPC）の番です。
+      <p data-testid="match-waiting" style={{ margin: "0 0 0.5rem" }}>
+        {operations.watching
+          ? "NPC どうしの対戦を見ています（参加していないので操作はありません）。"
+          : "他の参加者（NPC）の番です。"}
         {!connected && (
           <>
             {" "}
