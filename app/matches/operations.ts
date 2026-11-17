@@ -28,6 +28,112 @@ export const discardMatchCardMutation = graphql(`
   }
 `);
 
+export const useMatchSpellMutation = graphql(`
+  mutation UseMatchSpell($input: UseMatchSpellInput!) {
+    useMatchSpell(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
+export const placeMatchCreatureMutation = graphql(`
+  mutation PlaceMatchCreature($input: PlaceMatchCreatureInput!) {
+    placeMatchCreature(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
+          }
+        }
+      }
+    }
+  }
+`);
+
+export const relinquishMatchTerritoryMutation = graphql(`
+  mutation RelinquishMatchTerritory($input: RelinquishMatchTerritoryInput!) {
+    relinquishMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const levelUpMatchLandMutation = graphql(`
+  mutation LevelUpMatchLand($input: LevelUpMatchLandInput!) {
+    levelUpMatchLand(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const moveMatchCreatureMutation = graphql(`
+  mutation MoveMatchCreature($input: MoveMatchCreatureInput!) {
+    moveMatchCreature(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const changeMatchLandElementMutation = graphql(`
+  mutation ChangeMatchLandElement($input: ChangeMatchLandElementInput!) {
+    changeMatchLandElement(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const exchangeMatchCreatureMutation = graphql(`
+  mutation ExchangeMatchCreature($input: ExchangeMatchCreatureInput!) {
+    exchangeMatchCreature(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
 export const rollMatchDiceMutation = graphql(`
   mutation RollMatchDice($input: RollMatchDiceInput!) {
     rollMatchDice(input: $input) {
@@ -76,68 +182,75 @@ export const chooseMatchRewardPackMutation = graphql(`
   }
 `);
 
-// 差分の読み込み。種類ごとに持つ項目が違うため、画面が使うものだけをインラインフラグメントで読む
-export const matchEventsQuery = graphql(`
-  query MatchEvents($id: UUID!, $after: Int!) {
-    matchEvents(id: $id, after: $after) {
+export const invadeMatchTerritoryMutation = graphql(`
+  mutation InvadeMatchTerritory($input: InvadeMatchTerritoryInput!) {
+    invadeMatchTerritory(input: $input) {
       __typename
-      ... on MatchEventList {
-        events {
+      ... on ValidationErrors {
+        errors {
           __typename
-          revision
-          ... on MatchHandsDealtEvent {
-            cards
+          field
+          ... on FieldOutOfRange {
+            min
+            max
           }
-          ... on MatchTurnOrderDecidedEvent {
-            order
+        }
+      }
+    }
+  }
+`);
+
+export const attackMatchTerritoryMutation = graphql(`
+  mutation AttackMatchTerritory($input: AttackMatchTerritoryInput!) {
+    attackMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
           }
-          ... on MatchCardDrawnEvent {
-            participant
-            card {
-              name
-            }
-          }
-          ... on MatchCardDiscardedEvent {
-            participant
-            card {
-              name
-            }
-          }
-          ... on MatchDiceRolledEvent {
-            participant
-            value
-          }
-          ... on MatchMovedEvent {
-            participant
-            to {
-              x
-              y
-            }
-          }
-          ... on MatchCheckpointPassedEvent {
-            participant
-            checkpoint {
-              x
-              y
-            }
-            magic
-          }
-          ... on MatchLapCompletedEvent {
-            participant
-            magic
-          }
-          ... on MatchTurnEndedEvent {
-            participant
-          }
-          ... on MatchEndedEvent {
-            winners
-            reason
-          }
-          ... on MatchRewardDrawnEvent {
-            participant
-            rewardCards {
-              name
-            }
+        }
+      }
+    }
+  }
+`);
+
+export const useMatchCreatureAsItemMutation = graphql(`
+  mutation UseMatchCreatureAsItem($input: UseMatchCreatureAsItemInput!) {
+    useMatchCreatureAsItem(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+        }
+      }
+    }
+  }
+`);
+
+export const payMatchTollMutation = graphql(`
+  mutation PayMatchToll($input: PayMatchTollInput!) {
+    payMatchToll(input: $input) {
+      __typename
+    }
+  }
+`);
+
+export const defendMatchTerritoryMutation = graphql(`
+  mutation DefendMatchTerritory($input: DefendMatchTerritoryInput!) {
+    defendMatchTerritory(input: $input) {
+      __typename
+      ... on ValidationErrors {
+        errors {
+          __typename
+          field
+          ... on FieldOutOfRange {
+            min
+            max
           }
         }
       }

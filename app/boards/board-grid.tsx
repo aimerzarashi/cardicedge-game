@@ -7,18 +7,23 @@ import {
   type Piece,
   type Position,
   pairLabel,
+  type TerritoryMark,
   type Tile,
   tileAt,
   tileLabel,
 } from "./board-layout";
 import {
   BOARD_BACKGROUND,
+  CREATURE_GLYPH,
   LEGEND,
+  PIECE_GLYPH,
   paint,
   tileName,
+  tileSide,
   tileText,
 } from "./board-paint";
 import {
+  boardShortcut,
   fitView,
   type Size,
   span,
@@ -30,10 +35,13 @@ import {
 } from "./board-view";
 
 // ボードを斜め見下ろしで見せる格子。studio の app/boards/board-grid.tsx から写したもの（片方を変えたらもう片方もそろえる）。
-// 写したあとの違いは、押す操作（onTile・onConnection）と、そのためのクリックの打ち消しを持たないことと、
+// 写したあとの違いは、つながりを押す操作（onConnection）を持たないことと、
 // マスとマスの間（つながりの印）とマスの無い所を描かないこと（game では空白にして背景を見せる。オーナーの判断。マスの無い所は game#13）、
 // 相手待ち（pending）・印（marks・focus）を持たないこと（編集と公開の検査のためのもので、game では使わない）。
-// 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に番号を出し、マスの名前にも「駒 1」と添える。位置は core が返したものをそのまま描く）。
+// 逆に game だけが持つのは pieces（対戦の参加者の駒。マスの上に色付きの ♟ を出し、マスの名前には「駒 1」と添える。位置は core が返したものをそのまま描く）と、
+// territories（領地。マスの側面（厚み）を持ち主の色にし、レベルの分だけ板を積み、マスの上寄せに持ち主の色の ♞ とクリーチャーの ID を出し、マスの中央に通行料を出し、マスの名前にも「領地 1 レベル 1 クリーチャー名 通行料 60」と添える。core#113・game#50・game#57）。
+// landLevels（土地のレベル。空き地にもレベルの分の板を色を付けずに積み、名前に「レベル 2」と添える。game#70）も game だけ。
+// selectable・onTile（対戦で押せるマスの実線の印）と previewed（選択肢にフォーカスが当たっている間の、見るだけの破線の印。game#76）も game だけ。
 // 転送円・橋の「相手なし」と「?」は、game のボードは公開中だけで現れないが、写しをそろえるため残している。
 //
 // 並べ方: 幅 W・高さ H のボードを (2W−1) 列 × (2H−1) 行の CSS grid にし、偶数の位置をマス、奇数の位置を隣どうしの間の印
@@ -56,14 +64,35 @@ export function BoardGrid({
   tiles,
   pairs,
   pieces = [],
+  territories,
+  landLevels = [],
+  selectable = [],
+  previewed = [],
+  onTile,
+  legend = "below",
 }: {
   width: number;
   height: number;
   tiles: Tile[];
   pairs: Pair[];
   pieces?: Piece[];
+  territories?: TerritoryMark[];
+  // レベルを上げた土地（空き地にもレベルの分の板を積む。領地はその持ち主の色で積む）
+  landLevels?: (Position & { level: number })[];
+  // 押せるマス（印を付ける）。ほかのマスは押せない
+  selectable?: Position[];
+  // 見るだけの印を付けるマス（選択肢にフォーカスが当たっている間の、その行動の対象。押せない）
+  previewed?: Position[];
+  onTile?: (position: Position) => void;
+  // 凡例の出し方。below は盤面の下にいつも出す、toggle は操作の並びのボタンで開閉する（対戦の画面は盤面の下に戦闘を出すため。
+  // game だけの違い。2026-11-14 オーナー。game#98）
+  legend?: "below" | "toggle";
 }) {
   const viewport = useRef<HTMLDivElement>(null);
+  // 見るだけの切り替えなのでイベントにせず、ここで持つ（開き直すと通行料の表示に戻る）
+  const [showsStats, setShowsStats] = useState(false);
+  // 見るだけの開閉なので、ここで持つ
+  const [showsLegend, setShowsLegend] = useState(false);
   const [size, setSize] = useState<Size | null>(null);
   // null の間は、ボード全体が枠に収まる大きさで中央に置く
   const [view, setView] = useState<View | null>(null);
@@ -78,6 +107,7 @@ export function BoardGrid({
     from: View;
     moved: boolean;
   } | null>(null);
+  const suppressClick = useRef(false);
 
   // 拡大・縮小・全体を表示は、新しい倍率と位置へなめらかに動かす（カメラワーク）。最初に開いたときは収まる位置にそのまま出し、
   // ドラッグの最中は指やマウスにそのまま付いてくるよう遅らせない
@@ -85,6 +115,7 @@ export function BoardGrid({
   const [dragging, setDragging] = useState(false);
 
   const fitted = size ? fitView(size, width, height) : null;
+  const hasTerritories = territories !== undefined;
   const shown = view ?? fitted;
 
   // ホイールの既定のスクロールを止めるには passive でない listener が要り、React の onWheel では付けられないため DOM に付ける
@@ -125,6 +156,44 @@ export function BoardGrid({
     return () => element.removeEventListener("wheel", onWheel);
   }, [size, width, height]);
 
+  useEffect(() => {
+    if (!size) {
+      return;
+    }
+    const zoomBy = (factor: number) => {
+      setAnimated(true);
+      setView((current) =>
+        zoomAt(
+          current ?? fitView(size, width, height),
+          factor,
+          size.width / 2,
+          size.height / 2,
+        ),
+      );
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      switch (boardShortcut(event)) {
+        case "zoomIn":
+          zoomBy(ZOOM_STEP);
+          break;
+        case "zoomOut":
+          zoomBy(1 / ZOOM_STEP);
+          break;
+        case "fit":
+          setAnimated(true);
+          setView(null);
+          break;
+        case "toggleStats":
+          if (hasTerritories) {
+            setShowsStats((current) => !current);
+          }
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [size, width, height, hasTerritories]);
+
   function zoom(factor: number) {
     if (!size || !shown) {
       return;
@@ -163,6 +232,13 @@ export function BoardGrid({
   }
 
   function pointerEnd() {
+    if (drag.current?.moved) {
+      // ドラッグの後に続く click をマスを押した扱いにしない。click が来なかった場合に残らないよう、すぐ戻す
+      suppressClick.current = true;
+      setTimeout(() => {
+        suppressClick.current = false;
+      }, 0);
+    }
     drag.current = null;
     setDragging(false);
   }
@@ -184,6 +260,24 @@ export function BoardGrid({
               tile={tile}
               pair={pairLabel({ tiles, pairs }, tile)}
               pieces={pieces.filter((piece) => piece.x === x && piece.y === y)}
+              territory={territories?.find(
+                (territory) => territory.x === x && territory.y === y,
+              )}
+              showsStats={showsStats}
+              landLevel={
+                landLevels.find((land) => land.x === x && land.y === y)
+                  ?.level ?? 1
+              }
+              previewed={previewed.some(
+                (position) => position.x === x && position.y === y,
+              )}
+              onSelect={
+                selectable.some(
+                  (position) => position.x === x && position.y === y,
+                )
+                  ? onTile
+                  : undefined
+              }
             />
           ) : (
             <span key={key} />
@@ -205,14 +299,26 @@ export function BoardGrid({
       style={{ border: "none", margin: 0, padding: 0, minInlineSize: 0 }}
     >
       <div>
-        <button type="button" onClick={() => zoom(ZOOM_STEP)}>
+        <button
+          type="button"
+          title="キー: Z"
+          aria-keyshortcuts="z"
+          onClick={() => zoom(ZOOM_STEP)}
+        >
           拡大
         </button>
-        <button type="button" onClick={() => zoom(1 / ZOOM_STEP)}>
+        <button
+          type="button"
+          title="キー: X"
+          aria-keyshortcuts="x"
+          onClick={() => zoom(1 / ZOOM_STEP)}
+        >
           縮小
         </button>
         <button
           type="button"
+          title="キー: 0"
+          aria-keyshortcuts="0"
           onClick={() => {
             setAnimated(true);
             setView(null);
@@ -220,7 +326,28 @@ export function BoardGrid({
         >
           全体を表示
         </button>
+        {/* ボードの詳細の画面には領地が無いので、対戦の画面にだけ出す */}
+        {territories && (
+          <button
+            type="button"
+            title="キー: T"
+            aria-keyshortcuts="t"
+            onClick={() => setShowsStats(!showsStats)}
+          >
+            {showsStats ? "通行料を表示" : "AT・HP を表示"}
+          </button>
+        )}
+        {legend === "toggle" && (
+          <button
+            type="button"
+            aria-expanded={showsLegend}
+            onClick={() => setShowsLegend(!showsLegend)}
+          >
+            {showsLegend ? "凡例を閉じる" : "凡例"}
+          </button>
+        )}
       </div>
+      {legend === "toggle" && showsLegend && <BoardLegend />}
       <div
         ref={viewport}
         data-scale={shown ? shown.scale.toFixed(3) : undefined}
@@ -228,6 +355,12 @@ export function BoardGrid({
         onPointerMove={pointerMove}
         onPointerUp={pointerEnd}
         onPointerCancel={pointerEnd}
+        onClickCapture={(event) => {
+          if (suppressClick.current) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+        }}
         style={{
           position: "relative",
           height: "28rem",
@@ -265,60 +398,72 @@ export function BoardGrid({
           {cells}
         </div>
       </div>
-      <ul
-        aria-label="凡例"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "1rem",
-          listStyle: "none",
-          padding: 0,
-        }}
-      >
-        {LEGEND.map((sample) => (
-          <li key={tileLabel(sample)}>
-            <span
-              aria-hidden
-              style={{
-                ...paint(sample),
-                display: "inline-block",
-                boxSizing: "border-box",
-                width: "1em",
-                height: "1em",
-                marginRight: "0.25em",
-                verticalAlign: "middle",
-              }}
-            />
-            {tileLabel(sample)}
-          </li>
-        ))}
-      </ul>
+      {legend === "below" && <BoardLegend />}
     </fieldset>
   );
 }
 
-// 表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している
+// 押せるマスの印。土地の属性の色とぶつからないよう、枠で見せる
+const SELECTABLE_TILE = {
+  outline: "4px solid #ffe066",
+  outlineOffset: 2,
+  zIndex: 1,
+  cursor: "pointer",
+};
+
+// 見るだけの印。押せる印と見分けられるよう破線にする
+const PREVIEWED_TILE = {
+  outline: "4px dashed #ffe066",
+  outlineOffset: 2,
+  zIndex: 1,
+};
+
+// ふだんは表示だけで押せないが、マスの名前（aria-label）で見つけられるよう button のまま写している。領地を選ぶ順番でだけ押せる
 function TileButton({
   position,
   tile,
   pair,
   pieces,
+  territory,
+  showsStats,
+  landLevel,
+  previewed,
+  onSelect,
 }: {
   position: Position;
   tile: Tile;
   // 転送円・橋の対の番号（対になっていなければ無い）
   pair: PairLabel | undefined;
   pieces: Piece[];
+  territory: TerritoryMark | undefined;
+  showsStats: boolean;
+  landLevel: number;
+  previewed: boolean;
+  onSelect: ((position: Position) => void) | undefined;
 }) {
   const text = tileText(tile, pair);
   const pieceNames = pieces.map((piece) => `駒 ${piece.label}`).join(" ");
+  const territoryName = territory
+    ? ` 領地 ${territory.number} レベル ${territory.level} ${territory.creature} 通行料 ${territory.toll} AT ${territory.attack} HP ${territory.hitPoints}`
+    : landLevel > 1
+      ? ` レベル ${landLevel}`
+      : "";
   return (
     <button
       type="button"
-      aria-label={`${tileName(position, tile, pair)}${pieceNames && ` ${pieceNames}`}`}
-      disabled
+      aria-label={`${tileName(position, tile, pair)}${territoryName}${pieceNames && ` ${pieceNames}`}`}
+      disabled={onSelect === undefined}
+      data-selectable={onSelect !== undefined ? "true" : undefined}
+      data-previewed={previewed ? "true" : undefined}
+      onClick={() => onSelect?.(position)}
       style={{
         ...paint(tile),
+        ...tileSide(territory?.color, territory?.level ?? landLevel),
+        ...(onSelect !== undefined
+          ? SELECTABLE_TILE
+          : previewed
+            ? PREVIEWED_TILE
+            : {}),
         position: "relative",
         padding: 0,
         display: "flex",
@@ -343,24 +488,105 @@ function TileButton({
           {text}
         </span>
       )}
+      {territory && (
+        // 回転を打ち消して正面に向ける。駒の番号と重ならないよう、画面の真上の角（回す前の左上の角）に寄せる
+        <span
+          aria-hidden
+          data-testid="territory"
+          style={{
+            position: "absolute",
+            top: "20%",
+            left: "20%",
+            transform: "translate(-50%, -50%) rotate(-45deg) scaleY(2)",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: "bold",
+            lineHeight: 1,
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ color: territory.color }}>{CREATURE_GLYPH}</span>
+          {territory.number}
+        </span>
+      )}
+      {territory && (
+        // 土地のマスは中央に文字が無いので、通行料を中央に出す（2026-11-08 オーナー）
+        <span
+          aria-hidden
+          data-testid={showsStats ? "territory-stats" : "territory-toll"}
+          style={{
+            transform: "rotate(-45deg) scaleY(2)",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: "bold",
+            lineHeight: 1,
+            textShadow: "0 0 2px #000, 0 0 2px #000",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {showsStats
+            ? `⚔${territory.attack} ♡${territory.hitPoints}`
+            : territory.toll}
+        </span>
+      )}
       {pieces.length > 0 && (
-        // 回転を打ち消して正面に向ける。マスの文字（text）と重ならないよう、下寄せにする
+        // 回転を打ち消して正面に向ける。マスの文字（text）と領地の番号に重ならないよう、画面の真下の角（回す前の右下の角）に寄せる
         <span
           aria-hidden
           data-testid="piece"
           style={{
             position: "absolute",
-            transform: "rotate(-45deg) scaleY(2)",
-            color: "#ffff66",
+            top: "80%",
+            left: "80%",
+            transform: "translate(-50%, -50%) rotate(-45deg) scaleY(2)",
             fontSize: 14,
             fontWeight: "bold",
             textShadow: "0 0 2px #000, 0 0 2px #000",
             whiteSpace: "nowrap",
           }}
         >
-          {pieces.map((piece) => piece.label).join(",")}
+          {pieces.map((piece) => (
+            <span key={piece.label} style={{ color: piece.color ?? "#ffff66" }}>
+              {PIECE_GLYPH}
+            </span>
+          ))}
         </span>
       )}
     </button>
+  );
+}
+
+// マスの種類の凡例（studio の道具と同じ並び）
+export function BoardLegend() {
+  return (
+    <ul
+      aria-label="凡例"
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "1rem",
+        listStyle: "none",
+        padding: 0,
+      }}
+    >
+      {LEGEND.map((sample) => (
+        <li key={tileLabel(sample)}>
+          <span
+            aria-hidden
+            style={{
+              ...paint(sample),
+              display: "inline-block",
+              boxSizing: "border-box",
+              width: "1em",
+              height: "1em",
+              marginRight: "0.25em",
+              verticalAlign: "middle",
+            }}
+          />
+          {tileLabel(sample)}
+        </li>
+      ))}
+    </ul>
   );
 }

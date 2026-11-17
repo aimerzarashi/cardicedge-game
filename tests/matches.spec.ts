@@ -23,7 +23,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await page.getByRole("button", { name: "公開する" }).click();
   await expect(page.getByTestId("room-status")).toHaveText("準備中");
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
 
   await expect(page.getByTestId("match-number")).toHaveText("1 戦目");
   // 順番は core が決める。NPC が先なら NPC の番は済んでいるので、自分の番の操作が出る
@@ -50,7 +50,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   const packButton = page.getByRole("button", { name: /を選ぶ$/ });
   await packButton.click();
   await expect(page.getByTestId("review-reward-cards")).toHaveText(
-    /戦利品: (A|B|C)(、(A|B|C))*$/,
+    /戦利品: (A|B|C|D|E|F|G)(、(A|B|C|D|E|F|G))*$/,
   );
   await expect(packButton).toHaveCount(0);
   await expect(
@@ -99,7 +99,7 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
     "目標の魔力 9500",
   );
   await page.getByRole("button", { name: "準備完了" }).click();
-  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}$/);
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
   await expect(page.getByTestId("match-number")).toHaveText("2 戦目");
   await playMatchToEnd(page);
   await page.getByRole("button", { name: /を選ぶ$/ }).click();
@@ -135,4 +135,64 @@ test("対戦の画面の操作だけでラウンドの上限まで進めると�
   await expect(status).toHaveText("準備中");
   await expect(page.getByRole("button", { name: "再開する" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "準備完了" })).toBeVisible();
+});
+
+test("空いている土地に止まるとクリーチャーを配置でき、盤面と領地の欄に出る", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(90_000);
+  await openNewRoom(page, request, "match-place");
+  await decideSeats(page);
+  // 公開中D は拠点の先に土地が 6 つ続く 1 本道で、サイコロの目は 1〜2。3 つだと、プレイヤーが空き地に止まる前に NPC がすべて取って詰まることがあった
+  await decideRules(page, undefined, "公開中D");
+  await decidePlayerSeat(page);
+  await decideNpcSeat(page);
+  await page.getByRole("button", { name: "公開する" }).click();
+  await expect(page.getByTestId("room-status")).toHaveText("準備中");
+  await page.getByRole("button", { name: "準備完了" }).click();
+  await expect(page).toHaveURL(/\/matches\/[0-9a-f-]{36}\/debug$/);
+
+  const choosePlace = page.getByRole("button", { name: "配置", exact: true });
+  const place = page.getByRole("button", { name: /を配置する$/ });
+  const operations = matchOperations(page);
+  for (let step = 0; step < 40; step++) {
+    await expect(choosePlace.or(operations).first()).toBeVisible({
+      timeout: 20_000,
+    });
+    if (await choosePlace.isVisible()) {
+      break;
+    }
+    const revision = await page
+      .getByTestId("match-frame")
+      .getAttribute("data-revision");
+    await operations.first().click();
+    await expect(page.getByTestId("match-frame")).not.toHaveAttribute(
+      "data-revision",
+      revision ?? "",
+    );
+  }
+  await expect(
+    page.getByRole("button", { name: "ターンを終える" }),
+  ).toBeVisible();
+  await choosePlace.click();
+  await expect(place.first()).toBeVisible();
+  const label = (await place.first().textContent()) ?? "";
+  const creature = label.replace(/を配置する$/, "");
+
+  await place.first().click();
+
+  await expect(page.getByTestId("match-territories")).toContainText(
+    // NPC が先に配置していることがあるので、番号（対戦全体の通し番号）は決め打ちしない。自分の土地は 1 つなので連鎖しない
+    new RegExp(
+      `\\d+ .*コマ 1（部屋用）.*${creature}.*レベル 1.*価値 100.*通行料 60`,
+    ),
+  );
+  await expect(
+    page
+      .getByRole("button", {
+        name: new RegExp(`領地 \\d+ レベル 1 ${creature} 通行料 60`),
+      })
+      .first(),
+  ).toBeVisible();
 });

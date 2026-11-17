@@ -1,4 +1,5 @@
-import type { Piece } from "../boards/board-layout.ts";
+import type { Piece, TerritoryMark } from "../boards/board-layout.ts";
+import { participantColor } from "../boards/board-paint.ts";
 
 type Participant = {
   turnOrder: number;
@@ -48,19 +49,46 @@ export function participantPieces(participants: Participant[]): Piece[] {
   return participants.map((participant, index) => ({
     ...participant.position,
     label: String(index + 1),
+    color: participantColor(index),
   }));
 }
 
-// 自分の番か。currentParticipant の参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
+// 領地の印。番号は core の creature.id（対戦全体の通し番号。盤面から外れても残りの番号がずれない）
+export function territoryMarks(
+  territories: {
+    position: { x: number; y: number };
+    owner: number;
+    level: number;
+    toll: number;
+    creature: {
+      id: number;
+      hitPoints: number;
+      card: { name: string; attack: number };
+    };
+  }[],
+): TerritoryMark[] {
+  return territories.map((territory) => ({
+    ...territory.position,
+    number: territory.creature.id,
+    level: territory.level,
+    toll: territory.toll,
+    creature: territory.creature.card.name,
+    attack: territory.creature.card.attack,
+    hitPoints: territory.creature.hitPoints,
+    color: participantColor(territory.owner),
+  }));
+}
+
+// 自分の操作を待っているか。待っている参加者のプレイヤーが、ログイン中のプレイヤーかどうかだけを見る
 export function isMyTurn(
   participants: { playerId?: string | null }[],
-  currentParticipant: number | null | undefined,
+  awaitingParticipant: number | null | undefined,
   playerId: string,
 ): boolean {
-  if (currentParticipant === null || currentParticipant === undefined) {
+  if (awaitingParticipant === null || awaitingParticipant === undefined) {
     return false;
   }
-  return participants[currentParticipant]?.playerId === playerId;
+  return participants[awaitingParticipant]?.playerId === playerId;
 }
 
 // winners は participants の何番目か（複数ありうる）。存在しない番号は飛ばす
@@ -78,7 +106,7 @@ export type ReviewRow = {
   rank: number;
   name: string;
   isPlayer: boolean;
-  magic: number;
+  totalMagic: number;
   rewardReceived: boolean;
   rewardCards: string[];
 };
@@ -88,7 +116,7 @@ export function reviewRows(
   participants: {
     kind: string;
     avatar: { name: string };
-    magic: number;
+    totalMagic: number;
     rewardReceived: boolean;
     rewardCards: { name: string }[];
   }[],
@@ -100,7 +128,7 @@ export function reviewRows(
       rank: ranks[seat] ?? 0,
       name: participant.avatar.name,
       isPlayer: participant.kind === "PLAYER",
-      magic: participant.magic,
+      totalMagic: participant.totalMagic,
       rewardReceived: participant.rewardReceived,
       rewardCards: participant.rewardCards.map((card) => card.name),
     }))

@@ -219,6 +219,7 @@ export const roomMatchQuery = graphql(`
     room(id: $id) {
       __typename
       ... on Room {
+        status
         match {
           id
         }

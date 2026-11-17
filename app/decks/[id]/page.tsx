@@ -2,7 +2,8 @@ import Link from "next/link";
 import { graphql } from "@/graphql";
 import { callCore } from "@/lib/core";
 import { currentPlayer } from "@/lib/player";
-import { CARD_TYPE_LABELS } from "../../messages";
+import { CARD_SPEC_HEADERS, CardSpecCells } from "../../card-spec-cells";
+import { CARD_TYPE_LABELS, RARITY_LABELS } from "../../messages";
 
 const deckQuery = graphql(`
   query PlayerDeck($id: UUID!) {
@@ -15,9 +16,139 @@ const deckQuery = graphql(`
         cards {
           count
           card {
+            __typename
             id
             name
-            type
+            cost
+            rarity
+            ... on CreatureCardInfo {
+              elements
+              attack
+              hitPoints
+              itemRestrictions
+              placementRestrictions
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
+              }
+            }
+            ... on ItemCardInfo {
+              category
+              effects {
+                __typename
+                kind
+                ... on AttackModifierEffect {
+                  value
+                }
+                ... on HitPointsModifierEffect {
+                  value
+                }
+                ... on AttackOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on HitPointsOverrideEffect {
+                  minimum
+                  maximum
+                }
+                ... on AttackMultiplierEffect {
+                  percent
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on NullifyReceivedDamageEffect {
+                  constraints {
+                    kind
+                    ... on OpponentCreatureElementConstraint {
+                      elements
+                    }
+                  }
+                }
+                ... on TollMultiplierEffect {
+                  percent
+                }
+                ... on ReturnToHandOnDestructionEffect {
+                  destructions
+                }
+                ... on GainMagicOnDestructionEffect {
+                  destructions
+                  amount
+                }
+                ... on UseCreatureAsItemEffect {
+                  elements
+                }
+              }
+            }
+            ... on SpellCardInfo {
+              effect {
+                __typename
+                ... on DrawCardsSpellEffect {
+                  count
+                }
+                ... on GainMagicSpellEffect {
+                  perLap
+                }
+                ... on MultipleDiceSpellEffect {
+                  count
+                  turns
+                }
+                ... on FixedDiceSpellEffect {
+                  value
+                  turns
+                }
+                ... on DamageSpellEffect {
+                  amount
+                }
+              }
+            }
           }
         }
       }
@@ -84,14 +215,24 @@ export default async function DeckPage({ params }: PageProps<"/decks/[id]">) {
           <tr>
             <th>カード名</th>
             <th>種類</th>
+            <th>コスト</th>
+            <th>希少度</th>
+            {CARD_SPEC_HEADERS.map((header) => (
+              <th key={header}>{header}</th>
+            ))}
             <th>枚数</th>
           </tr>
         </thead>
         <tbody>
           {deck.cards.map(({ card, count }) => (
             <tr key={card.id}>
-              <td>{card.name}</td>
-              <td>{CARD_TYPE_LABELS[card.type]}</td>
+              <td>
+                <Link href={`/cards/${card.id}`}>{card.name}</Link>
+              </td>
+              <td>{CARD_TYPE_LABELS[card.__typename]}</td>
+              <td>{card.cost}</td>
+              <td>{RARITY_LABELS[card.rarity]}</td>
+              <CardSpecCells card={card} />
               <td>{count}</td>
             </tr>
           ))}

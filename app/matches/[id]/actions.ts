@@ -1,22 +1,34 @@
 "use server";
 
 import { refresh } from "next/cache";
+import type { BoardTileElement } from "@/graphql/graphql";
 import { callCore } from "@/lib/core";
+import { ELEMENT_LABELS } from "../../boards/board-layout";
 import {
   CORE_UNAVAILABLE_OPERATION,
   type FieldErrorValue,
   fieldErrorMessage,
   matchErrorMessage,
 } from "../../messages";
-import type { MatchEventView } from "../match-events";
 import {
+  attackMatchTerritoryMutation,
+  changeMatchLandElementMutation,
   chooseMatchPathMutation,
   chooseMatchRewardPackMutation,
+  defendMatchTerritoryMutation,
   discardMatchCardMutation,
   drawMatchCardMutation,
   endMatchTurnMutation,
-  matchEventsQuery,
+  exchangeMatchCreatureMutation,
+  invadeMatchTerritoryMutation,
+  levelUpMatchLandMutation,
+  moveMatchCreatureMutation,
+  payMatchTollMutation,
+  placeMatchCreatureMutation,
+  relinquishMatchTerritoryMutation,
   rollMatchDiceMutation,
+  useMatchCreatureAsItemMutation,
+  useMatchSpellMutation,
 } from "../operations";
 
 export type MatchActionState = { error?: string };
@@ -33,6 +45,11 @@ function finish(outcome: Outcome): MatchActionState {
     return { error: outcome.errors.map(fieldErrorMessage).join("。") };
   }
   return { error: matchErrorMessage(outcome.__typename) };
+}
+
+// 属性の名前の形だけを確かめる（変えられる属性かは core が判定する）
+function isBoardTileElement(value: string): value is BoardTileElement {
+  return value in ELEMENT_LABELS;
 }
 
 // 中身の正誤は core が判定するため、ここでは形（文字列・整数であること）だけを確かめる
@@ -127,6 +144,274 @@ export async function chooseMatchPath(
     : { error: CORE_UNAVAILABLE_OPERATION };
 }
 
+export async function useMatchSpell(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  // 対象のプレイヤーを選ぶスペルは対象のプレイヤー、ダメージのスペルは対象の領地の位置を送る
+  const target = integer(form, "target");
+  const targetX = integer(form, "targetX");
+  const targetY = integer(form, "targetY");
+  const targetPosition =
+    targetX !== undefined && targetY !== undefined
+      ? { x: targetX, y: targetY }
+      : undefined;
+  const result = await callCore(useMatchSpellMutation, {
+    input: { id, revision, handIndex, target, targetPosition },
+  });
+  return result.ok
+    ? finish(result.data.useMatchSpell)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function placeMatchCreature(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(placeMatchCreatureMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.placeMatchCreature)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function relinquishMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(relinquishMatchTerritoryMutation, {
+    input: { id, revision, position: { x, y } },
+  });
+  return result.ok
+    ? finish(result.data.relinquishMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function levelUpMatchLand(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  const level = integer(form, "level");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined ||
+    level === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(levelUpMatchLandMutation, {
+    input: { id, revision, position: { x, y }, level },
+  });
+  return result.ok
+    ? finish(result.data.levelUpMatchLand)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function moveMatchCreature(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const fromX = integer(form, "fromX");
+  const fromY = integer(form, "fromY");
+  const toX = integer(form, "toX");
+  const toY = integer(form, "toY");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    fromX === undefined ||
+    fromY === undefined ||
+    toX === undefined ||
+    toY === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(moveMatchCreatureMutation, {
+    input: {
+      id,
+      revision,
+      from: { x: fromX, y: fromY },
+      to: { x: toX, y: toY },
+    },
+  });
+  return result.ok
+    ? finish(result.data.moveMatchCreature)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function changeMatchLandElement(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  const element = text(form, "element");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined ||
+    element === undefined ||
+    !isBoardTileElement(element)
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(changeMatchLandElementMutation, {
+    input: { id, revision, position: { x, y }, element },
+  });
+  return result.ok
+    ? finish(result.data.changeMatchLandElement)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function exchangeMatchCreature(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const x = integer(form, "x");
+  const y = integer(form, "y");
+  const handIndex = integer(form, "handIndex");
+  if (
+    id === undefined ||
+    revision === undefined ||
+    x === undefined ||
+    y === undefined ||
+    handIndex === undefined
+  ) {
+    return BAD_FORM;
+  }
+  const result = await callCore(exchangeMatchCreatureMutation, {
+    input: { id, revision, position: { x, y }, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.exchangeMatchCreature)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function invadeMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(invadeMatchTerritoryMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.invadeMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function attackMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(attackMatchTerritoryMutation, {
+    input: { id, revision, itemHandIndex: integer(form, "itemHandIndex") },
+  });
+  return result.ok
+    ? finish(result.data.attackMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+// アイテムの代わりに手札のクリーチャーを出す（援護。攻める段階・守る段階のどちらでも。守る側なら core が戦闘まで進める）
+export async function useMatchCreatureAsItem(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  const handIndex = integer(form, "handIndex");
+  if (id === undefined || revision === undefined || handIndex === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(useMatchCreatureAsItemMutation, {
+    input: { id, revision, handIndex },
+  });
+  return result.ok
+    ? finish(result.data.useMatchCreatureAsItem)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function payMatchToll(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(payMatchTollMutation, {
+    input: { id, revision },
+  });
+  return result.ok
+    ? finish(result.data.payMatchToll)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
+export async function defendMatchTerritory(
+  _previous: MatchActionState,
+  form: FormData,
+): Promise<MatchActionState> {
+  const id = text(form, "id");
+  const revision = integer(form, "revision");
+  if (id === undefined || revision === undefined) {
+    return BAD_FORM;
+  }
+  const result = await callCore(defendMatchTerritoryMutation, {
+    input: { id, revision, itemHandIndex: integer(form, "itemHandIndex") },
+  });
+  return result.ok
+    ? finish(result.data.defendMatchTerritory)
+    : { error: CORE_UNAVAILABLE_OPERATION };
+}
+
 export async function endMatchTurn(
   _previous: MatchActionState,
   form: FormData,
@@ -160,24 +445,4 @@ export async function chooseMatchRewardPack(
   return result.ok
     ? finish(result.data.chooseMatchRewardPack)
     : { error: CORE_UNAVAILABLE_OPERATION };
-}
-
-export type MatchEventsResult =
-  | { ok: true; events: MatchEventView[] }
-  | { ok: false };
-
-// ブラウザは core を直接呼ばない決まりなので、差分は game のサーバーから読む（Subscription だけが例外）。
-// 画面が呼ぶのは版が進んだときだけで、読み直しのたびに全部は読まない
-export async function loadMatchEvents(
-  id: string,
-  after: number,
-): Promise<MatchEventsResult> {
-  if (typeof id !== "string" || !Number.isInteger(after) || after < 0) {
-    return { ok: false };
-  }
-  const result = await callCore(matchEventsQuery, { id, after });
-  if (!result.ok || result.data.matchEvents.__typename !== "MatchEventList") {
-    return { ok: false };
-  }
-  return { ok: true, events: result.data.matchEvents.events };
 }

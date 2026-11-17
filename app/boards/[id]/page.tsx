@@ -20,7 +20,7 @@ const boardQuery = graphql(`
           x
           y
           ... on LandTile {
-            attribute
+            element
           }
         }
         pairs {
@@ -41,6 +41,8 @@ const boardQuery = graphql(`
           roundLimit
           diceMin
           diceMax
+          baseLandValue
+          lapBonusPerTerritory
         }
       }
     }

@@ -2,12 +2,127 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   continuesLabel,
+  creatureSpecSummary,
+  effectsLabel,
+  effectView,
   fieldErrorMessage,
+  itemRestrictionsLabel,
+  itemSpecSummary,
+  lastingSpellEffectLabel,
   matchNumberLabel,
+  placementRestrictionsLabel,
   RULE_LABELS,
   type RuleField,
   ruleStep,
+  spellEffectLabel,
 } from "./messages.ts";
+
+describe("placementRestrictionsLabel", () => {
+  it("無ければ「なし」、あれば core の並びのまま属性をつなぐ", () => {
+    assert.equal(placementRestrictionsLabel([]), "なし");
+    assert.equal(placementRestrictionsLabel(["EARTH", "WIND"]), "地風");
+  });
+});
+
+// クリーチャーの効果もアイテムと同じ表示（core#178）
+describe("effectsLabel (creature)", () => {
+  it("クリーチャーの効果を並びのまま値つきで出し、上書きは範囲、攻撃無効は相手の属性を添える", () => {
+    assert.equal(
+      effectsLabel([
+        { kind: "FORBID_INVASION" },
+        { kind: "FORBID_MOVEMENT" },
+        { kind: "HIT_POINTS_MODIFIER", value: 20 },
+        { kind: "ATTACK_OVERRIDE", minimum: 10, maximum: 70 },
+        { kind: "HIT_POINTS_OVERRIDE", minimum: 10, maximum: 70 },
+        { kind: "STRIKE_FIRST" },
+        { kind: "STRIKE_LAST" },
+        { kind: "TOLL_MULTIPLIER", percent: 150 },
+        {
+          kind: "NULLIFY_RECEIVED_DAMAGE",
+          opponentElements: ["FIRE", "EARTH"],
+        },
+        { kind: "NULLIFY_RECEIVED_DAMAGE" },
+      ]),
+      "侵略できない・移動できない・HP +20・AT を 10〜70 に上書き・HP を 10〜70 に上書き・先制・後手・通行料の倍率 150%・攻撃無効（相手が火地）・攻撃無効",
+    );
+  });
+});
+
+// 破壊されたときの効果は、発動する破壊を添える（core#182）
+describe("effectsLabel (destruction)", () => {
+  it("破壊されたら手札に戻る・魔力を得るは、発動する破壊と額を出す", () => {
+    assert.equal(
+      effectsLabel([
+        {
+          kind: "RETURN_TO_HAND_ON_DESTRUCTION",
+          destructions: ["INVADING", "DEFENDING"],
+        },
+        {
+          kind: "GAIN_MAGIC_ON_DESTRUCTION",
+          destructions: ["INVADING", "DEFENDING", "BOARD"],
+          amount: 200,
+        },
+      ]),
+      "破壊されたら手札に戻る（侵略したとき・守るとき）・破壊されたら魔力 +200（侵略したとき・守るとき・ボード）",
+    );
+  });
+});
+
+// 援護は、すべての属性なら「援護」、絞ったものは使える属性を添える（core#114）
+describe("effectsLabel (creature as item)", () => {
+  it("すべての属性の援護は「援護」、絞った援護は「援護（地無）」", () => {
+    assert.equal(
+      effectsLabel([
+        {
+          kind: "USE_CREATURE_AS_ITEM",
+          creatureElements: ["FIRE", "EARTH", "WATER", "WIND", "NEUTRAL"],
+        },
+        {
+          kind: "USE_CREATURE_AS_ITEM",
+          creatureElements: ["EARTH", "NEUTRAL"],
+        },
+      ]),
+      "援護・援護（地無）",
+    );
+  });
+});
+
+describe("itemRestrictionsLabel", () => {
+  it("無ければ「なし」、あれば core の並びのまま分類をつなぐ", () => {
+    assert.equal(itemRestrictionsLabel([]), "なし");
+    assert.equal(itemRestrictionsLabel(["ARMOR", "SCROLL"]), "防具・巻物");
+  });
+});
+
+describe("effectsLabel (item)", () => {
+  it("アイテムの効果を並びのまま値つきで出し、強打は相手の属性を添え、無ければ「効果なし」", () => {
+    const effects = [
+      { kind: "ATTACK_OVERRIDE", minimum: 30, maximum: 30 },
+      {
+        kind: "ATTACK_MULTIPLIER",
+        percent: 150,
+        constraints: [{ elements: ["WATER"] }],
+      },
+      { kind: "IGNORE_TERRAIN_EFFECT" },
+      { kind: "HIT_POINTS_MODIFIER", value: -10 },
+    ] as const;
+    assert.equal(
+      effectsLabel(
+        effects.map((effect) =>
+          effectView({
+            ...effect,
+            constraints:
+              "constraints" in effect
+                ? effect.constraints.map((c) => ({ elements: [...c.elements] }))
+                : undefined,
+          }),
+        ),
+      ),
+      "AT を 30 に上書き・強打 150%（相手が水）・地形効果を無視する・HP -10",
+    );
+    assert.equal(effectsLabel([]), "効果なし");
+  });
+});
 
 describe("ruleStep", () => {
   it("魔力は 100 刻み、ラウンドの上限とサイコロの目は 1 刻みにする", () => {
@@ -26,6 +141,8 @@ describe("ruleStep", () => {
         roundLimit: 1,
         diceMin: 1,
         diceMax: 1,
+        baseLandValue: 1,
+        lapBonusPerTerritory: 10,
       },
     );
   });
@@ -62,5 +179,111 @@ describe("matchNumberLabel", () => {
       "2 戦目",
       "10 戦目",
     ]);
+  });
+});
+
+describe("spellEffectLabel", () => {
+  it("効果の種類ごとに、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "DrawCardsSpellEffect", count: 1 }),
+      "カードを 1 枚引く",
+    );
+  });
+
+  it("効果なし（null）は「なし」と出す", () => {
+    assert.equal(spellEffectLabel(null), "なし");
+  });
+
+  it("ダメージは、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "DamageSpellEffect", amount: 20 }),
+      "対象のクリーチャーに 20 ダメージ",
+    );
+  });
+
+  it("魔力を得る・サイコロを複数振る・サイコロの目を固定するも、core が返した値で言う", () => {
+    assert.equal(
+      spellEffectLabel({ __typename: "GainMagicSpellEffect", perLap: 100 }),
+      "（周回数 + 1）× 100 の魔力を得る",
+    );
+    assert.equal(
+      spellEffectLabel({
+        __typename: "MultipleDiceSpellEffect",
+        count: 2,
+        turns: 1,
+      }),
+      "対象のサイコロを 2 個同時に振る（1 ターン）",
+    );
+    assert.equal(
+      spellEffectLabel({
+        __typename: "FixedDiceSpellEffect",
+        value: 6,
+        turns: 3,
+      }),
+      "対象のサイコロの目を 6 に固定する（3 ターン）",
+    );
+  });
+});
+
+describe("lastingSpellEffectLabel", () => {
+  it("続いているスペルの効果は名前と効き方・残りのターン、無ければ「なし」", () => {
+    assert.equal(
+      lastingSpellEffectLabel({
+        effect: { __typename: "FixedDiceSpellEffect", value: 6, turns: 3 },
+        remainingTurns: 1,
+      }),
+      "サイコロの目を固定する（目 6・残り 1 ターン）",
+    );
+    assert.equal(
+      lastingSpellEffectLabel({
+        effect: { __typename: "MultipleDiceSpellEffect", count: 2, turns: 3 },
+        remainingTurns: 2,
+      }),
+      "サイコロを複数振る（2 個・残り 2 ターン）",
+    );
+    assert.equal(lastingSpellEffectLabel(null), "なし");
+  });
+});
+
+describe("一覧の性能の列", () => {
+  it("クリーチャーは、持っている制限と効果だけを「／」でつなぐ", () => {
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: ["ARMOR", "SCROLL"],
+        placementRestrictions: ["WIND"],
+        effects: [{ kind: "STRIKE_FIRST" }],
+      }),
+      "アイテム制限 防具・巻物／配置制限 風／先制",
+    );
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: [],
+        placementRestrictions: [],
+        effects: [{ kind: "FORBID_INVASION" }],
+      }),
+      "侵略できない",
+    );
+  });
+
+  it("クリーチャーが制限も効果も持たなければ空にする（「なし」を並べない）", () => {
+    assert.equal(
+      creatureSpecSummary({
+        itemRestrictions: [],
+        placementRestrictions: [],
+        effects: [],
+      }),
+      "",
+    );
+  });
+
+  it("アイテムは分類と効果。効果が無ければ分類だけ", () => {
+    assert.equal(
+      itemSpecSummary({
+        category: "ARMOR",
+        effects: [{ kind: "HIT_POINTS_MODIFIER", value: 25 }],
+      }),
+      "防具／HP +25",
+    );
+    assert.equal(itemSpecSummary({ category: "WEAPON", effects: [] }), "武器");
   });
 });

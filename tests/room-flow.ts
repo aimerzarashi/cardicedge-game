@@ -49,17 +49,21 @@ export async function decideSeats(page: Page) {
   await expect(seatItem(page, 1)).toContainText("NPC");
 }
 
-export async function decideRules(page: Page, roundLimit?: number) {
+export async function decideRules(
+  page: Page,
+  roundLimit?: number,
+  board = "公開中A",
+) {
   await reloadUntilVisible(page, page.getByLabel("ボード"));
-  await page.getByLabel("ボード").selectOption({ label: "公開中A" });
-  // 7 つの値は、選んだボードの既定のルールから始まる
+  await page.getByLabel("ボード").selectOption({ label: board });
+  // 8 つの値は、選んだボードの既定のルールから始まる
   await expect(page.getByLabel("目標の魔力")).toHaveValue("8000");
   await page.getByLabel("目標の魔力").fill("9000");
   if (roundLimit !== undefined) {
     await page.getByLabel("ラウンドの上限").fill(String(roundLimit));
   }
   await page.getByRole("button", { name: "対戦ルールを決める" }).click();
-  await expect(page.getByTestId("match-rules")).toContainText("公開中A");
+  await expect(page.getByTestId("match-rules")).toContainText(board);
   await expect(page.getByTestId("match-rules")).toContainText(
     "目標の魔力 9000",
   );
@@ -95,7 +99,21 @@ export function matchOperations(page: Page) {
   const roll = page.getByRole("button", { name: "サイコロを振る" });
   const choose = page.getByRole("button", { name: /へ進む$/ });
   const end = page.getByRole("button", { name: "ターンを終える" });
-  return draw.or(discard).or(roll).or(choose).or(end);
+  const payToll = page.getByRole("button", { name: "通行料を払う" });
+  const attack = page.getByRole("button", {
+    name: "アイテムを出さずに攻める",
+  });
+  const defend = page.getByRole("button", {
+    name: "アイテムを出さずに戦闘に進む",
+  });
+  return draw
+    .or(discard)
+    .or(roll)
+    .or(choose)
+    .or(end)
+    .or(payToll)
+    .or(attack)
+    .or(defend);
 }
 
 // 対戦の画面で、結果が出るまで自分の番の操作を押し続ける（順番は core が決める。NPC の番は core のポリシーが進める）
@@ -111,10 +129,12 @@ export async function playMatchToEnd(page: Page) {
     if (await outcome.isVisible()) {
       return;
     }
-    const revision = await page.locator("main").getAttribute("data-revision");
+    const revision = await page
+      .getByTestId("match-frame")
+      .getAttribute("data-revision");
     await operations.first().click();
-    // 押したあとは画面が読み直されて revision が進む。進む前に次を押すと、古い revision で送ってしまう
-    await expect(page.locator("main")).not.toHaveAttribute(
+    // 押したあとは再生で revision が進む。進む前に次を押すと、古い revision で送ってしまう
+    await expect(page.getByTestId("match-frame")).not.toHaveAttribute(
       "data-revision",
       revision ?? "",
     );

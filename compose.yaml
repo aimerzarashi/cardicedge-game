@@ -20,6 +20,8 @@ services:
       BETTER_AUTH_URL: http://localhost:${GAME_PORT:-3000}
       # JWT の iss / aud。core の設定と一致させる。iss は core がプレイヤーを識別するキーの一部のため、運用開始後は変えない
       JWT_ISSUER: diecardomain-game
+      # better-auth のクッキー名の頭。studio と game で別にする（同じホストに並べたとき、片方のログインがもう片方を切らないため。studio#72・game#55）
+      BETTER_AUTH_COOKIE_PREFIX: game
       JWT_AUDIENCE: diecardomain-core
       # core の GraphQL。game は共有ネットワークに参加しないため、game-envoy を通す（studio#11）
       CORE_GRAPHQL_URL: http://game-envoy:10000/game/graphql
@@ -39,6 +41,8 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_SERVICE_NAME: game
+      # 開発の環境の印。テスト用の環境（compose.test.yaml）は test。同じ受け手に同じサービス名で送るので、これで見分ける（core#120）
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=development
     # 共有ネットワークには入れず、ホストの口（otel-lgtm）へ届ける。理由は core の compose の otel-lgtm の注記（core#74）
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -92,8 +96,10 @@ services:
     # プレイヤーの ID（JWT の sub）が変わって、core が新しいプレイヤーとして扱い、前のデータが見えなくなる（game#21・studio#19）
     volumes:
       - game-db-data:/var/lib/postgresql
+    # TCP で確かめる（-h）。unix ソケットで見ると、初期化の SQL を流す一時的なサーバー（unix ソケットだけで待ち受ける）にも応えて
+    # healthy になり、そのサーバーが止まって本番のサーバーが TCP で待ち受けるまでの間に、直後のマイグレーションが断られる（core#118）
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U game_user -d game_auth"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U game_user -d game_auth"]
       interval: 2s
       timeout: 5s
       retries: 30

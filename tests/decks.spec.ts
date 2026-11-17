@@ -43,7 +43,7 @@ test("一覧に自分のスターターのデッキが、合計の枚数と種�
   await expect(rows.nth(1)).toContainText("水");
   await expect(rows.nth(1)).toContainText("7 枚");
   await expect(rows.nth(1)).toContainText(
-    "クリーチャー 7・アイテム 0・スペル 0",
+    "クリーチャー 4・アイテム 0・スペル 3",
   );
 });
 
@@ -58,10 +58,25 @@ test("詳細に、カードと枚数が種類 → 名前の順で出る。無い
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("水");
   await expect(page.getByText("合計 7 枚")).toBeVisible();
   const rows = page.locator("tbody tr");
-  await expect(rows).toHaveCount(3);
-  await expect(rows.nth(0)).toHaveText(/A\s*クリーチャー\s*2/);
-  await expect(rows.nth(1)).toHaveText(/B\s*クリーチャー\s*3/);
-  await expect(rows.nth(2)).toHaveText(/C\s*クリーチャー\s*2/);
+  await expect(rows).toHaveCount(6);
+  await expect(rows.nth(0)).toHaveText(
+    /A\s*クリーチャー\s*10\s*N\s*火\s*10\s*10\s*1/,
+  );
+  await expect(rows.nth(1)).toHaveText(
+    /B\s*クリーチャー\s*20\s*S\s*水\s*20\s*30\s*2/,
+  );
+  await expect(rows.nth(2)).toHaveText(
+    /C\s*クリーチャー\s*30\s*R\s*火水\s*30\s*40\s*アイテム制限 防具・巻物／配置制限 風／侵略できない・移動できない・通行料の倍率 150%・後手\s*1/,
+  );
+  await expect(rows.nth(3)).toHaveText(
+    /E\s*スペル\s*10\s*N\s*—\s*—\s*—\s*カードを 1 枚引く\s*1/,
+  );
+  await expect(rows.nth(4)).toHaveText(
+    /F\s*スペル\s*10\s*N\s*—\s*—\s*—\s*対象のサイコロの目を 6 に固定する（1 ターン）\s*1/,
+  );
+  await expect(rows.nth(5)).toHaveText(
+    /G\s*スペル\s*10\s*N\s*—\s*—\s*—\s*対象のクリーチャーに 20 ダメージ\s*1/,
+  );
 
   for (const id of ["00000000-0000-4000-8000-0000000000ff", "not-a-uuid"]) {
     await page.goto(`/decks/${id}`);

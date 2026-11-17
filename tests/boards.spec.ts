@@ -29,6 +29,8 @@ test("一覧に公開中のボードが名前の順に出て、使用不可の�
   await expect(rows.nth(3)).toContainText("3×2");
   await expect(rows.nth(5)).toContainText("公開中C");
   await expect(rows.nth(5)).toContainText("6×2");
+  await expect(rows.nth(7)).toContainText("公開中D");
+  await expect(rows.nth(7)).toContainText("8×1");
   await expect(page.getByText("使用不可")).toHaveCount(0);
 });
 
@@ -53,7 +55,7 @@ test("一覧に、ボードごとのマスの数と既定のルールが出る",
   );
 });
 
-test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) => {
+test("詳細に、既定のルールの 8 つの値が出る", async ({ page }) => {
   await openBoards(page);
 
   await page.getByRole("link", { name: "公開中B" }).click();
@@ -68,6 +70,8 @@ test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) 
     "ラウンドの上限",
     "サイコロの目（最小）",
     "サイコロの目（最大）",
+    "土地の基本の値",
+    "周回のボーナス（領地 1 つあたり）",
   ]);
   await expect(rules.locator("dd")).toHaveText([
     "5000",
@@ -77,6 +81,8 @@ test("詳細に、既定のルールの 7 つの値が出る", async ({ page }) 
     "20",
     "2",
     "12",
+    "100",
+    "20",
   ]);
 });
 
@@ -136,6 +142,22 @@ test("拡大・縮小・全体を表示のボタンで、表示の倍率が変�
   await page.getByRole("button", { name: "縮小" }).click();
   await page.getByRole("button", { name: "全体を表示" }).click();
   expect(await scaleOf(page)).toBeCloseTo(fitted, 3);
+});
+
+test("Z・X・0 のキーで、拡大・縮小・全体を表示ができる", async ({ page }) => {
+  await openBoards(page);
+  await page.getByRole("link", { name: "公開中A" }).click();
+  await expect(scale(page)).toHaveAttribute("data-scale", /.+/);
+  const fitted = await scaleOf(page);
+
+  await page.keyboard.press("x");
+  await expect.poll(() => scaleOf(page)).toBeLessThan(fitted);
+  const reduced = await scaleOf(page);
+  await page.keyboard.press("z");
+  await expect.poll(() => scaleOf(page)).toBeGreaterThan(reduced);
+  await page.keyboard.press("x");
+  await page.keyboard.press("0");
+  await expect.poll(() => scaleOf(page)).toBeCloseTo(fitted, 3);
 });
 
 test("使用不可のボードと、無いボードは、見つからないと表示する", async ({

@@ -81,6 +81,8 @@ const roomQuery = graphql(`
           roundLimit
           diceMin
           diceMax
+          baseLandValue
+          lapBonusPerTerritory
         }
       }
     }
@@ -107,6 +109,8 @@ const roomQuery = graphql(`
             roundLimit
             diceMin
             diceMax
+            baseLandValue
+            lapBonusPerTerritory
           }
         }
         npcAvatars {
@@ -199,7 +203,7 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           // 準備完了のあと対戦の画面へ移るが、対戦の投影が追いついていなかったときの行き先
           <>
             {"・"}
-            <Link href={`/matches/${room.match.id}`}>対戦の画面へ</Link>
+            <Link href={`/matches/${room.match.id}/debug`}>対戦の画面へ</Link>
           </>
         )}
       </p>
@@ -352,7 +356,7 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           <ol data-testid="room-matches">
             {room.matches.map((match) => (
               <li key={match.id}>
-                <Link href={`/matches/${match.id}`}>
+                <Link href={`/matches/${match.id}/debug`}>
                   {matchNumberLabel(match.number)}
                 </Link>
               </li>

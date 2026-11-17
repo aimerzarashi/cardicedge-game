@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { participantColor } from "../boards/board-paint.ts";
 import {
   currentTurnText,
   isMyTurn,
@@ -7,6 +8,7 @@ import {
   participantRows,
   reviewRows,
   roundText,
+  territoryMarks,
   winnerNames,
 } from "./match-view.ts";
 
@@ -55,8 +57,8 @@ describe("currentTurnText", () => {
 describe("participantPieces", () => {
   it("席の順に 1 始まりの番号を印にして、位置を引き継ぐ", () => {
     assert.deepEqual(participantPieces(participants), [
-      { x: 0, y: 0, label: "1" },
-      { x: 2, y: 1, label: "2" },
+      { x: 0, y: 0, label: "1", color: participantColor(0) },
+      { x: 2, y: 1, label: "2", color: participantColor(1) },
     ]);
   });
 });
@@ -94,21 +96,21 @@ describe("reviewRows", () => {
     {
       kind: "PLAYER",
       avatar: { name: "あ" },
-      magic: 100,
+      totalMagic: 100,
       rewardReceived: true,
       rewardCards: [{ name: "A" }, { name: "B" }],
     },
     {
       kind: "NPC",
       avatar: { name: "い" },
-      magic: 300,
+      totalMagic: 300,
       rewardReceived: false,
       rewardCards: [],
     },
     {
       kind: "PLAYER",
       avatar: { name: "う" },
-      magic: 300,
+      totalMagic: 300,
       rewardReceived: false,
       rewardCards: [],
     },
@@ -133,9 +135,56 @@ describe("reviewRows", () => {
       rank: 3,
       name: "あ",
       isPlayer: true,
-      magic: 100,
+      totalMagic: 100,
       rewardReceived: true,
       rewardCards: ["A", "B"],
     });
+  });
+});
+
+describe("territoryMarks", () => {
+  const territory = (owner: number, id: number, name: string, level = 1) => ({
+    position: { x: owner, y: 0 },
+    owner,
+    level,
+    toll: level * 60,
+    creature: { id, hitPoints: 25, card: { name, attack: 30 } },
+  });
+
+  it("番号は core のクリーチャーの ID で、盤面から外れた番号は飛んだままにする", () => {
+    assert.deepEqual(
+      territoryMarks([
+        territory(1, 1, "ウルフ"),
+        territory(0, 3, "ゴーレム", 2),
+      ]).map(({ number, level, toll, creature, attack, hitPoints, color }) => ({
+        number,
+        level,
+        toll,
+        creature,
+        attack,
+        hitPoints,
+        color,
+      })),
+      [
+        {
+          number: 1,
+          level: 1,
+          toll: 60,
+          creature: "ウルフ",
+          attack: 30,
+          hitPoints: 25,
+          color: participantColor(1),
+        },
+        {
+          number: 3,
+          level: 2,
+          toll: 120,
+          creature: "ゴーレム",
+          attack: 30,
+          hitPoints: 25,
+          color: participantColor(0),
+        },
+      ],
+    );
   });
 });

@@ -43,6 +43,50 @@ export const FACILITY_GLYPHS = {
 };
 export const BOARD_BACKGROUND = "#1b2440";
 
+// 対戦の参加者の色（席の順。game だけ）。新しい色を増やさず、土地の 4 色を使う（2026-11-08 オーナー）
+export const PARTICIPANT_COLORS = [FIRE, WATER, EARTH, WIND];
+
+export function participantColor(seat: number): string {
+  return PARTICIPANT_COLORS[seat % PARTICIPANT_COLORS.length];
+}
+
+// コマの記号。誰のコマかは色で見せる（2026-11-08 オーナー）。U+FE0E は、端末が絵文字として描くのを防ぎ、文字の色で塗るため
+export const PIECE_GLYPH = "\u265F\uFE0E";
+// 配置したクリーチャーの記号。コマと同じくチェスの記号にして、持ち主の色で塗る。絵文字は色を変えられないため採らなかった（2026-11-08 オーナー）
+export const CREATURE_GLYPH = "\u265E\uFE0E";
+
+// 板 1 枚の厚み（盤面の座標の px）。マスの間（LINK）より小さくして、隣のマスにかからないようにする。レベルの分だけ積むので、
+// 10px ではレベル 5 で 50px になり盤面を覆う。1 枚目だけ厚くすると上の板が溝のように見えたため、どの板も同じ厚みで薄くした
+// （2026-11-15 オーナー。game#99）
+const TILE_THICKNESS = 6;
+const VACANT_SIDE_COLOR = "#3a4256";
+const TILE_SIDE_SHADE = 2;
+const TILE_RADIUS = 7;
+
+// マスを薄い板に見せる側面。領地は持ち主の色、空きは暗い灰色。盤面は rotate(45deg) しているので、右下へずらした影を重ねると画面の真下へ伸びる。
+// CSS の 3D 変形にしないのは、格子全体の回転とつぶし（scaleY）の中で奥行きを合わせる手間に対して、見えるのが手前の 2 辺だけのため。
+// レベルの分だけ板を積む。下へ伸ばすとマスの間を超えて隣のマスにかかるので、上面を左上（画面の真上）へ持ち上げる（2026-11-08 オーナー）
+export function tileSide(
+  color: string = VACANT_SIDE_COLOR,
+  level = 1,
+): CSSProperties {
+  const slabs = Math.max(level, 1);
+  const sides = Array.from({ length: TILE_THICKNESS * slabs }, (_, i) => {
+    // 板ごとに接地する側を暗くして、積み重なって見えるようにする
+    const shaded =
+      (i % TILE_THICKNESS) + 1 > TILE_THICKNESS - TILE_SIDE_SHADE
+        ? `color-mix(in srgb, ${color} 60%, black)`
+        : color;
+    return `${i + 1}px ${i + 1}px 0 ${shaded}`;
+  });
+  const lift = TILE_THICKNESS * (slabs - 1);
+  return {
+    borderRadius: TILE_RADIUS,
+    boxShadow: [`inset 0 0 0 3px rgb(0 0 0 / 0.3)`, ...sides].join(", "),
+    ...(lift > 0 && { transform: `translate(${-lift}px, ${-lift}px)` }),
+  };
+}
+
 // 凡例は、studio の道具と同じ並びのマスの見本（PLACEMENTS から作る）
 export const LEGEND: Tile[] = PLACEMENTS.map((placement) => ({
   x: 0,
@@ -59,7 +103,7 @@ export function paint(tile: Tile): CSSProperties {
     case "LandTile":
       return {
         border: "1px solid #555",
-        background: LAND_COLORS[tile.attribute],
+        background: LAND_COLORS[tile.element],
       };
     case "WarpTile":
       return { border: "1px solid #555", background: WARP_COLOR };
