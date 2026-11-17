@@ -4,6 +4,7 @@ import { participantColor } from "../boards/board-paint.ts";
 import {
   currentTurnText,
   isMyTurn,
+  isWatching,
   participantPieces,
   participantRows,
   reviewRows,
@@ -60,6 +61,26 @@ describe("participantPieces", () => {
       { x: 0, y: 0, label: "1", color: participantColor(0) },
       { x: 2, y: 1, label: "2", color: participantColor(1) },
     ]);
+  });
+});
+
+describe("isWatching", () => {
+  it("参加者にログイン中のプレイヤーがいなければ見ているだけ", () => {
+    assert.equal(
+      isWatching([{ playerId: null }, { playerId: null }], "p1"),
+      true,
+    );
+    assert.equal(
+      isWatching([{ playerId: "p2" }, { playerId: null }], "p1"),
+      true,
+    );
+  });
+
+  it("参加者にログイン中のプレイヤーがいれば見ているだけではない", () => {
+    assert.equal(
+      isWatching([{ playerId: "p1" }, { playerId: null }], "p1"),
+      false,
+    );
   });
 });
 
