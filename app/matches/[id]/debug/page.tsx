@@ -89,6 +89,7 @@ export default async function MatchDebugPage({
   const operations: MatchPlayerOperations = {
     mine: isMyTurn(match.participants, match.awaitingParticipant, playerId),
     awaitingParticipant: match.awaitingParticipant ?? null,
+    actionChoices: match.actionChoices,
     invadeChoices: match.invadeChoices,
     itemChoices: match.itemChoices,
     creatureAsItemChoices: match.creatureAsItemChoices,

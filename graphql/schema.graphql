@@ -1777,6 +1777,10 @@ type Match {
 	"""
 	phase: MatchPhase!
 	"""
+	操作を待っている人が今選べる行動の種類（awaitingParticipant の操作。対象の選択肢が空の種類は入らない。終わった後は空）
+	"""
+	actionChoices: [MatchAction!]!
+	"""
 	このターンに振ったサイコロの目（振る前は null）
 	"""
 	dice: Int
@@ -1856,6 +1860,87 @@ type Match {
 	その部屋で何戦目か（1 始まり。roomId が null の間は null）
 	"""
 	number: Int
+}
+"""
+操作を待っている人が今選べる行動の種類。対象（手札・領地・行き先）は種類ごとの選択肢（placeChoices 等）から選ぶ。種類と mutation は 1 対 1
+"""
+enum MatchAction {
+	"""
+	カードを引く（drawMatchCard）
+	"""
+	DRAW_CARD
+	"""
+	手札を捨てる（discardMatchCard。手札のどれでも）
+	"""
+	DISCARD_CARD
+	"""
+	スペルを使う（useMatchSpell。spellChoices から選ぶ）
+	"""
+	USE_SPELL
+	"""
+	サイコロを振る（rollMatchDice）
+	"""
+	ROLL_DICE
+	"""
+	行き先を選ぶ（chooseMatchPath。pathChoices から選ぶ）
+	"""
+	CHOOSE_PATH
+	"""
+	クリーチャーを配置する（placeMatchCreature。placeChoices から選ぶ）
+	"""
+	PLACE_CREATURE
+	"""
+	侵略する（invadeMatchTerritory。invadeChoices から選ぶ）
+	"""
+	INVADE_TERRITORY
+	"""
+	通行料を払う（payMatchToll。払うとターンを終える）
+	"""
+	PAY_TOLL
+	"""
+	土地のレベルを上げる（levelUpMatchLand。levelUpChoices から選ぶ）
+	"""
+	LEVEL_UP_LAND
+	"""
+	クリーチャーを交換する（exchangeMatchCreature。exchangeChoices から選ぶ）
+	"""
+	EXCHANGE_CREATURE
+	"""
+	土地の属性を変える（changeMatchLandElement。elementChangeChoices から選ぶ）
+	"""
+	CHANGE_LAND_ELEMENT
+	"""
+	クリーチャーを移動する（moveMatchCreature。moveChoices から選ぶ）
+	"""
+	MOVE_CREATURE
+	"""
+	アイテムを出して攻める（attackMatchTerritory の itemHandIndex を itemChoices から選ぶ）
+	"""
+	ATTACK_WITH_ITEM
+	"""
+	アイテムを出さずに攻める（attackMatchTerritory の itemHandIndex を null）
+	"""
+	ATTACK_WITHOUT_ITEM
+	"""
+	アイテムを出して守る（defendMatchTerritory の itemHandIndex を itemChoices から選ぶ）
+	"""
+	DEFEND_WITH_ITEM
+	"""
+	アイテムを出さずに守る（defendMatchTerritory の itemHandIndex を null）
+	"""
+	DEFEND_WITHOUT_ITEM
+	"""
+	アイテムの代わりに手札のクリーチャーを出す（援護。useMatchCreatureAsItem。creatureAsItemChoices から選ぶ。攻める段階と守る段階）
+	"""
+	USE_CREATURE_AS_ITEM
+	"""
+	領地を手放す（relinquishMatchTerritory。relinquishChoices から選ぶ）
+	"""
+	RELINQUISH_TERRITORY
+	"""
+	ターンを終える（endMatchTurn。配置の段階では配置しない、領地コマンドの段階では何もしない）
+	"""
+	END_TURN
 }
 """
 プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）

@@ -5,6 +5,7 @@ import {
   previewedTiles,
   selectableTerritories,
   selectTile,
+  stopButtons,
   territoryCommandPositions,
   territoryCommandsAt,
 } from "./stop-selection.ts";
@@ -143,5 +144,34 @@ describe("choicesAt", () => {
       choicesAt(levels, A).map((choice) => choice.level),
       [2, 3],
     );
+  });
+});
+
+describe("stopButtons", () => {
+  it("配置・侵略・通行料・領地コマンド・ターンを終えるの順に、core の一覧にあるものだけを並べる", () => {
+    assert.deepEqual(
+      stopButtons(["MOVE_CREATURE", "END_TURN", "PLACE_CREATURE"]),
+      ["place", "territory", "endTurn"],
+    );
+    assert.deepEqual(stopButtons(["PAY_TOLL", "INVADE_TERRITORY"]), [
+      "invade",
+      "payToll",
+    ]);
+  });
+
+  it("領地コマンドは 4 種類のどれがあっても 1 つのボタンにまとめる", () => {
+    for (const action of [
+      "LEVEL_UP_LAND",
+      "EXCHANGE_CREATURE",
+      "CHANGE_LAND_ELEMENT",
+      "MOVE_CREATURE",
+    ] as const) {
+      assert.deepEqual(stopButtons([action, "LEVEL_UP_LAND"]), ["territory"]);
+    }
+  });
+
+  it("止まった後の行動が無ければ何も並べない", () => {
+    assert.deepEqual(stopButtons(["DRAW_CARD"]), []);
+    assert.deepEqual(stopButtons(["ATTACK_WITHOUT_ITEM"]), []);
   });
 });
