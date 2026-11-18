@@ -108,6 +108,8 @@ export type ChangeRoomSeatChoiceInput = {
   deckId: string;
   /** 部屋の公開用の ID */
   id: string;
+  /** 思考パターンの公開用の ID（NPC の席だけ必須で、選んだ NPC のアバターに割り当てた公開中の思考パターン（Player.npcAvatars の mindsets に出るもの）。プレイヤーの席に付けると入力の誤り） */
+  mindsetId?: string | null | undefined;
   /** 画面が見ていた部屋の revision */
   revision: number;
   /** 席の番号（席の並びの何番目か。0 始まり） */
@@ -2060,10 +2062,10 @@ export type RoomDetailQueryVariables = Exact<{
 
 export type RoomDetailQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, board: { id: string, name: string } } | null }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null, mindset: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, board: { id: string, name: string } } | null }
     | { __typename: 'RoomNotFoundError' }
   , me:
-    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
+    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }>, mindsets: Array<{ id: string, name: string }> }> }
     | { __typename: 'PlayerNotRegisteredError' }
   , gameRules:
     | { __typename: 'GameRules', match: { minPlayers: number, maxPlayers: number } }
@@ -6153,6 +6155,10 @@ export const RoomDetailDocument = new TypedDocumentString(`
           id
           name
         }
+        mindset {
+          id
+          name
+        }
       }
       matchRules {
         board {
@@ -6202,6 +6208,10 @@ export const RoomDetailDocument = new TypedDocumentString(`
         id
         name
         decks {
+          id
+          name
+        }
+        mindsets {
           id
           name
         }

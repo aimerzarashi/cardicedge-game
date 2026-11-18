@@ -8,6 +8,8 @@ export type AvatarOption = {
   name: string;
   // このアバターで選べるデッキ（プレイヤーの席は自分のデッキ、NPC の席は割り当てたデッキ）
   decks: { id: string; name: string }[];
+  // NPC の席だけで選ぶ（プレイヤーの席に付けると core が誤りにするため、プレイヤーのアバターには持たせない）
+  mindsets?: { id: string; name: string }[];
 };
 
 export function SeatChoiceForm({
@@ -17,6 +19,7 @@ export function SeatChoiceForm({
   avatars,
   currentAvatarId,
   currentDeckId,
+  currentMindsetId,
 }: {
   id: string;
   revision: number;
@@ -24,6 +27,7 @@ export function SeatChoiceForm({
   avatars: AvatarOption[];
   currentAvatarId?: string;
   currentDeckId?: string;
+  currentMindsetId?: string;
 }) {
   const [state, formAction, isPending] = useActionState<
     RoomActionState,
@@ -32,13 +36,18 @@ export function SeatChoiceForm({
   const [avatarId, setAvatarId] = useState<string | undefined>(
     currentAvatarId ?? avatars[0]?.id,
   );
-  const decks = avatars.find((avatar) => avatar.id === avatarId)?.decks ?? [];
+  const selectedAvatar = avatars.find((avatar) => avatar.id === avatarId);
+  const decks = selectedAvatar?.decks ?? [];
+  const mindsets = selectedAvatar?.mindsets;
   const [deckId, setDeckId] = useState<string | undefined>(
     currentDeckId ?? decks[0]?.id,
   );
+  const [mindsetId, setMindsetId] = useState<string | undefined>(
+    currentMindsetId ?? mindsets?.[0]?.id,
+  );
 
-  if (!avatarId || !deckId) {
-    return <p>選べるアバターまたはデッキがありません</p>;
+  if (!avatarId || !deckId || (mindsets && !mindsetId)) {
+    return <p>選べるアバター・デッキ・思考パターンがありません</p>;
   }
 
   return (
@@ -57,6 +66,7 @@ export function SeatChoiceForm({
             // デッキはアバターごとに選べるものが違うため、先頭に戻す
             const next = avatars.find((a) => a.id === event.target.value);
             setDeckId(next?.decks[0]?.id);
+            setMindsetId(next?.mindsets?.[0]?.id);
           }}
         >
           {avatars.map((avatar) => (
@@ -80,6 +90,22 @@ export function SeatChoiceForm({
           ))}
         </select>
       </label>
+      {mindsets && (
+        <label>
+          思考パターン
+          <select
+            name="mindsetId"
+            value={mindsetId}
+            onChange={(event) => setMindsetId(event.target.value)}
+          >
+            {mindsets.map((mindset) => (
+              <option key={mindset.id} value={mindset.id}>
+                {mindset.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <button type="submit" disabled={isPending}>
         席 {seat + 1} を決める
       </button>
