@@ -624,7 +624,7 @@ describe("applyEvent", () => {
     assert.equal(next.territories[0].level, 3);
   });
 
-  it("レベルを上げると土地のレベルも変わり、手放しても土地に残る", () => {
+  it("レベルを上げると土地のレベルも変わり、手放すと 1 に戻る", () => {
     const leveled = applyEvent(
       frame({ territories: [TERRITORY] }),
       event("MatchLandLeveledUpEvent", {
@@ -647,9 +647,7 @@ describe("applyEvent", () => {
       BASE,
     );
     assert.deepEqual(relinquished.territories, []);
-    assert.deepEqual(relinquished.landLevels, [
-      { position: TERRITORY.position, level: 2 },
-    ]);
+    assert.deepEqual(relinquished.landLevels, []);
   });
 
   it("空き地へ動かすと、領地が行き先へ移り、行き先の土地のレベルになる", () => {
