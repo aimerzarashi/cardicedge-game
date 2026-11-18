@@ -132,6 +132,8 @@ export async function changeSeatChoice(
   const seat = integer(form, "seat");
   const avatarId = text(form, "avatarId");
   const deckId = text(form, "deckId");
+  // プレイヤーの席には思考パターンの入力が無い。無いまま送って、必須かどうかは core に決めさせる
+  const mindsetId = text(form, "mindsetId");
   if (
     id === undefined ||
     revision === undefined ||
@@ -142,7 +144,7 @@ export async function changeSeatChoice(
     return BAD_FORM;
   }
   const result = await callCore(changeRoomSeatChoiceMutation, {
-    input: { id, revision, seat, avatarId, deckId },
+    input: { id, revision, seat, avatarId, deckId, mindsetId },
   });
   return result.ok
     ? finish(result.data.changeRoomSeatChoice)

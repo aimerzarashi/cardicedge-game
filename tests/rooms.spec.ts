@@ -7,6 +7,7 @@ import {
   decideSeats,
   openNewRoom,
   reloadUntilVisible,
+  seatItem,
 } from "./room-flow";
 
 test("部屋を作り、席・対戦ルール・席の選択を決めて公開すると準備中になり、準備完了にすると対戦中になる", async ({
@@ -126,6 +127,33 @@ test("公開前に決めなかったものは準備中に決められ、決め�
   await page.goBack();
   await expect(page.getByTestId("participants")).toContainText("準備完了");
   await expect(page.getByRole("button", { name: /を決める$/ })).toHaveCount(0);
+});
+
+test("NPC の席では、選んだアバターに割り当てた公開中の思考パターンだけを選べ、プレイヤーの席には選ぶ欄が無い", async ({
+  page,
+  request,
+}) => {
+  await openNewRoom(page, request, "room-mindset");
+  await decideSeats(page);
+  await reloadUntilVisible(page, seatItem(page, 1).getByLabel("アバター"));
+  await expect(seatItem(page, 0).getByLabel("思考パターン")).toHaveCount(0);
+  const mindset = seatItem(page, 1).getByLabel("思考パターン");
+  await seatItem(page, 1)
+    .getByLabel("アバター")
+    .selectOption({ label: "炎の剣士" });
+  // 割り当てた順。使用不可の思考パターンは出ない
+  await expect(mindset.getByRole("option")).toHaveText(["攻めがち", "ふつう"]);
+  await seatItem(page, 1)
+    .getByLabel("アバター")
+    .selectOption({ label: "森の番人" });
+  await expect(mindset.getByRole("option")).toHaveText(["ふつう"]);
+
+  await seatItem(page, 1)
+    .getByRole("button", { name: "席 2 を決める" })
+    .click();
+  await expect(seatItem(page, 1)).toContainText("アバター: 森の番人");
+  await expect(seatItem(page, 1)).toContainText("思考パターン: ふつう");
+  await expect(seatItem(page, 0)).not.toContainText("思考パターン");
 });
 
 test("アバターが無いと部屋の一覧に作るフォームが出ず、先にアバターを作る案内が出て、作るとフォームが出る", async ({
