@@ -88,13 +88,13 @@ export async function decideNpcSeat(page: Page, index = 1) {
     .selectOption({ label: "火の NPC デッキ" });
   await seatItem(page, index)
     .getByLabel("思考パターン")
-    .selectOption({ label: "攻めがち" });
+    .selectOption({ label: "侵略型" });
   await seatItem(page, index)
     .getByRole("button", { name: `席 ${index + 1} を決める` })
     .click();
   await expect(seatItem(page, index)).toContainText("アバター: 炎の剣士");
   await expect(seatItem(page, index)).toContainText("デッキ: 火の NPC デッキ");
-  await expect(seatItem(page, index)).toContainText("思考パターン: 攻めがち");
+  await expect(seatItem(page, index)).toContainText("思考パターン: 侵略型");
 }
 
 export function matchOperations(page: Page) {
