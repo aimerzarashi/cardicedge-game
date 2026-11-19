@@ -142,17 +142,17 @@ test("NPC の席では、選んだアバターに割り当てた公開中の思�
     .getByLabel("アバター")
     .selectOption({ label: "炎の剣士" });
   // 割り当てた順。使用不可の思考パターンは出ない
-  await expect(mindset.getByRole("option")).toHaveText(["攻めがち", "ふつう"]);
+  await expect(mindset.getByRole("option")).toHaveText(["侵略型", "バランス"]);
   await seatItem(page, 1)
     .getByLabel("アバター")
     .selectOption({ label: "森の番人" });
-  await expect(mindset.getByRole("option")).toHaveText(["ふつう"]);
+  await expect(mindset.getByRole("option")).toHaveText(["バランス"]);
 
   await seatItem(page, 1)
     .getByRole("button", { name: "席 2 を決める" })
     .click();
   await expect(seatItem(page, 1)).toContainText("アバター: 森の番人");
-  await expect(seatItem(page, 1)).toContainText("思考パターン: ふつう");
+  await expect(seatItem(page, 1)).toContainText("思考パターン: バランス");
   await expect(seatItem(page, 0)).not.toContainText("思考パターン");
 });
 
