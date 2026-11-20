@@ -1,3 +1,5 @@
+import type { MatchAction } from "@/graphql/graphql";
+
 type Position = { x: number; y: number };
 
 // 領地コマンドの種類（どれを使えるかは core が領地ごとに返す）
@@ -59,6 +61,43 @@ function unique(candidates: Position[]): Position[] {
         (other) => other.x === position.x && other.y === position.y,
       ) === index,
   );
+}
+
+// 止まった後に最初に並べるボタン（配置・侵略・通行料を払う・領地コマンド・ターンを終える の順。2026-11-11 オーナー）。
+// どれを出すかは core の actionChoices だけで決め、段階を見ない（どの段階で何を選べるかの決まりを画面に持たせないため。game#107）。
+// 領地コマンドは 4 種類のどれかがあれば 1 つのボタンにまとめる（領地を先に選ぶため。game#76）
+export type StopButton =
+  | "place"
+  | "invade"
+  | "payToll"
+  | "territory"
+  | "endTurn";
+
+const TERRITORY_ACTIONS: MatchAction[] = [
+  "LEVEL_UP_LAND",
+  "EXCHANGE_CREATURE",
+  "CHANGE_LAND_ELEMENT",
+  "MOVE_CREATURE",
+];
+
+export function stopButtons(actions: MatchAction[]): StopButton[] {
+  const buttons: StopButton[] = [];
+  if (actions.includes("PLACE_CREATURE")) {
+    buttons.push("place");
+  }
+  if (actions.includes("INVADE_TERRITORY")) {
+    buttons.push("invade");
+  }
+  if (actions.includes("PAY_TOLL")) {
+    buttons.push("payToll");
+  }
+  if (actions.some((action) => TERRITORY_ACTIONS.includes(action))) {
+    buttons.push("territory");
+  }
+  if (actions.includes("END_TURN")) {
+    buttons.push("endTurn");
+  }
+  return buttons;
 }
 
 // 領地コマンドを 1 つでも使える領地（core が返した選択肢の位置を、重ねずに返す）

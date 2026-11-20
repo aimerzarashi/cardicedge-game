@@ -83,9 +83,11 @@ export async function changeSeats(
   if (id === undefined || revision === undefined || count === undefined) {
     return BAD_FORM;
   }
-  // このマイルストーンはプレイヤーの席 1 つ（自分）と NPC の席の個人戦だけ。何席にするかだけを選ぶ
+  // プレイヤーの席は自分の 1 つだけで、ほかは NPC の席の個人戦。自分が参加しなければ全員 NPC（作った人は対戦を見るだけ。
+  // 2026-11-17 オーナー。game#109）。チェックボックスは外すと送られない
+  const withPlayer = form.get("withPlayer") !== null;
   const seats = Array.from({ length: Math.max(count, 0) }, (_, index) =>
-    index === 0 ? ("PLAYER" as const) : ("NPC" as const),
+    withPlayer && index === 0 ? ("PLAYER" as const) : ("NPC" as const),
   );
   const result = await callCore(changeRoomSeatsMutation, {
     input: { id, revision, seats },
@@ -130,6 +132,8 @@ export async function changeSeatChoice(
   const seat = integer(form, "seat");
   const avatarId = text(form, "avatarId");
   const deckId = text(form, "deckId");
+  // プレイヤーの席には思考パターンの入力が無い。無いまま送って、必須かどうかは core に決めさせる
+  const mindsetId = text(form, "mindsetId");
   if (
     id === undefined ||
     revision === undefined ||
@@ -140,7 +144,7 @@ export async function changeSeatChoice(
     return BAD_FORM;
   }
   const result = await callCore(changeRoomSeatChoiceMutation, {
-    input: { id, revision, seat, avatarId, deckId },
+    input: { id, revision, seat, avatarId, deckId, mindsetId },
   });
   return result.ok
     ? finish(result.data.changeRoomSeatChoice)

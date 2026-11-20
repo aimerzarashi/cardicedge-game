@@ -108,6 +108,8 @@ export type ChangeRoomSeatChoiceInput = {
   deckId: string;
   /** 部屋の公開用の ID */
   id: string;
+  /** 思考パターンの公開用の ID（NPC の席だけ必須で、選んだ NPC のアバターに割り当てた公開中の思考パターン（Player.npcAvatars の mindsets に出るもの）。プレイヤーの席に付けると入力の誤り） */
+  mindsetId?: string | null | undefined;
   /** 画面が見ていた部屋の revision */
   revision: number;
   /** 席の番号（席の並びの何番目か。0 始まり） */
@@ -120,7 +122,7 @@ export type ChangeRoomSeatsInput = {
   id: string;
   /** 画面が見ていた部屋の revision */
   revision: number;
-  /** 席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる */
+  /** 席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 0〜1 つで、多ければ FieldTooMany の max。0 は全員 NPC の部屋で、作った人は参加せずに対戦を見る）。並びを変えたら、席の選択はすべて外れる */
   seats: Array<RoomSeatKind>;
 };
 
@@ -321,6 +323,47 @@ export type LevelUpMatchLandInput = {
   revision: number;
 };
 
+/** 操作を待っている人が今選べる行動の種類。対象（手札・領地・行き先）は種類ごとの選択肢（placeChoices 等）から選ぶ。種類と mutation は 1 対 1 */
+export type MatchAction =
+  /** アイテムを出さずに攻める（attackMatchTerritory の itemHandIndex を null） */
+  | 'ATTACK_WITHOUT_ITEM'
+  /** アイテムを出して攻める（attackMatchTerritory の itemHandIndex を itemChoices から選ぶ） */
+  | 'ATTACK_WITH_ITEM'
+  /** 土地の属性を変える（changeMatchLandElement。elementChangeChoices から選ぶ） */
+  | 'CHANGE_LAND_ELEMENT'
+  /** 行き先を選ぶ（chooseMatchPath。pathChoices から選ぶ） */
+  | 'CHOOSE_PATH'
+  /** アイテムを出さずに守る（defendMatchTerritory の itemHandIndex を null） */
+  | 'DEFEND_WITHOUT_ITEM'
+  /** アイテムを出して守る（defendMatchTerritory の itemHandIndex を itemChoices から選ぶ） */
+  | 'DEFEND_WITH_ITEM'
+  /** 手札を捨てる（discardMatchCard。手札のどれでも） */
+  | 'DISCARD_CARD'
+  /** カードを引く（drawMatchCard） */
+  | 'DRAW_CARD'
+  /** ターンを終える（endMatchTurn。配置の段階では配置しない、領地コマンドの段階では何もしない） */
+  | 'END_TURN'
+  /** クリーチャーを交換する（exchangeMatchCreature。exchangeChoices から選ぶ） */
+  | 'EXCHANGE_CREATURE'
+  /** 侵略する（invadeMatchTerritory。invadeChoices から選ぶ） */
+  | 'INVADE_TERRITORY'
+  /** 土地のレベルを上げる（levelUpMatchLand。levelUpChoices から選ぶ） */
+  | 'LEVEL_UP_LAND'
+  /** クリーチャーを移動する（moveMatchCreature。moveChoices から選ぶ） */
+  | 'MOVE_CREATURE'
+  /** 通行料を払う（payMatchToll。払うとターンを終える） */
+  | 'PAY_TOLL'
+  /** クリーチャーを配置する（placeMatchCreature。placeChoices から選ぶ） */
+  | 'PLACE_CREATURE'
+  /** 領地を手放す（relinquishMatchTerritory。relinquishChoices から選ぶ） */
+  | 'RELINQUISH_TERRITORY'
+  /** サイコロを振る（rollMatchDice） */
+  | 'ROLL_DICE'
+  /** アイテムの代わりに手札のクリーチャーを出す（援護。useMatchCreatureAsItem。creatureAsItemChoices から選ぶ。攻める段階と守る段階） */
+  | 'USE_CREATURE_AS_ITEM'
+  /** スペルを使う（useMatchSpell。spellChoices から選ぶ） */
+  | 'USE_SPELL';
+
 /** 戦闘のどちら側か */
 export type MatchBattleSide =
   /** 攻める側（侵略した側） */
@@ -520,13 +563,13 @@ export type RegisterAvatarMutation = { registerAvatar:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RegisterAvatarSuccess', avatar: { id: string } }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
         | { __typename: 'FieldNotFound' }
         | { __typename: 'FieldNotGreaterThan' }
         | { __typename: 'FieldOutOfRange' }
         | { __typename: 'FieldRequired' }
         | { __typename: 'FieldTooLong', max: number }
+        | { __typename: 'FieldTooMany' }
         | { __typename: 'FieldTooSmall' }
       > }
    };
@@ -745,7 +788,7 @@ export type MatchDebugQueryVariables = Exact<{
 
 
 export type MatchDebugQuery = { match:
-    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, creatureAsItemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
+    | { __typename: 'Match', id: string, roomId: string | null, number: number | null, revision: number, round: number, phase: MatchPhase, actionChoices: Array<MatchAction>, dice: number | null, remainingSteps: number, placeChoices: Array<number>, invadeChoices: Array<number>, itemChoices: Array<number>, creatureAsItemChoices: Array<number>, currentParticipant: number | null, awaitingParticipant: number | null, pathChoices: Array<{ x: number, y: number }>, spellChoices: Array<{ handIndex: number, targets: Array<number>, targetPositions: Array<{ x: number, y: number }> }>, relinquishChoices: Array<{ x: number, y: number }>, moveChoices: Array<{ from: { x: number, y: number }, to: { x: number, y: number } }>, landLevels: Array<{ level: number, position: { x: number, y: number } }>, levelUpChoices: Array<{ level: number, magic: number, position: { x: number, y: number } }>, exchangeChoices: Array<{ handIndex: number, magic: number, position: { x: number, y: number } }>, elementChangeChoices: Array<{ element: BoardTileElement, magic: number, position: { x: number, y: number } }>, invasion: { hitPoints: number, position: { x: number, y: number }, card: { __typename: 'CreatureCardInfo', id: string, name: string, cost: number, rarity: CardRarity, elements: Array<CreatureElement>, attack: number, hitPoints: number } } | null, territories: Array<{ owner: number, level: number, value: number, toll: number, relinquishMagic: number, position: { x: number, y: number }, creature: { id: number, hitPoints: number, card: { id: string, name: string, attack: number } } }>, outcome: { winners: Array<number>, reason: MatchEndReason, ranks: Array<number> } | null, rewardPacks: Array<{ key: string, name: string }>, rules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, maxHandCards: number, startingHandCards: number, tollPercentage: number, relinquishPercentage: number }, board: { width: number, height: number, tiles: Array<
           | { __typename: 'BaseTile', x: number, y: number }
           | { __typename: 'BridgeTile', x: number, y: number }
           | { __typename: 'CardShopTile', x: number, y: number }
@@ -1586,13 +1629,13 @@ export type DiscardMatchCardMutation = { discardMatchCard:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1610,13 +1653,13 @@ export type UseMatchSpellMutation = { useMatchSpell:
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'UseMatchSpellSuccess' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1634,13 +1677,13 @@ export type PlaceMatchCreatureMutation = { placeMatchCreature:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1658,13 +1701,13 @@ export type RelinquishMatchTerritoryMutation = { relinquishMatchTerritory:
     | { __typename: 'RelinquishMatchTerritorySuccess' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1682,13 +1725,13 @@ export type LevelUpMatchLandMutation = { levelUpMatchLand:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1706,13 +1749,13 @@ export type MoveMatchCreatureMutation = { moveMatchCreature:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1730,13 +1773,13 @@ export type ChangeMatchLandElementMutation = { changeMatchLandElement:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1754,13 +1797,13 @@ export type ExchangeMatchCreatureMutation = { exchangeMatchCreature:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1792,13 +1835,13 @@ export type ChooseMatchPathMutation = { chooseMatchPath:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1830,13 +1873,13 @@ export type ChooseMatchRewardPackMutation = { chooseMatchRewardPack:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1854,13 +1897,13 @@ export type InvadeMatchTerritoryMutation = { invadeMatchTerritory:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1878,13 +1921,13 @@ export type AttackMatchTerritoryMutation = { attackMatchTerritory:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1902,13 +1945,13 @@ export type UseMatchCreatureAsItemMutation = { useMatchCreatureAsItem:
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'UseMatchCreatureAsItemSuccess' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -1940,13 +1983,13 @@ export type DefendMatchTerritoryMutation = { defendMatchTerritory:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RevisionConflictError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -2019,10 +2062,10 @@ export type RoomDetailQueryVariables = Exact<{
 
 export type RoomDetailQuery = { room:
     | { __typename: 'PlayerNotRegisteredError' }
-    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, board: { id: string, name: string } } | null }
+    | { __typename: 'Room', id: string, revision: number, name: string, status: RoomStatus, match: { id: string } | null, matches: Array<{ id: string, number: number }>, capabilities: { changeSeats: boolean, changeMatchRules: boolean, publish: boolean, declareReady: boolean, declareNext: boolean, resume: boolean, close: boolean, rename: boolean } | null, participants: Array<{ playerId: string, owner: boolean, ready: boolean, continues: boolean | null }>, seats: Array<{ kind: RoomSeatKind, playerId: string | null, choiceChangeable: boolean | null, avatar: { id: string, name: string } | null, deck: { id: string, name: string } | null, mindset: { id: string, name: string } | null }>, matchRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number, board: { id: string, name: string } } | null }
     | { __typename: 'RoomNotFoundError' }
   , me:
-    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }> }> }
+    | { __typename: 'Player', id: string, avatars: Array<{ id: string, name: string }>, decks: Array<{ id: string, name: string }>, boards: Array<{ id: string, name: string, defaultRules: { targetMagic: number, startingMagic: number, lapBonus: number, checkpointBonus: number, roundLimit: number, diceMin: number, diceMax: number, baseLandValue: number, lapBonusPerTerritory: number } }>, npcAvatars: Array<{ id: string, name: string, decks: Array<{ id: string, name: string }>, mindsets: Array<{ id: string, name: string }> }> }
     | { __typename: 'PlayerNotRegisteredError' }
   , gameRules:
     | { __typename: 'GameRules', match: { minPlayers: number, maxPlayers: number } }
@@ -2039,13 +2082,13 @@ export type CreateRoomMutation = { createRoom:
     | { __typename: 'PlayerNotRegisteredError' }
     | { __typename: 'RoomRequirementsNotMetError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch' }
         | { __typename: 'FieldInvalidFormat' }
         | { __typename: 'FieldNotFound' }
         | { __typename: 'FieldNotGreaterThan' }
         | { __typename: 'FieldOutOfRange' }
         | { __typename: 'FieldRequired' }
         | { __typename: 'FieldTooLong', max: number }
+        | { __typename: 'FieldTooMany' }
         | { __typename: 'FieldTooSmall' }
       > }
    };
@@ -2063,13 +2106,13 @@ export type RenameRoomMutation = { renameRoom:
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', field: string }
         | { __typename: 'FieldOutOfRange', field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', max: number, field: string }
+        | { __typename: 'FieldTooMany', field: string }
         | { __typename: 'FieldTooSmall', field: string }
       > }
    };
@@ -2087,13 +2130,13 @@ export type ChangeRoomSeatsMutation = { changeRoomSeats:
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', max: number, field: string }
         | { __typename: 'FieldTooSmall', min: number, field: string }
       > }
    };
@@ -2113,13 +2156,13 @@ export type ChangeRoomMatchRulesMutation = { changeRoomMatchRules:
     | { __typename: 'RoomNotResponsibleError' }
     | { __typename: 'RoomStatusNotAllowedError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', max: number, field: string }
         | { __typename: 'FieldTooSmall', min: number, field: string }
       > }
    };
@@ -2140,13 +2183,13 @@ export type ChangeRoomSeatChoiceMutation = { changeRoomSeatChoice:
     | { __typename: 'RoomSeatsNotDecidedError' }
     | { __typename: 'RoomStatusNotAllowedError' }
     | { __typename: 'ValidationErrors', errors: Array<
-        | { __typename: 'FieldCountMismatch', expected: number, field: string }
         | { __typename: 'FieldInvalidFormat', field: string }
         | { __typename: 'FieldNotFound', field: string }
         | { __typename: 'FieldNotGreaterThan', than: string, field: string }
         | { __typename: 'FieldOutOfRange', min: number, max: number, field: string }
         | { __typename: 'FieldRequired', field: string }
         | { __typename: 'FieldTooLong', field: string }
+        | { __typename: 'FieldTooMany', max: number, field: string }
         | { __typename: 'FieldTooSmall', min: number, field: string }
       > }
    };
@@ -2897,6 +2940,7 @@ export const MatchDebugDocument = new TypedDocumentString(`
       revision
       round
       phase
+      actionChoices
       dice
       remainingSteps
       pathChoices {
@@ -6111,6 +6155,10 @@ export const RoomDetailDocument = new TypedDocumentString(`
           id
           name
         }
+        mindset {
+          id
+          name
+        }
       }
       matchRules {
         board {
@@ -6160,6 +6208,10 @@ export const RoomDetailDocument = new TypedDocumentString(`
         id
         name
         decks {
+          id
+          name
+        }
+        mindsets {
           id
           name
         }
@@ -6235,8 +6287,8 @@ export const ChangeRoomSeatsDocument = new TypedDocumentString(`
         ... on FieldTooSmall {
           min
         }
-        ... on FieldCountMismatch {
-          expected
+        ... on FieldTooMany {
+          max
         }
         ... on FieldNotGreaterThan {
           than
@@ -6265,8 +6317,8 @@ export const ChangeRoomMatchRulesDocument = new TypedDocumentString(`
         ... on FieldTooSmall {
           min
         }
-        ... on FieldCountMismatch {
-          expected
+        ... on FieldTooMany {
+          max
         }
         ... on FieldNotGreaterThan {
           than
@@ -6295,8 +6347,8 @@ export const ChangeRoomSeatChoiceDocument = new TypedDocumentString(`
         ... on FieldTooSmall {
           min
         }
-        ... on FieldCountMismatch {
-          expected
+        ... on FieldTooMany {
+          max
         }
         ... on FieldNotGreaterThan {
           than

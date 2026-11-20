@@ -1068,6 +1068,10 @@ function applyFact(
         territories: received.territories.filter(
           (territory) => !samePosition(territory.position, position),
         ),
+        // 倒された・動いた土地と違ってレベルを残さない（core の決まり。core#193）
+        landLevels: received.landLevels.filter(
+          (land) => !samePosition(land.position, position),
+        ),
       };
     }
     case "MatchMagicDepletedEvent":

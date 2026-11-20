@@ -68,6 +68,10 @@ const roomQuery = graphql(`
             id
             name
           }
+          mindset {
+            id
+            name
+          }
         }
         matchRules {
           board {
@@ -117,6 +121,10 @@ const roomQuery = graphql(`
           id
           name
           decks {
+            id
+            name
+          }
+          mindsets {
             id
             name
           }
@@ -244,6 +252,8 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
             <li key={index}>
               {SEAT_KIND_LABELS[seat.kind]}・アバター:{" "}
               {seat.avatar?.name ?? "未定"}・デッキ: {seat.deck?.name ?? "未定"}
+              {seat.kind === "NPC" &&
+                `・思考パターン: ${seat.mindset?.name ?? "未定"}`}
               {seat.choiceChangeable && (
                 <SeatChoiceForm
                   id={room.id}
@@ -254,6 +264,7 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
                   }
                   currentAvatarId={seat.avatar?.id}
                   currentDeckId={seat.deck?.id}
+                  currentMindsetId={seat.mindset?.id}
                 />
               )}
             </li>
@@ -267,6 +278,10 @@ export default async function RoomPage({ params }: PageProps<"/rooms/[id]">) {
           min={gameRules.match.minPlayers}
           max={gameRules.match.maxPlayers}
           current={room.seats.length}
+          withPlayer={
+            room.seats.length === 0 ||
+            room.seats.some((seat) => seat.kind === "PLAYER")
+          }
         />
       )}
 

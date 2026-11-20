@@ -7,7 +7,7 @@ import {
   RULE_LABELS,
   type RuleField,
 } from "../../../messages";
-import { isMyTurn } from "../../match-view";
+import { isMyTurn, isWatching } from "../../match-view";
 import type { MatchFrame } from "./match-frame";
 import { MatchPlayer, type MatchPlayerOperations } from "./match-player";
 import { matchDebugQuery } from "./operations";
@@ -88,7 +88,9 @@ export default async function MatchDebugPage({
   };
   const operations: MatchPlayerOperations = {
     mine: isMyTurn(match.participants, match.awaitingParticipant, playerId),
+    watching: isWatching(match.participants, playerId),
     awaitingParticipant: match.awaitingParticipant ?? null,
+    actionChoices: match.actionChoices,
     invadeChoices: match.invadeChoices,
     itemChoices: match.itemChoices,
     creatureAsItemChoices: match.creatureAsItemChoices,

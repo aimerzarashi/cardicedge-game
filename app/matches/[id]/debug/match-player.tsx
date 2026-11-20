@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { BoardTileElement } from "@/graphql/graphql";
+import type { BoardTileElement, MatchAction } from "@/graphql/graphql";
 import { BoardGrid } from "../../../boards/board-grid";
 import { ELEMENT_LABELS } from "../../../boards/board-layout";
 import { participantColor } from "../../../boards/board-paint";
@@ -80,6 +80,7 @@ import {
   type StopSelection,
   selectableTerritories,
   selectTile,
+  stopButtons,
   type TerritoryCommand,
   territoryCommandPositions,
   territoryCommandsAt,
@@ -137,8 +138,12 @@ function ParticipantColorMark({ seat }: { seat: number }) {
 // 操作は描画ではなく入力なので、再生が追いついたときの match(id) の値で出す
 export type MatchPlayerOperations = {
   mine: boolean;
+  // 参加していないで見ているだけ（全員 NPC の部屋を作った人）
+  watching: boolean;
   // 守る段階では番の人ではなく領地の持ち主を待つので、手札もこの人のものを出す
   awaitingParticipant: number | null;
+  // 操作を待っている人が今選べる行動の種類（core の actionChoices）。どのボタンを出すかは段階でなくこれで決める
+  actionChoices: MatchAction[];
   pathChoices: { x: number; y: number }[];
   // 振る前に使えるスペル（core の spellChoices）。対象のプレイヤーを選ぶスペルは選べる対象（名前つき）があり、対象ごとにボタンを出す
   spellChoices: {
@@ -190,6 +195,8 @@ function ItemOperations({
   hand,
   itemChoices,
   creatureAsItemChoices,
+  withItem,
+  withoutItem,
   verb,
 }: {
   action: ComponentProps<typeof MatchActionButton>["action"];
@@ -197,11 +204,14 @@ function ItemOperations({
   hand: FrameCard[];
   itemChoices: number[];
   creatureAsItemChoices: number[];
+  // アイテムを出す・援護・出さないを、それぞれ core の actionChoices にあるときだけ出す
+  withItem: boolean;
+  withoutItem: boolean;
   verb: string;
 }) {
   return (
     <>
-      {itemChoices.map((itemHandIndex) => (
+      {(withItem ? itemChoices : []).map((itemHandIndex) => (
         <MatchActionButton
           key={itemHandIndex}
           action={action}
@@ -221,9 +231,11 @@ function ItemOperations({
           {hand[handIndex]?.name ?? ""}を援護に出して{verb}
         </MatchActionButton>
       ))}
-      <MatchActionButton action={action} {...actionProps}>
-        アイテムを出さずに{verb}
-      </MatchActionButton>
+      {withoutItem && (
+        <MatchActionButton action={action} {...actionProps}>
+          アイテムを出さずに{verb}
+        </MatchActionButton>
+      )}
     </>
   );
 }
@@ -264,7 +276,6 @@ function Previewing({
 // 止まった後の選択。1 つ目で何をするかを選び（配置・侵略・通行料を払う・領地コマンド・ターンを終える の順。2026-11-11 オーナー）、領地コマンドは盤面で領地を選んでから、その領地で使える領地コマンド → 手札・レベル・属性・行き先を
 // 選ぶ（領地しだいで使えるものが違うため。game#76）。選べないものは出さない（2026-11-09 オーナー）
 function StopOperations({
-  phase,
   actionProps,
   hand,
   operations,
@@ -273,7 +284,6 @@ function StopOperations({
   onSelect,
   onPreview,
 }: {
-  phase: "PLACING" | "INVADING" | "TERRITORY_COMMANDING";
   actionProps: { id: string; revision: number };
   hand: FrameCard[];
   operations: MatchPlayerOperations;
@@ -296,30 +306,31 @@ function StopOperations({
       onSelect(next);
     };
     const territories = territoryCommandPositions(operations);
+    const buttons = stopButtons(operations.actionChoices);
     return (
       <>
-        {phase === "PLACING" && operations.placeChoices.length > 0 && (
+        {buttons.includes("place") && (
           <Previewing tiles={[stopped]} onPreview={onPreview}>
             <button type="button" onClick={() => choose({ command: "place" })}>
               配置
             </button>
           </Previewing>
         )}
-        {phase === "INVADING" && operations.invadeChoices.length > 0 && (
+        {buttons.includes("invade") && (
           <Previewing tiles={[stopped]} onPreview={onPreview}>
             <button type="button" onClick={() => choose({ command: "invade" })}>
               侵略
             </button>
           </Previewing>
         )}
-        {phase === "INVADING" && (
+        {buttons.includes("payToll") && (
           <Previewing tiles={[stopped]} onPreview={onPreview}>
             <MatchActionButton action={payMatchToll} {...actionProps}>
               通行料を払う
             </MatchActionButton>
           </Previewing>
         )}
-        {territories.length > 0 && (
+        {buttons.includes("territory") && (
           <Previewing tiles={territories} onPreview={onPreview}>
             <button
               type="button"
@@ -336,7 +347,7 @@ function StopOperations({
             </button>
           </Previewing>
         )}
-        {phase !== "INVADING" && (
+        {buttons.includes("endTurn") && (
           // ターンを終えるには対象のマスが無いので、印を付けない
           <MatchActionButton action={endMatchTurn} {...actionProps}>
             ターンを終える
@@ -615,6 +626,11 @@ function Operations({
   onPreview: (tiles: Position[] | null) => void;
 }) {
   const actionProps = { id, revision: latest.revision };
+  const actions = operations.actionChoices;
+  // 援護は攻める・守るのどちらでも同じ種類なので、一覧にあるときだけ選択肢を渡す
+  const creatureAsItemChoices = actions.includes("USE_CREATURE_AS_ITEM")
+    ? operations.creatureAsItemChoices
+    : [];
   const hand =
     latest.participants[operations.awaitingParticipant ?? 0]?.hand ?? [];
   if (latest.outcome) {
@@ -636,8 +652,10 @@ function Operations({
   if (!operations.mine) {
     // 進みが Subscription で見えているときは、読み直すリンクは要らない（つながっていないときの逃げ道だけ出す）
     return (
-      <p style={{ margin: "0 0 0.5rem" }}>
-        他の参加者（NPC）の番です。
+      <p data-testid="match-waiting" style={{ margin: "0 0 0.5rem" }}>
+        {operations.watching
+          ? "NPC どうしの対戦を見ています（参加していないので操作はありません）。"
+          : "他の参加者（NPC）の番です。"}
         {!connected && (
           <>
             {" "}
@@ -651,12 +669,12 @@ function Operations({
   return (
     <div style={ROW_STYLE}>
       <strong>あなたの番です</strong>
-      {latest.phase === "DRAWING" && (
+      {actions.includes("DRAW_CARD") && (
         <MatchActionButton action={drawMatchCard} {...actionProps}>
           カードを引く
         </MatchActionButton>
       )}
-      {latest.phase === "DISCARDING" &&
+      {actions.includes("DISCARD_CARD") &&
         hand.map((card, handIndex) => (
           <MatchActionButton
             // biome-ignore lint/suspicious/noArrayIndexKey: 同じカードが複数並ぶため、手札の番号で区別する
@@ -668,7 +686,7 @@ function Operations({
             {card.name}を捨てる
           </MatchActionButton>
         ))}
-      {latest.phase === "ROLLING" && (
+      {actions.includes("USE_SPELL") && (
         <SpellOperations
           choices={operations.spellChoices}
           hand={hand}
@@ -677,12 +695,13 @@ function Operations({
           onSelect={onSelect}
         />
       )}
-      {latest.phase === "ROLLING" && (
+      {/* スペルの対象を選んでいる間は出さない（絞り込んだ選択肢に前の段のボタンが残っていた。game#107） */}
+      {actions.includes("ROLL_DICE") && selection?.command !== "spell" && (
         <MatchActionButton action={rollMatchDice} {...actionProps}>
           サイコロを振る
         </MatchActionButton>
       )}
-      {latest.phase === "CHOOSING_PATH" &&
+      {actions.includes("CHOOSE_PATH") &&
         operations.pathChoices.map((position) => (
           <MatchActionButton
             key={`${position.x},${position.y}`}
@@ -693,11 +712,8 @@ function Operations({
             ({position.x}, {position.y}) へ進む
           </MatchActionButton>
         ))}
-      {(latest.phase === "PLACING" ||
-        latest.phase === "INVADING" ||
-        latest.phase === "TERRITORY_COMMANDING") && (
+      {stopButtons(actions).length > 0 && (
         <StopOperations
-          phase={latest.phase}
           actionProps={actionProps}
           hand={hand}
           operations={operations}
@@ -707,27 +723,33 @@ function Operations({
           onPreview={onPreview}
         />
       )}
-      {latest.phase === "ATTACKING" && (
+      {(actions.includes("ATTACK_WITH_ITEM") ||
+        actions.includes("ATTACK_WITHOUT_ITEM")) && (
         <ItemOperations
           action={attackMatchTerritory}
           actionProps={actionProps}
           hand={hand}
           itemChoices={operations.itemChoices}
-          creatureAsItemChoices={operations.creatureAsItemChoices}
+          creatureAsItemChoices={creatureAsItemChoices}
+          withItem={actions.includes("ATTACK_WITH_ITEM")}
+          withoutItem={actions.includes("ATTACK_WITHOUT_ITEM")}
           verb="攻める"
         />
       )}
-      {latest.phase === "DEFENDING" && (
+      {(actions.includes("DEFEND_WITH_ITEM") ||
+        actions.includes("DEFEND_WITHOUT_ITEM")) && (
         <ItemOperations
           action={defendMatchTerritory}
           actionProps={actionProps}
           hand={hand}
           itemChoices={operations.itemChoices}
-          creatureAsItemChoices={operations.creatureAsItemChoices}
+          creatureAsItemChoices={creatureAsItemChoices}
+          withItem={actions.includes("DEFEND_WITH_ITEM")}
+          withoutItem={actions.includes("DEFEND_WITHOUT_ITEM")}
           verb="戦闘に進む"
         />
       )}
-      {latest.phase === "RELINQUISHING" &&
+      {actions.includes("RELINQUISH_TERRITORY") &&
         operations.relinquishChoices.map((choice) => (
           <MatchActionButton
             key={`${choice.x},${choice.y}`}
@@ -739,11 +761,6 @@ function Operations({
             {choice.magic}）
           </MatchActionButton>
         ))}
-      {latest.phase === "ENDING" && (
-        <MatchActionButton action={endMatchTurn} {...actionProps}>
-          ターンを終える
-        </MatchActionButton>
-      )}
     </div>
   );
 }

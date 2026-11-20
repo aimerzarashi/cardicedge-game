@@ -442,6 +442,7 @@ const ROOM_FIELD_LABELS: Record<string, string> = {
   boardId: "ボード",
   avatarId: "アバター",
   deckId: "デッキ",
+  mindsetId: "思考パターン",
   handIndex: "手札の番号",
   itemHandIndex: "アイテム",
   to: "行き先",
@@ -452,7 +453,6 @@ export type FieldErrorValue = {
   field: string;
   min?: number;
   max?: number;
-  expected?: number;
   than?: string;
 };
 
@@ -462,8 +462,10 @@ export function fieldErrorMessage(error: FieldErrorValue): string {
   switch (error.__typename) {
     case "FieldOutOfRange":
       return `${label}の数は ${error.min} 以上 ${error.max} 以下にしてください`;
-    case "FieldCountMismatch":
-      return `プレイヤーの${label}は ${error.expected} つにしてください`;
+    case "FieldTooMany":
+      return `プレイヤーの${label}は ${error.max} つまでにしてください`;
+    case "FieldRequired":
+      return `${label}を選んでください`;
     case "FieldNotFound":
       return `${label}は選べません。選び直してください`;
     case "FieldTooSmall":

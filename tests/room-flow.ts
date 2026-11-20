@@ -78,19 +78,23 @@ export async function decidePlayerSeat(page: Page) {
   await expect(seatItem(page, 0)).toContainText("デッキ: 火");
 }
 
-export async function decideNpcSeat(page: Page) {
-  await reloadUntilVisible(page, seatItem(page, 1).getByLabel("アバター"));
-  await seatItem(page, 1)
+export async function decideNpcSeat(page: Page, index = 1) {
+  await reloadUntilVisible(page, seatItem(page, index).getByLabel("アバター"));
+  await seatItem(page, index)
     .getByLabel("アバター")
     .selectOption({ label: "炎の剣士" });
-  await seatItem(page, 1)
+  await seatItem(page, index)
     .getByLabel("デッキ")
     .selectOption({ label: "火の NPC デッキ" });
-  await seatItem(page, 1)
-    .getByRole("button", { name: "席 2 を決める" })
+  await seatItem(page, index)
+    .getByLabel("思考パターン")
+    .selectOption({ label: "侵略型" });
+  await seatItem(page, index)
+    .getByRole("button", { name: `席 ${index + 1} を決める` })
     .click();
-  await expect(seatItem(page, 1)).toContainText("アバター: 炎の剣士");
-  await expect(seatItem(page, 1)).toContainText("デッキ: 火の NPC デッキ");
+  await expect(seatItem(page, index)).toContainText("アバター: 炎の剣士");
+  await expect(seatItem(page, index)).toContainText("デッキ: 火の NPC デッキ");
+  await expect(seatItem(page, index)).toContainText("思考パターン: 侵略型");
 }
 
 export function matchOperations(page: Page) {

@@ -644,10 +644,14 @@ input ChangeRoomSeatChoiceInput {
 	デッキの公開用の ID（プレイヤーの席は座っている人のデッキ（Player.decks に出るもの）、NPC の席は選んだ NPC のアバターに割り当てた公開中のデッキ（Player.npcAvatars の decks に出るもの））
 	"""
 	deckId: UUID!
+	"""
+	思考パターンの公開用の ID（NPC の席だけ必須で、選んだ NPC のアバターに割り当てた公開中の思考パターン（Player.npcAvatars の mindsets に出るもの）。プレイヤーの席に付けると入力の誤り）
+	"""
+	mindsetId: UUID
 }
 """
 changeRoomSeatChoice の結果（公開前、または公開前に決めていなければ準備中）。選んだ時の 1 回だけ、選べるものかを確かめる（準備完了の時には確かめ直さない）。
-入力の誤りは ValidationErrors（段階ごと。席が範囲の外なら seat の FieldOutOfRange、次に avatarId・deckId の FieldNotFound。NPC の席は、アバターが選べるときだけデッキを確かめる）
+入力の誤りは ValidationErrors（段階ごと。席が範囲の外なら seat の FieldOutOfRange、次に avatarId・deckId の FieldNotFound。NPC の席は、アバターが選べるときだけデッキと思考パターンを確かめる。mindsetId は NPC の席で無ければ FieldRequired、選べなければ FieldNotFound、プレイヤーの席に付けると FieldInvalidFormat）
 """
 union ChangeRoomSeatChoiceResult = ChangeRoomSeatChoiceSuccess | ValidationErrors | RoomNotFoundError | RevisionConflictError | RoomStatusNotAllowedError | RoomSeatsNotDecidedError | RoomConditionLockedError | RoomNotResponsibleError | RoomAlreadyReadyError | PlayerNotRegisteredError
 """
@@ -676,7 +680,7 @@ input ChangeRoomSeatsInput {
 	"""
 	revision: Int!
 	"""
-	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 1 つ FieldCountMismatch の expected）。並びを変えたら、席の選択はすべて外れる
+	席の並び（席の数は全体のルールの人数の範囲 FieldOutOfRange の min・max、プレイヤーの席は 0〜1 つで、多ければ FieldTooMany の max。0 は全員 NPC の部屋で、作った人は参加せずに対戦を見る）。並びを変えたら、席の選択はすべて外れる
 	"""
 	seats: [RoomSeatKind!]!
 }
@@ -1387,19 +1391,6 @@ type ExchangeMatchCreatureSuccess {
 	revision: Int!
 }
 """
-入力の一覧の個数が、決まりの個数と違う（例: 部屋のプレイヤーの席の数）
-"""
-type FieldCountMismatch implements FieldError {
-	"""
-	誤りのある入力の項目
-	"""
-	field: String!
-	"""
-	決まりの個数
-	"""
-	expected: Int!
-}
-"""
 入力の項目ごとの誤り。理由は __typename で見分ける
 """
 interface FieldError {
@@ -1475,6 +1466,19 @@ type FieldTooLong implements FieldError {
 	field: String!
 	"""
 	上限の文字数
+	"""
+	max: Int!
+}
+"""
+入力の一覧の中の、ある種類の個数が上限より多い（例: 部屋のプレイヤーの席）
+"""
+type FieldTooMany implements FieldError {
+	"""
+	誤りのある入力の項目
+	"""
+	field: String!
+	"""
+	上限の個数
 	"""
 	max: Int!
 }
@@ -1777,6 +1781,10 @@ type Match {
 	"""
 	phase: MatchPhase!
 	"""
+	操作を待っている人が今選べる行動の種類（awaitingParticipant の操作。対象の選択肢が空の種類は入らない。終わった後は空）
+	"""
+	actionChoices: [MatchAction!]!
+	"""
 	このターンに振ったサイコロの目（振る前は null）
 	"""
 	dice: Int
@@ -1856,6 +1864,87 @@ type Match {
 	その部屋で何戦目か（1 始まり。roomId が null の間は null）
 	"""
 	number: Int
+}
+"""
+操作を待っている人が今選べる行動の種類。対象（手札・領地・行き先）は種類ごとの選択肢（placeChoices 等）から選ぶ。種類と mutation は 1 対 1
+"""
+enum MatchAction {
+	"""
+	カードを引く（drawMatchCard）
+	"""
+	DRAW_CARD
+	"""
+	手札を捨てる（discardMatchCard。手札のどれでも）
+	"""
+	DISCARD_CARD
+	"""
+	スペルを使う（useMatchSpell。spellChoices から選ぶ）
+	"""
+	USE_SPELL
+	"""
+	サイコロを振る（rollMatchDice）
+	"""
+	ROLL_DICE
+	"""
+	行き先を選ぶ（chooseMatchPath。pathChoices から選ぶ）
+	"""
+	CHOOSE_PATH
+	"""
+	クリーチャーを配置する（placeMatchCreature。placeChoices から選ぶ）
+	"""
+	PLACE_CREATURE
+	"""
+	侵略する（invadeMatchTerritory。invadeChoices から選ぶ）
+	"""
+	INVADE_TERRITORY
+	"""
+	通行料を払う（payMatchToll。払うとターンを終える）
+	"""
+	PAY_TOLL
+	"""
+	土地のレベルを上げる（levelUpMatchLand。levelUpChoices から選ぶ）
+	"""
+	LEVEL_UP_LAND
+	"""
+	クリーチャーを交換する（exchangeMatchCreature。exchangeChoices から選ぶ）
+	"""
+	EXCHANGE_CREATURE
+	"""
+	土地の属性を変える（changeMatchLandElement。elementChangeChoices から選ぶ）
+	"""
+	CHANGE_LAND_ELEMENT
+	"""
+	クリーチャーを移動する（moveMatchCreature。moveChoices から選ぶ）
+	"""
+	MOVE_CREATURE
+	"""
+	アイテムを出して攻める（attackMatchTerritory の itemHandIndex を itemChoices から選ぶ）
+	"""
+	ATTACK_WITH_ITEM
+	"""
+	アイテムを出さずに攻める（attackMatchTerritory の itemHandIndex を null）
+	"""
+	ATTACK_WITHOUT_ITEM
+	"""
+	アイテムを出して守る（defendMatchTerritory の itemHandIndex を itemChoices から選ぶ）
+	"""
+	DEFEND_WITH_ITEM
+	"""
+	アイテムを出さずに守る（defendMatchTerritory の itemHandIndex を null）
+	"""
+	DEFEND_WITHOUT_ITEM
+	"""
+	アイテムの代わりに手札のクリーチャーを出す（援護。useMatchCreatureAsItem。creatureAsItemChoices から選ぶ。攻める段階と守る段階）
+	"""
+	USE_CREATURE_AS_ITEM
+	"""
+	領地を手放す（relinquishMatchTerritory。relinquishChoices から選ぶ）
+	"""
+	RELINQUISH_TERRITORY
+	"""
+	ターンを終える（endMatchTurn。配置の段階では配置しない、領地コマンドの段階では何もしない）
+	"""
+	END_TURN
 }
 """
 プレイヤー全員が戦利品を受け取った（対戦の流れの終わり）
@@ -4268,6 +4357,10 @@ type NpcAvatar {
 	使うデッキ（割り当てた順。公開中のものだけ）
 	"""
 	decks: [NpcDeck!]!
+	"""
+	使う思考パターン（割り当てた順。公開中のものだけ）。部屋の NPC の席で、デッキと一緒にこの中から 1 つ選ぶ
+	"""
+	mindsets: [NpcMindset!]!
 }
 """
 解放した公開中の NPC のアバターが無い（解放していない・公開中でないものを含む。区別しない）
@@ -4315,6 +4408,20 @@ type NpcDeckCard {
 	枚数
 	"""
 	count: Int!
+}
+"""
+NPC の思考パターン（公開中のもの）。NPC のアバターを通してだけ出る。行動の種類ごとの重みと採点基準ごとの重みは、
+対戦を始めるときに NPC の参加者へ写され、NPC が選ぶのに使う（game の画面には出さない）
+"""
+type NpcMindset {
+	"""
+	公開用の ID
+	"""
+	id: UUID!
+	"""
+	名前
+	"""
+	name: String!
 }
 """
 受けるダメージを 0 にする
@@ -4578,7 +4685,7 @@ type Query {
 	"""
 	gameRules: GameRulesResult!
 	"""
-	自分が参加している対戦の詳細（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の詳細（登録済みのプレイヤーだけ）。無い・どちらでもない対戦は MatchNotFoundError
 	"""
 	match(
 		"""
@@ -4587,7 +4694,7 @@ type Query {
 		id: UUID!
 	): MatchResult!
 	"""
-	自分が参加している対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・参加していない対戦は MatchNotFoundError
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の、指した版より後のイベント（登録済みのプレイヤーだけ）。無い・どちらでもない対戦は MatchNotFoundError
 	"""
 	matchEvents(
 		"""
@@ -5105,6 +5212,10 @@ type RoomSeat {
 	"""
 	deck: RoomNamed
 	"""
+	選んだ思考パターン（NPC の席だけ。NPC のアバターに割り当てた思考パターン。プレイヤーの席と、まだ選んでいなければ null）
+	"""
+	mindset: RoomNamed
+	"""
 	見ている人がこの席のアバターとデッキを選び直せるか（changeRoomSeatChoice）。部屋の詳細（room）だけが返し、一覧（myRooms）では null
 	"""
 	choiceChangeable: Boolean
@@ -5283,10 +5394,10 @@ type StrikeLastEffect implements Effect {
 }
 type Subscription {
 	"""
-	自分が参加している対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
+	自分が参加している対戦か、自分が作った部屋で始めた対戦の進み（登録済みのプレイヤーだけ）。つないだ直後に今の版を送り、版が進んだらすぐ、
 	変わらなくても数秒ごとに送る（つながっていることの確認も兼ねる）。全員が戦利品を受け取り終えたら、その版を送ってから閉じる
 	（対戦が終わっただけでは閉じない。受け取らないまま離れた人がいると閉じない）。
-	無い・参加していない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
+	無い・どちらでもない対戦は MatchNotFoundError を 1 回送って閉じる。SSE（graphql-sse）でつなぐ
 	"""
 	matchProgress(
 		"""

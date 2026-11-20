@@ -41,10 +41,24 @@ INSERT INTO npc_decks (npc_deck_id, sort_name, status, total_count, metadata) VA
   ('00000000-0000-4000-8000-0000000000e3', '古いnpcデッキ', 'retired', 1, '{"id":"00000000-0000-4000-8000-0000000000e3","name":"古い NPC デッキ","status":"retired","cards":[{"card_id":"00000000-0000-4000-8000-00000000000b","count":1}]}');
 
 INSERT INTO npc_avatars (npc_avatar_id, sort_name, status, metadata) VALUES
-  ('00000000-0000-4000-8000-0000000000f1', '炎の剣士', 'published', '{"id":"00000000-0000-4000-8000-0000000000f1","name":"炎の剣士","status":"published","decks":["00000000-0000-4000-8000-0000000000e2","00000000-0000-4000-8000-0000000000e1","00000000-0000-4000-8000-0000000000e3"]}'),
-  ('00000000-0000-4000-8000-0000000000f2', '森の番人', 'published', '{"id":"00000000-0000-4000-8000-0000000000f2","name":"森の番人","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
-  ('00000000-0000-4000-8000-0000000000f3', '使用不可のnpc', 'retired', '{"id":"00000000-0000-4000-8000-0000000000f3","name":"使用不可の NPC","status":"retired","decks":["00000000-0000-4000-8000-0000000000e1"]}'),
-  ('00000000-0000-4000-8000-0000000000f4', '未解放のnpc', 'published', '{"id":"00000000-0000-4000-8000-0000000000f4","name":"未解放の NPC","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"]}');
+  ('00000000-0000-4000-8000-0000000000f1', '炎の剣士', 'published', '{"id":"00000000-0000-4000-8000-0000000000f1","name":"炎の剣士","status":"published","decks":["00000000-0000-4000-8000-0000000000e2","00000000-0000-4000-8000-0000000000e1","00000000-0000-4000-8000-0000000000e3"],"mindsets":["00000000-0000-4000-8000-0000000000c2","00000000-0000-4000-8000-0000000000c1","00000000-0000-4000-8000-0000000000c3"]}'),
+  ('00000000-0000-4000-8000-0000000000f2', '森の番人', 'published', '{"id":"00000000-0000-4000-8000-0000000000f2","name":"森の番人","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"],"mindsets":["00000000-0000-4000-8000-0000000000c1"]}'),
+  ('00000000-0000-4000-8000-0000000000f3', '使用不可のnpc', 'retired', '{"id":"00000000-0000-4000-8000-0000000000f3","name":"使用不可の NPC","status":"retired","decks":["00000000-0000-4000-8000-0000000000e1"],"mindsets":[]}'),
+  ('00000000-0000-4000-8000-0000000000f4', '未解放のnpc', 'published', '{"id":"00000000-0000-4000-8000-0000000000f4","name":"未解放の NPC","status":"published","decks":["00000000-0000-4000-8000-0000000000e1"],"mindsets":[]}');
+
+-- NPC の思考パターンは、npc_avatars と同じく、写したアバターに割り当てたものだけを入れる（状態つき）。
+-- 炎の剣士は 侵略型 → バランス → 古い の順に割り当て、使用不可の「古い」は出ない。重みは写し先の形（行動の種類・採点基準のすべて）を満たす値
+INSERT INTO npc_mindsets (npc_mindset_id, sort_name, status, metadata)
+SELECT m.id::uuid, m.sort_name, m.status, jsonb_build_object(
+  'id', m.id, 'name', m.name, 'status', m.status, 'revision', 2,
+  'action_weights', (SELECT jsonb_object_agg(a, 1) FROM unnest(ARRAY['draw_card','discard_card','use_spell','roll_dice','choose_path','place_creature','invade_territory','pay_toll','level_up_land','exchange_creature','change_land_element','move_creature','attack_with_item','attack_without_item','defend_with_item','defend_without_item','use_creature_as_item','relinquish_territory','end_turn']) AS a),
+  'criterion_weights', (SELECT jsonb_object_agg(c, 1) FROM unnest(ARRAY['own_total_magic','rival_total_magic','territory_count']) AS c)
+)
+FROM (VALUES
+  ('00000000-0000-4000-8000-0000000000c1', 'バランス', 'バランス', 'published'),
+  ('00000000-0000-4000-8000-0000000000c2', '侵略型', '侵略型', 'published'),
+  ('00000000-0000-4000-8000-0000000000c3', '古い思考パターン', '古い思考パターン', 'retired')
+) AS m(id, name, sort_name, status);
 
 -- 公開中のスターターセット。配るデッキは 火・水、解放するボードは 公開中A だけ（部屋の対戦ルールで選べる。ほかのボードは未解放）、解放する NPC は 森の番人 → 使用不可 → 炎の剣士 の順（名前の順でも行の順でもない）。
 -- 未解放の NPC は公開中でも解放しない。使用不可の NPC は解放していても出ない
